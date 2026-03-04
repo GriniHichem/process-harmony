@@ -49,7 +49,7 @@ export default function ProcessDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [elements, setElements] = useState<ProcessElement[]>([]);
-  const [users, setUsers] = useState<{ id: string; nom: string; prenom: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
 
   const fetchElements = useCallback(async () => {
     if (!id) return;
@@ -68,7 +68,7 @@ export default function ProcessDetail() {
       setLoading(false);
     };
     const fetchUsers = async () => {
-      const { data } = await supabase.from("profiles").select("id, nom, prenom").eq("actif", true);
+      const { data } = await supabase.from("profiles").select("id, nom, prenom, email").eq("actif", true);
       if (data) setUsers(data);
     };
     if (id) {
@@ -183,7 +183,7 @@ export default function ProcessDetail() {
                 <SelectContent>
                   <SelectItem value="none">Non assigné</SelectItem>
                   {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.prenom} {u.nom}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>{`${u.prenom} ${u.nom}`.trim() || u.email}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
