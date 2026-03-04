@@ -23,15 +23,23 @@ interface ProcessElement {
   ordre: number;
 }
 
-const ELEMENT_SECTIONS: { type: ElementType; title: string }[] = [
-  { type: "finalite", title: "Finalité" },
-  { type: "donnee_entree", title: "Données d'entrée" },
-  { type: "donnee_sortie", title: "Données de sortie" },
-  { type: "activite", title: "Activités principales" },
-  { type: "interaction", title: "Interactions" },
-  { type: "partie_prenante", title: "Parties prenantes" },
-  { type: "ressource", title: "Ressources" },
+const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string }[] = [
+  { type: "finalite", title: "Finalité", prefix: "F" },
+  { type: "donnee_entree", title: "Données d'entrée", prefix: "DE" },
+  { type: "donnee_sortie", title: "Données de sortie", prefix: "DS" },
+  { type: "activite", title: "Activités principales", prefix: "AP" },
+  { type: "interaction", title: "Interactions", prefix: "I" },
+  { type: "partie_prenante", title: "Parties prenantes", prefix: "PP" },
+  { type: "ressource", title: "Ressources", prefix: "R" },
 ];
+
+const generateNextCode = (prefix: string, existingElements: ProcessElement[]): string => {
+  const maxNum = existingElements.reduce((max, el) => {
+    const match = el.code.match(new RegExp(`^${prefix}-(\\d+)$`));
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0);
+  return `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
+};
 
 export default function ProcessDetail() {
   const { id } = useParams();
@@ -83,8 +91,10 @@ export default function ProcessDetail() {
 
   const updateField = (field: string, value: string) => setProcess({ ...process, [field]: value });
 
-  const handleAddElement = async (type: ElementType, code: string, description: string) => {
-    const maxOrdre = elements.filter(e => e.type === type).reduce((max, e) => Math.max(max, e.ordre), 0);
+  const handleAddElement = async (type: ElementType, prefix: string, description: string) => {
+    const typeElements = elements.filter(e => e.type === type);
+    const maxOrdre = typeElements.reduce((max, e) => Math.max(max, e.ordre), 0);
+    const code = generateNextCode(prefix, typeElements);
     const { error } = await supabase.from("process_elements").insert({
       process_id: id,
       type,
@@ -163,7 +173,7 @@ export default function ProcessDetail() {
           </CardContent>
         </Card>
 
-        {ELEMENT_SECTIONS.map(({ type, title }) => (
+        {ELEMENT_SECTIONS.map(({ type, title, prefix }) => (
           <Card key={type}>
             <CardContent className="pt-6">
               <ProcessElementList
@@ -171,7 +181,7 @@ export default function ProcessDetail() {
                 elements={elements.filter(e => e.type === type)}
                 canEdit={canEdit}
                 canDelete={canDelete}
-                onAdd={(code, desc) => handleAddElement(type, code, desc)}
+                onAdd={(desc) => handleAddElement(type, prefix, desc)}
                 onUpdate={handleUpdateElement}
                 onRemove={handleRemoveElement}
               />

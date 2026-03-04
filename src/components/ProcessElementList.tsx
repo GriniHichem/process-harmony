@@ -16,32 +16,31 @@ interface ProcessElementListProps {
   elements: ProcessElement[];
   canEdit: boolean;
   canDelete: boolean;
-  onAdd: (code: string, description: string) => Promise<void>;
+  onAdd: (description: string) => Promise<void>;
   onUpdate: (id: string, code: string, description: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }
 
 export function ProcessElementList({ title, elements, canEdit, canDelete, onAdd, onUpdate, onRemove }: ProcessElementListProps) {
   const [adding, setAdding] = useState(false);
-  const [newCode, setNewCode] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editCode, setEditCode] = useState("");
   const [editDesc, setEditDesc] = useState("");
 
   const handleAdd = async () => {
-    if (!newCode.trim() || !newDesc.trim()) { toast.error("Code et description requis"); return; }
-    await onAdd(newCode.trim(), newDesc.trim());
-    setNewCode(""); setNewDesc(""); setAdding(false);
+    if (!newDesc.trim()) { toast.error("Description requise"); return; }
+    await onAdd(newDesc.trim());
+    setNewDesc(""); setAdding(false);
   };
 
   const startEdit = (el: ProcessElement) => {
-    setEditingId(el.id); setEditCode(el.code); setEditDesc(el.description);
+    setEditingId(el.id); setEditDesc(el.description);
   };
 
   const handleUpdate = async () => {
-    if (!editingId || !editCode.trim() || !editDesc.trim()) return;
-    await onUpdate(editingId, editCode.trim(), editDesc.trim());
+    if (!editingId || !editDesc.trim()) return;
+    const el = elements.find(e => e.id === editingId);
+    await onUpdate(editingId, el?.code ?? "", editDesc.trim());
     setEditingId(null);
   };
 
@@ -65,7 +64,7 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, onAdd,
           <div key={el.id} className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
             {editingId === el.id ? (
               <>
-                <Input value={editCode} onChange={(e) => setEditCode(e.target.value)} className="h-7 w-24 text-xs font-mono" />
+                <span className="font-mono text-xs font-medium text-primary w-24 shrink-0">{el.code}</span>
                 <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="h-7 flex-1 text-xs" />
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleUpdate}><Check className="h-3 w-3" /></Button>
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
@@ -88,10 +87,9 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, onAdd,
 
       {adding && (
         <div className="flex items-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-2">
-          <Input placeholder="Code" value={newCode} onChange={(e) => setNewCode(e.target.value)} className="h-7 w-24 text-xs font-mono" />
           <Input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="h-7 flex-1 text-xs" />
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleAdd}><Check className="h-3 w-3" /></Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setAdding(false); setNewCode(""); setNewDesc(""); }}><X className="h-3 w-3" /></Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setAdding(false); setNewDesc(""); }}><X className="h-3 w-3" /></Button>
         </div>
       )}
     </div>
