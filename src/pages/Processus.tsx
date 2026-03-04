@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, UserCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -169,7 +169,9 @@ export default function Processus() {
         <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun processus trouvé</CardContent></Card>
       ) : (
         <div className="grid gap-3">
-          {filtered.map((p) => (
+          {filtered.map((p) => {
+            const responsable = users.find(u => u.id === p.responsable_id);
+            return (
             <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/processus/${p.id}`)}>
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-4">
@@ -180,12 +182,17 @@ export default function Processus() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Responsable">
+                    <UserCheck className="h-3.5 w-3.5" />
+                    <span>{responsable ? `${responsable.prenom} ${responsable.nom}` : "Non assigné"}</span>
+                  </div>
                   <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
                   <Eye className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
