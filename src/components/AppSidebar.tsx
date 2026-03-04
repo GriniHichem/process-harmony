@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle,
-  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut
+  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -11,7 +11,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import badge from "@/assets/badge.png";
+
 
 const mainItems = [
   { title: "Tableau de bord", url: "/", icon: LayoutDashboard },
@@ -69,7 +69,9 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <img src={badge} alt="AMOUR" className="h-8 rounded-lg object-contain" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <Shield className="h-4 w-4" />
+          </div>
           {!collapsed && (
             <div>
               <p className="text-sm font-semibold text-sidebar-foreground">ISO 9001</p>
@@ -87,17 +89,14 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        <div className="flex flex-col items-center gap-2 mb-2">
-          <img src={badge} alt="AMOUR badge" className="w-20 h-20 object-contain" />
-          {!collapsed && profile && (
-            <div className="text-center px-1">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">
-                {profile.prenom} {profile.nom}
-              </p>
-              <p className="text-xs text-sidebar-foreground/60 truncate">{role ?? ""}</p>
-            </div>
-          )}
-        </div>
+        {!collapsed && profile && (
+          <div className="mb-2 px-1">
+            <p className="text-xs font-medium text-sidebar-foreground truncate">
+              {profile.prenom} {profile.nom}
+            </p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{role ?? ""}</p>
+          </div>
+        )}
         <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={signOut}>
           <LogOut className="mr-2 h-4 w-4" />
           {!collapsed && "Déconnexion"}
