@@ -1,0 +1,847 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  public: {
+    Tables: {
+      actions: {
+        Row: {
+          commentaire_cloture: string | null
+          created_at: string
+          date_cloture: string | null
+          description: string
+          echeance: string | null
+          id: string
+          preuve: string | null
+          responsable_id: string | null
+          source_id: string | null
+          source_type: string
+          statut: Database["public"]["Enums"]["action_status"]
+          type_action: Database["public"]["Enums"]["action_type"]
+          updated_at: string
+        }
+        Insert: {
+          commentaire_cloture?: string | null
+          created_at?: string
+          date_cloture?: string | null
+          description: string
+          echeance?: string | null
+          id?: string
+          preuve?: string | null
+          responsable_id?: string | null
+          source_id?: string | null
+          source_type: string
+          statut?: Database["public"]["Enums"]["action_status"]
+          type_action: Database["public"]["Enums"]["action_type"]
+          updated_at?: string
+        }
+        Update: {
+          commentaire_cloture?: string | null
+          created_at?: string
+          date_cloture?: string | null
+          description?: string
+          echeance?: string | null
+          id?: string
+          preuve?: string | null
+          responsable_id?: string | null
+          source_id?: string | null
+          source_type?: string
+          statut?: Database["public"]["Enums"]["action_status"]
+          type_action?: Database["public"]["Enums"]["action_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      audit_findings: {
+        Row: {
+          audit_id: string
+          created_at: string
+          description: string
+          id: string
+          preuve: string | null
+          process_id: string | null
+          statut: Database["public"]["Enums"]["nc_status"]
+          type_constat: Database["public"]["Enums"]["finding_type"]
+          updated_at: string
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string
+          description: string
+          id?: string
+          preuve?: string | null
+          process_id?: string | null
+          statut?: Database["public"]["Enums"]["nc_status"]
+          type_constat: Database["public"]["Enums"]["finding_type"]
+          updated_at?: string
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          preuve?: string | null
+          process_id?: string | null
+          statut?: Database["public"]["Enums"]["nc_status"]
+          type_constat?: Database["public"]["Enums"]["finding_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_findings_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_findings_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      audits: {
+        Row: {
+          auditeur_id: string | null
+          created_at: string
+          date_audit: string | null
+          date_fin: string | null
+          id: string
+          perimetre: string | null
+          rapport: string | null
+          reference: string
+          statut: Database["public"]["Enums"]["audit_status"]
+          type_audit: Database["public"]["Enums"]["audit_type"]
+          updated_at: string
+        }
+        Insert: {
+          auditeur_id?: string | null
+          created_at?: string
+          date_audit?: string | null
+          date_fin?: string | null
+          id?: string
+          perimetre?: string | null
+          rapport?: string | null
+          reference: string
+          statut?: Database["public"]["Enums"]["audit_status"]
+          type_audit: Database["public"]["Enums"]["audit_type"]
+          updated_at?: string
+        }
+        Update: {
+          auditeur_id?: string | null
+          created_at?: string
+          date_audit?: string | null
+          date_fin?: string | null
+          id?: string
+          perimetre?: string | null
+          rapport?: string | null
+          reference?: string
+          statut?: Database["public"]["Enums"]["audit_status"]
+          type_audit?: Database["public"]["Enums"]["audit_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bpmn_diagrams: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          donnees: Json | null
+          id: string
+          nom: string
+          process_id: string
+          statut: Database["public"]["Enums"]["process_status"]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          donnees?: Json | null
+          id?: string
+          nom: string
+          process_id: string
+          statut?: Database["public"]["Enums"]["process_status"]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          donnees?: Json | null
+          id?: string
+          nom?: string
+          process_id?: string
+          statut?: Database["public"]["Enums"]["process_status"]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bpmn_diagrams_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          archive: boolean
+          chemin_fichier: string | null
+          created_at: string
+          description: string | null
+          id: string
+          nom_fichier: string | null
+          process_id: string | null
+          taille_fichier: number | null
+          titre: string
+          type_document: Database["public"]["Enums"]["document_type"]
+          updated_at: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          archive?: boolean
+          chemin_fichier?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom_fichier?: string | null
+          process_id?: string | null
+          taille_fichier?: number | null
+          titre: string
+          type_document: Database["public"]["Enums"]["document_type"]
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Update: {
+          archive?: boolean
+          chemin_fichier?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom_fichier?: string | null
+          process_id?: string | null
+          taille_fichier?: number | null
+          titre?: string
+          type_document?: Database["public"]["Enums"]["document_type"]
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      indicator_values: {
+        Row: {
+          commentaire: string | null
+          created_at: string
+          date_mesure: string
+          id: string
+          indicator_id: string
+          saisi_par: string | null
+          valeur: number
+        }
+        Insert: {
+          commentaire?: string | null
+          created_at?: string
+          date_mesure: string
+          id?: string
+          indicator_id: string
+          saisi_par?: string | null
+          valeur: number
+        }
+        Update: {
+          commentaire?: string | null
+          created_at?: string
+          date_mesure?: string
+          id?: string
+          indicator_id?: string
+          saisi_par?: string | null
+          valeur?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicator_values_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      indicators: {
+        Row: {
+          cible: number | null
+          created_at: string
+          formule: string | null
+          frequence: Database["public"]["Enums"]["indicator_frequency"]
+          id: string
+          nom: string
+          process_id: string
+          seuil_alerte: number | null
+          unite: string | null
+          updated_at: string
+        }
+        Insert: {
+          cible?: number | null
+          created_at?: string
+          formule?: string | null
+          frequence?: Database["public"]["Enums"]["indicator_frequency"]
+          id?: string
+          nom: string
+          process_id: string
+          seuil_alerte?: number | null
+          unite?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cible?: number | null
+          created_at?: string
+          formule?: string | null
+          frequence?: Database["public"]["Enums"]["indicator_frequency"]
+          id?: string
+          nom?: string
+          process_id?: string
+          seuil_alerte?: number | null
+          unite?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicators_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nonconformities: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_detection: string
+          description: string
+          gravite: Database["public"]["Enums"]["nc_severity"]
+          id: string
+          origine: string | null
+          process_id: string | null
+          reference: string
+          statut: Database["public"]["Enums"]["nc_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_detection?: string
+          description: string
+          gravite: Database["public"]["Enums"]["nc_severity"]
+          id?: string
+          origine?: string | null
+          process_id?: string | null
+          reference: string
+          statut?: Database["public"]["Enums"]["nc_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_detection?: string
+          description?: string
+          gravite?: Database["public"]["Enums"]["nc_severity"]
+          id?: string
+          origine?: string | null
+          process_id?: string | null
+          reference?: string
+          statut?: Database["public"]["Enums"]["nc_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nonconformities_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_versions: {
+        Row: {
+          created_at: string
+          donnees: Json
+          id: string
+          modifie_par: string | null
+          process_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          donnees: Json
+          id?: string
+          modifie_par?: string | null
+          process_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          donnees?: Json
+          id?: string
+          modifie_par?: string | null
+          process_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_versions_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processes: {
+        Row: {
+          activites: string | null
+          code: string
+          created_at: string
+          description: string | null
+          donnees_entree: string | null
+          donnees_sortie: string | null
+          finalite: string | null
+          id: string
+          interactions: string | null
+          nom: string
+          parties_prenantes: string | null
+          responsable_id: string | null
+          ressources: string | null
+          statut: Database["public"]["Enums"]["process_status"]
+          type_processus: Database["public"]["Enums"]["process_type"]
+          updated_at: string
+          version_courante: number
+        }
+        Insert: {
+          activites?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          donnees_entree?: string | null
+          donnees_sortie?: string | null
+          finalite?: string | null
+          id?: string
+          interactions?: string | null
+          nom: string
+          parties_prenantes?: string | null
+          responsable_id?: string | null
+          ressources?: string | null
+          statut?: Database["public"]["Enums"]["process_status"]
+          type_processus: Database["public"]["Enums"]["process_type"]
+          updated_at?: string
+          version_courante?: number
+        }
+        Update: {
+          activites?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          donnees_entree?: string | null
+          donnees_sortie?: string | null
+          finalite?: string | null
+          id?: string
+          interactions?: string | null
+          nom?: string
+          parties_prenantes?: string | null
+          responsable_id?: string | null
+          ressources?: string | null
+          statut?: Database["public"]["Enums"]["process_status"]
+          type_processus?: Database["public"]["Enums"]["process_type"]
+          updated_at?: string
+          version_courante?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          actif: boolean
+          created_at: string
+          email: string
+          fonction: string | null
+          id: string
+          nom: string
+          prenom: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          email?: string
+          fonction?: string | null
+          id: string
+          nom?: string
+          prenom?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          email?: string
+          fonction?: string | null
+          id?: string
+          nom?: string
+          prenom?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      risks_opportunities: {
+        Row: {
+          actions_traitement: string | null
+          created_at: string
+          criticite: number | null
+          description: string
+          id: string
+          impact: number | null
+          probabilite: number | null
+          process_id: string
+          statut: string
+          type: Database["public"]["Enums"]["risk_type"]
+          updated_at: string
+        }
+        Insert: {
+          actions_traitement?: string | null
+          created_at?: string
+          criticite?: number | null
+          description: string
+          id?: string
+          impact?: number | null
+          probabilite?: number | null
+          process_id: string
+          statut?: string
+          type: Database["public"]["Enums"]["risk_type"]
+          updated_at?: string
+        }
+        Update: {
+          actions_traitement?: string | null
+          created_at?: string
+          criticite?: number | null
+          description?: string
+          id?: string
+          impact?: number | null
+          probabilite?: number | null
+          process_id?: string
+          statut?: string
+          type?: Database["public"]["Enums"]["risk_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risks_opportunities_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      action_status:
+        | "planifiee"
+        | "en_cours"
+        | "realisee"
+        | "verifiee"
+        | "cloturee"
+        | "en_retard"
+      action_type: "corrective" | "preventive" | "amelioration"
+      app_role: "rmq" | "responsable_processus" | "consultant" | "auditeur"
+      audit_status: "planifie" | "en_cours" | "termine" | "cloture"
+      audit_type: "interne" | "externe"
+      document_type:
+        | "procedure"
+        | "instruction"
+        | "formulaire"
+        | "enregistrement"
+        | "rapport"
+        | "compte_rendu_audit"
+        | "preuve"
+      finding_type:
+        | "conformite"
+        | "observation"
+        | "non_conformite_mineure"
+        | "non_conformite_majeure"
+        | "amelioration"
+      indicator_frequency:
+        | "quotidien"
+        | "hebdomadaire"
+        | "mensuel"
+        | "trimestriel"
+        | "semestriel"
+        | "annuel"
+      nc_severity: "mineure" | "majeure" | "critique"
+      nc_status: "ouverte" | "en_traitement" | "cloturee"
+      process_status: "brouillon" | "en_validation" | "valide" | "archive"
+      process_type: "pilotage" | "realisation" | "support"
+      risk_type: "risque" | "opportunite"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      action_status: [
+        "planifiee",
+        "en_cours",
+        "realisee",
+        "verifiee",
+        "cloturee",
+        "en_retard",
+      ],
+      action_type: ["corrective", "preventive", "amelioration"],
+      app_role: ["rmq", "responsable_processus", "consultant", "auditeur"],
+      audit_status: ["planifie", "en_cours", "termine", "cloture"],
+      audit_type: ["interne", "externe"],
+      document_type: [
+        "procedure",
+        "instruction",
+        "formulaire",
+        "enregistrement",
+        "rapport",
+        "compte_rendu_audit",
+        "preuve",
+      ],
+      finding_type: [
+        "conformite",
+        "observation",
+        "non_conformite_mineure",
+        "non_conformite_majeure",
+        "amelioration",
+      ],
+      indicator_frequency: [
+        "quotidien",
+        "hebdomadaire",
+        "mensuel",
+        "trimestriel",
+        "semestriel",
+        "annuel",
+      ],
+      nc_severity: ["mineure", "majeure", "critique"],
+      nc_status: ["ouverte", "en_traitement", "cloturee"],
+      process_status: ["brouillon", "en_validation", "valide", "archive"],
+      process_type: ["pilotage", "realisation", "support"],
+      risk_type: ["risque", "opportunite"],
+    },
+  },
+} as const
