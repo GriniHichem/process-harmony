@@ -47,8 +47,9 @@ export default function Processus() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [users, setUsers] = useState<{ id: string; nom: string; prenom: string }[]>([]);
 
-  const [newProcess, setNewProcess] = useState({ code: "", nom: "", type_processus: "realisation" as const, finalite: "" });
+  const [newProcess, setNewProcess] = useState({ code: "", nom: "", type_processus: "realisation" as const, finalite: "", responsable_id: "" });
 
   const fetchProcesses = async () => {
     const { data } = await supabase.from("processes").select("*").order("code");
@@ -56,7 +57,12 @@ export default function Processus() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProcesses(); }, []);
+  const fetchUsers = async () => {
+    const { data } = await supabase.from("profiles").select("id, nom, prenom").eq("actif", true);
+    if (data) setUsers(data);
+  };
+
+  useEffect(() => { fetchProcesses(); fetchUsers(); }, []);
 
   const filtered = processes.filter((p) => {
     if (typeFilter !== "all" && p.type_processus !== typeFilter) return false;
@@ -72,11 +78,12 @@ export default function Processus() {
       nom: newProcess.nom,
       type_processus: newProcess.type_processus,
       finalite: newProcess.finalite || null,
+      responsable_id: newProcess.responsable_id || null,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Processus créé");
     setDialogOpen(false);
-    setNewProcess({ code: "", nom: "", type_processus: "realisation", finalite: "" });
+    setNewProcess({ code: "", nom: "", type_processus: "realisation", finalite: "", responsable_id: "" });
     fetchProcesses();
   };
 
@@ -111,6 +118,18 @@ export default function Processus() {
                   </Select>
                 </div>
                 <div className="space-y-2"><Label>Finalité</Label><Textarea value={newProcess.finalite} onChange={(e) => setNewProcess({ ...newProcess, finalite: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Responsable</Label>
+                  <Select value={newProcess.responsable_id || "none"} onValueChange={(v) => setNewProcess({ ...newProcess, responsable_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Non assigné</SelectItem>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{u.prenom} {u.nom}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={handleCreate} className="w-full">Créer</Button>
               </div>
             </DialogContent>
