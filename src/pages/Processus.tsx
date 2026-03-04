@@ -47,7 +47,7 @@ export default function Processus() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [users, setUsers] = useState<{ id: string; nom: string; prenom: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
 
   const [newProcess, setNewProcess] = useState({ code: "", nom: "", type_processus: "realisation" as const, finalite: "", responsable_id: "" });
 
@@ -58,8 +58,13 @@ export default function Processus() {
   };
 
   const fetchUsers = async () => {
-    const { data } = await supabase.from("profiles").select("id, nom, prenom").eq("actif", true);
+    const { data } = await supabase.from("profiles").select("id, nom, prenom, email").eq("actif", true);
     if (data) setUsers(data);
+  };
+
+  const getUserLabel = (u: { nom: string; prenom: string; email: string }) => {
+    const fullName = `${u.prenom} ${u.nom}`.trim();
+    return fullName || u.email;
   };
 
   useEffect(() => { fetchProcesses(); fetchUsers(); }, []);
@@ -125,7 +130,7 @@ export default function Processus() {
                     <SelectContent>
                       <SelectItem value="none">Non assigné</SelectItem>
                       {users.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.prenom} {u.nom}</SelectItem>
+                        <SelectItem key={u.id} value={u.id}>{getUserLabel(u)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -184,7 +189,7 @@ export default function Processus() {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Responsable">
                     <UserCheck className="h-3.5 w-3.5" />
-                    <span>{responsable ? `${responsable.prenom} ${responsable.nom}` : "Non assigné"}</span>
+                    <span>{responsable ? getUserLabel(responsable) : "Non assigné"}</span>
                   </div>
                   <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
                   <Eye className="h-4 w-4 text-muted-foreground" />
