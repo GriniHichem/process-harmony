@@ -11,7 +11,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import logo from "@/assets/logo.jpg";
 import badge from "@/assets/badge.png";
 
 const mainItems = [
@@ -70,7 +69,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="AMOUR" className="h-8 rounded-lg object-contain" />
+          <img src={badge} alt="AMOUR" className="h-8 rounded-lg object-contain" />
           {!collapsed && (
             <div>
               <p className="text-sm font-semibold text-sidebar-foreground">ISO 9001</p>
