@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ProcessElementList } from "@/components/ProcessElementList";
+
+type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
+
+interface ProcessElement {
+  id: string;
+  code: string;
+  description: string;
+  type: ElementType;
+  ordre: number;
+}
+
+const ELEMENT_SECTIONS: { type: ElementType; title: string }[] = [
+  { type: "finalite", title: "Finalité" },
+  { type: "donnee_entree", title: "Données d'entrée" },
+  { type: "donnee_sortie", title: "Données de sortie" },
+  { type: "activite", title: "Activités principales" },
+  { type: "interaction", title: "Interactions" },
+  { type: "partie_prenante", title: "Parties prenantes" },
+  { type: "ressource", title: "Ressources" },
+];
 
 export default function ProcessDetail() {
   const { id } = useParams();
@@ -19,6 +40,17 @@ export default function ProcessDetail() {
   const [process, setProcess] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [elements, setElements] = useState<ProcessElement[]>([]);
+
+  const fetchElements = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase
+      .from("process_elements")
+      .select("*")
+      .eq("process_id", id)
+      .order("ordre", { ascending: true });
+    if (data) setElements(data as ProcessElement[]);
+  }, [id]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -26,25 +58,22 @@ export default function ProcessDetail() {
       setProcess(data);
       setLoading(false);
     };
-    if (id) fetch();
-  }, [id]);
+    if (id) {
+      fetch();
+      fetchElements();
+    }
+  }, [id, fetchElements]);
 
   const canEdit = role === "rmq" || role === "consultant" || (role === "responsable_processus" && process?.responsable_id === user?.id);
+  const canDelete = role === "rmq" || role === "responsable_processus";
 
   const handleSave = async () => {
     if (!process) return;
     setSaving(true);
     const { error } = await supabase.from("processes").update({
       nom: process.nom,
-      finalite: process.finalite,
       description: process.description,
       type_processus: process.type_processus,
-      parties_prenantes: process.parties_prenantes,
-      donnees_entree: process.donnees_entree,
-      donnees_sortie: process.donnees_sortie,
-      activites: process.activites,
-      interactions: process.interactions,
-      ressources: process.ressources,
       statut: process.statut,
     }).eq("id", id);
     if (error) toast.error(error.message);
@@ -53,6 +82,34 @@ export default function ProcessDetail() {
   };
 
   const updateField = (field: string, value: string) => setProcess({ ...process, [field]: value });
+
+  const handleAddElement = async (type: ElementType, code: string, description: string) => {
+    const maxOrdre = elements.filter(e => e.type === type).reduce((max, e) => Math.max(max, e.ordre), 0);
+    const { error } = await supabase.from("process_elements").insert({
+      process_id: id,
+      type,
+      code,
+      description,
+      ordre: maxOrdre + 1,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Élément ajouté");
+    fetchElements();
+  };
+
+  const handleUpdateElement = async (elId: string, code: string, description: string) => {
+    const { error } = await supabase.from("process_elements").update({ code, description }).eq("id", elId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Élément modifié");
+    fetchElements();
+  };
+
+  const handleRemoveElement = async (elId: string) => {
+    const { error } = await supabase.from("process_elements").delete().eq("id", elId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Élément supprimé");
+    fetchElements();
+  };
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
   if (!process) return <div className="text-center py-12 text-muted-foreground">Processus non trouvé</div>;
@@ -102,34 +159,25 @@ export default function ProcessDetail() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Finalité</Label><Textarea value={process.finalite ?? ""} onChange={(e) => updateField("finalite", e.target.value)} disabled={!canEdit} /></div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-base">Description détaillée</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
             <div className="space-y-2"><Label>Description</Label><Textarea value={process.description ?? ""} onChange={(e) => updateField("description", e.target.value)} disabled={!canEdit} rows={3} /></div>
-            <div className="space-y-2"><Label>Parties prenantes</Label><Textarea value={process.parties_prenantes ?? ""} onChange={(e) => updateField("parties_prenantes", e.target.value)} disabled={!canEdit} rows={2} /></div>
-            <div className="space-y-2"><Label>Ressources</Label><Textarea value={process.ressources ?? ""} onChange={(e) => updateField("ressources", e.target.value)} disabled={!canEdit} rows={2} /></div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle className="text-base">Entrées / Sorties</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2"><Label>Données d'entrée</Label><Textarea value={process.donnees_entree ?? ""} onChange={(e) => updateField("donnees_entree", e.target.value)} disabled={!canEdit} /></div>
-            <div className="space-y-2"><Label>Données de sortie</Label><Textarea value={process.donnees_sortie ?? ""} onChange={(e) => updateField("donnees_sortie", e.target.value)} disabled={!canEdit} /></div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-base">Activités & Interactions</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2"><Label>Activités principales</Label><Textarea value={process.activites ?? ""} onChange={(e) => updateField("activites", e.target.value)} disabled={!canEdit} /></div>
-            <div className="space-y-2"><Label>Interactions</Label><Textarea value={process.interactions ?? ""} onChange={(e) => updateField("interactions", e.target.value)} disabled={!canEdit} /></div>
-          </CardContent>
-        </Card>
+        {ELEMENT_SECTIONS.map(({ type, title }) => (
+          <Card key={type}>
+            <CardContent className="pt-6">
+              <ProcessElementList
+                title={title}
+                elements={elements.filter(e => e.type === type)}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                onAdd={(code, desc) => handleAddElement(type, code, desc)}
+                onUpdate={handleUpdateElement}
+                onRemove={handleRemoveElement}
+              />
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
