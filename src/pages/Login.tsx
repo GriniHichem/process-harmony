@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Shield } from "lucide-react";
+import logo from "@/assets/logo.jpg";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -46,9 +46,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Shield className="h-7 w-7" />
-          </div>
+          <img src={logo} alt="AMOUR" className="mx-auto h-14 object-contain" />
           <CardTitle className="text-2xl">ISO 9001 - SMQ</CardTitle>
           <CardDescription>
             {isResetMode

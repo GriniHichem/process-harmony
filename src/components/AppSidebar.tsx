@@ -10,8 +10,8 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/logo.jpg";
 
 const mainItems = [
   { title: "Tableau de bord", url: "/", icon: LayoutDashboard },
@@ -69,9 +69,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <Shield className="h-4 w-4" />
-          </div>
+          <img src={logo} alt="AMOUR" className="h-8 rounded-lg object-contain" />
           {!collapsed && (
             <div>
               <p className="text-sm font-semibold text-sidebar-foreground">ISO 9001</p>

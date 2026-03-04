@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import logo from "@/assets/logo.jpg";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, role } = useAuth();
@@ -13,6 +14,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <header className="h-14 flex items-center justify-between border-b bg-card px-4">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
+              <img src={logo} alt="AMOUR" className="h-7 object-contain" />
               <span className="text-sm font-medium text-muted-foreground">
                 Système de Management de la Qualité
               </span>
