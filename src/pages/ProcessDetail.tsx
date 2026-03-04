@@ -49,6 +49,7 @@ export default function ProcessDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [elements, setElements] = useState<ProcessElement[]>([]);
+  const [users, setUsers] = useState<{ id: string; nom: string; prenom: string }[]>([]);
 
   const fetchElements = useCallback(async () => {
     if (!id) return;
@@ -66,9 +67,14 @@ export default function ProcessDetail() {
       setProcess(data);
       setLoading(false);
     };
+    const fetchUsers = async () => {
+      const { data } = await supabase.from("profiles").select("id, nom, prenom").eq("actif", true);
+      if (data) setUsers(data);
+    };
     if (id) {
       fetch();
       fetchElements();
+      fetchUsers();
     }
   }, [id, fetchElements]);
 
@@ -83,6 +89,7 @@ export default function ProcessDetail() {
       description: process.description,
       type_processus: process.type_processus,
       statut: process.statut,
+      responsable_id: process.responsable_id || null,
     }).eq("id", id);
     if (error) toast.error(error.message);
     else toast.success("Processus mis à jour");
@@ -166,6 +173,18 @@ export default function ProcessDetail() {
                   <SelectItem value="en_validation">En validation</SelectItem>
                   <SelectItem value="valide">Validé</SelectItem>
                   <SelectItem value="archive">Archivé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Responsable</Label>
+              <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={role !== "rmq"}>
+                <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Non assigné</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.prenom} {u.nom}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
