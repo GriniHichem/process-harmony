@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.jpg";
+import badge from "@/assets/badge.png";
 
 const mainItems = [
   { title: "Tableau de bord", url: "/", icon: LayoutDashboard },
@@ -87,14 +88,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        {!collapsed && profile && (
-          <div className="mb-2 px-1">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">
-              {profile.prenom} {profile.nom}
-            </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{role ?? ""}</p>
-          </div>
-        )}
+        <div className="flex flex-col items-center gap-2 mb-2">
+          <img src={badge} alt="AMOUR badge" className="w-20 h-20 object-contain" />
+          {!collapsed && profile && (
+            <div className="text-center px-1">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">
+                {profile.prenom} {profile.nom}
+              </p>
+              <p className="text-xs text-sidebar-foreground/60 truncate">{role ?? ""}</p>
+            </div>
+          )}
+        </div>
         <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={signOut}>
           <LogOut className="mr-2 h-4 w-4" />
           {!collapsed && "Déconnexion"}
