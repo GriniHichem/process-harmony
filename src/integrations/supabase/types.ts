@@ -423,6 +423,47 @@ export type Database = {
           },
         ]
       }
+      process_elements: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          id: string
+          ordre: number
+          process_id: string
+          type: Database["public"]["Enums"]["process_element_type"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string
+          id?: string
+          ordre?: number
+          process_id: string
+          type: Database["public"]["Enums"]["process_element_type"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          ordre?: number
+          process_id?: string
+          type?: Database["public"]["Enums"]["process_element_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_elements_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_versions: {
         Row: {
           created_at: string
@@ -671,6 +712,14 @@ export type Database = {
         | "annuel"
       nc_severity: "mineure" | "majeure" | "critique"
       nc_status: "ouverte" | "en_traitement" | "cloturee"
+      process_element_type:
+        | "finalite"
+        | "donnee_entree"
+        | "donnee_sortie"
+        | "activite"
+        | "interaction"
+        | "partie_prenante"
+        | "ressource"
       process_status: "brouillon" | "en_validation" | "valide" | "archive"
       process_type: "pilotage" | "realisation" | "support"
       risk_type: "risque" | "opportunite"
@@ -839,6 +888,15 @@ export const Constants = {
       ],
       nc_severity: ["mineure", "majeure", "critique"],
       nc_status: ["ouverte", "en_traitement", "cloturee"],
+      process_element_type: [
+        "finalite",
+        "donnee_entree",
+        "donnee_sortie",
+        "activite",
+        "interaction",
+        "partie_prenante",
+        "ressource",
+      ],
       process_status: ["brouillon", "en_validation", "valide", "archive"],
       process_type: ["pilotage", "realisation", "support"],
       risk_type: ["risque", "opportunite"],
