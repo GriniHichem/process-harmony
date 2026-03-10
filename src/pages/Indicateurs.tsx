@@ -288,6 +288,14 @@ export default function Indicateurs() {
           </Card>
         </div>
 
+        {/* Moyens & Actions */}
+        <IndicatorMoyensActions
+          indicatorId={selectedIndicator.id}
+          moyens={(selectedIndicator as any).moyens ?? null}
+          canEdit={canCreate}
+          onMoyensUpdate={(m) => setSelectedIndicator({ ...selectedIndicator, moyens: m } as any)}
+        />
+
         {/* Chart */}
         <Card>
           <CardHeader className="pb-2">
