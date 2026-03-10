@@ -478,6 +478,15 @@ export default function Audits() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Admin Delete Confirmation */}
+      <AdminPasswordDialog
+        open={!!deleteAudit}
+        onOpenChange={(o) => !o && setDeleteAudit(null)}
+        onConfirm={handleDeleteAudit}
+        title="Suppression d'audit"
+        description={`La suppression de l'audit "${deleteAudit?.reference}" est irréversible. Tous les constats associés seront également supprimés. Cette action nécessite les identifiants d'un administrateur.`}
+      />
     </div>
   );
 }
