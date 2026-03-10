@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type IndicatorType = "activite" | "resultat" | "perception" | "interne";
-type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType };
+type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType; moyens?: string | null };
 type IndicatorValue = { id: string; indicator_id: string; valeur: number; date_mesure: string; commentaire: string | null; saisi_par: string | null; created_at: string };
 
 const TYPE_LABELS: Record<IndicatorType, string> = { activite: "Activité", resultat: "Résultat", perception: "Perception", interne: "Interne" };
