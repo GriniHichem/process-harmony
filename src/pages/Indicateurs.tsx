@@ -365,7 +365,28 @@ export default function Indicateurs() {
                   {ind.seuil_alerte != null && <p className="flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-warning" /> Seuil : {ind.seuil_alerte} {ind.unite}</p>}
                   <p>Fréquence : {ind.frequence}</p>
                 </div>
-                <p className="mt-2 text-xs text-primary font-medium">Cliquer pour voir l'historique →</p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-primary font-medium">Cliquer pour voir l'historique →</p>
+                  {canDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer cet indicateur ?</AlertDialogTitle>
+                          <AlertDialogDescription>Cette action supprimera l'indicateur « {ind.nom} » et tout son historique de valeurs.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteIndicator(ind.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
