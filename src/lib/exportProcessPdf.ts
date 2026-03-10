@@ -328,15 +328,18 @@ function buildHtml(data: ProcessData): string {
   ${contextIssues.length > 0 ? `<div class="section">
     <h2>Enjeux du contexte (ISO 9001)</h2>
     <table>
-      <thead><tr><th style="width:70px">Réf.</th><th style="width:70px">Type</th><th>Intitulé</th><th>Description</th><th style="width:60px">Impact</th><th style="width:55px">Climat</th></tr></thead>
-      <tbody>${contextIssues.map((ci: any) => `<tr>
+      <thead><tr><th style="width:70px">Réf.</th><th style="width:70px">Type</th><th style="width:90px">Domaine</th><th>Intitulé</th><th>Description</th><th style="width:60px">Impact</th><th style="width:55px">Climat</th></tr></thead>
+      <tbody>${contextIssues.map((ci: any) => {
+        const domaineLabels: Record<string,string> = { strategique:"Stratégique", organisationnel:"Organisationnel", technique:"Technique", reglementaire:"Réglementaire", financier:"Financier", humain:"Humain", marche_client:"Marché/Client", fournisseur_prestataire:"Fournisseur/Prestataire", securite_cyber:"Sécurité/Cyber", environnement_climat:"Environnement/Climat" };
+        return `<tr>
         <td class="mono">${escapeHtml(ci.reference)}</td>
         <td>${ci.type_enjeu === "interne" ? "Interne" : "Externe"}</td>
+        <td>${domaineLabels[ci.domaine] || ci.domaine || "—"}</td>
         <td><strong>${escapeHtml(ci.intitule)}</strong></td>
         <td>${escapeHtml(ci.description)}</td>
         <td>${ci.impact === "faible" ? "Faible" : ci.impact === "moyen" ? "Moyen" : "Fort"}</td>
         <td>${ci.climat_pertinent ? "Oui" : "Non"}</td>
-      </tr>`).join("")}</tbody>
+      </tr>`;}).join("")}</tbody>
     </table>
     ${contextIssues.some((ci: any) => (contextIssueActions[ci.id] ?? []).length > 0) ? `
       <div style="margin-top:10px">
