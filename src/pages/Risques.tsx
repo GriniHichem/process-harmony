@@ -113,7 +113,7 @@ export default function Risques() {
                   {r.type === "risque" ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Lightbulb className="h-5 w-5 text-accent" />}
                   <div>
                     <p className="font-medium">{r.description}</p>
-                    <p className="text-xs text-muted-foreground">P:{r.probabilite} × I:{r.impact}</p>
+                    <p className="text-xs text-muted-foreground">P:{r.probabilite} × G:{r.impact}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
