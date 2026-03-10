@@ -52,11 +52,11 @@ export default function Utilisateurs() {
     else { toast.success(currentActive ? "Compte désactivé" : "Compte activé"); fetchUsers(); }
   };
 
-  if (role !== "rmq") {
+  if (role !== "rmq" && role !== "admin") {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Utilisateurs</h1>
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé au RMQ</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé au RMQ ou Admin</CardContent></Card>
       </div>
     );
   }
