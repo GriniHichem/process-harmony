@@ -177,31 +177,85 @@ export default function Indicateurs() {
             </p>
           </div>
           {canCreate && (
-            <Dialog open={valueDialogOpen} onOpenChange={setValueDialogOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" /> Saisir une valeur</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Nouvelle mesure</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Valeur {selectedIndicator.unite ? `(${selectedIndicator.unite})` : ""}</Label>
-                    <Input type="number" value={newValue.valeur} onChange={(e) => setNewValue({ ...newValue, valeur: e.target.value })} placeholder="0" />
+            <>
+              <Button variant="outline" onClick={() => openEditDialog(selectedIndicator)}>
+                <Pencil className="mr-2 h-4 w-4" /> Modifier
+              </Button>
+              <Dialog open={valueDialogOpen} onOpenChange={setValueDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="mr-2 h-4 w-4" /> Saisir une valeur</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Nouvelle mesure</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Valeur {selectedIndicator.unite ? `(${selectedIndicator.unite})` : ""}</Label>
+                      <Input type="number" value={newValue.valeur} onChange={(e) => setNewValue({ ...newValue, valeur: e.target.value })} placeholder="0" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date de mesure</Label>
+                      <Input type="date" value={newValue.date_mesure} onChange={(e) => setNewValue({ ...newValue, date_mesure: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Commentaire</Label>
+                      <Textarea value={newValue.commentaire} onChange={(e) => setNewValue({ ...newValue, commentaire: e.target.value })} placeholder="Optionnel" rows={2} />
+                    </div>
+                    <Button onClick={handleAddValue} className="w-full">Enregistrer</Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Date de mesure</Label>
-                    <Input type="date" value={newValue.date_mesure} onChange={(e) => setNewValue({ ...newValue, date_mesure: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Commentaire</Label>
-                    <Textarea value={newValue.commentaire} onChange={(e) => setNewValue({ ...newValue, commentaire: e.target.value })} placeholder="Optionnel" rows={2} />
-                  </div>
-                  <Button onClick={handleAddValue} className="w-full">Enregistrer</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
+
+        {/* Edit indicator dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Modifier l'indicateur</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2"><Label>Nom</Label><Input value={editInd.nom} onChange={(e) => setEditInd({ ...editInd, nom: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Type d'indicateur</Label>
+                <Select value={editInd.type_indicateur} onValueChange={(v) => setEditInd({ ...editInd, type_indicateur: v as IndicatorType })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(TYPE_LABELS) as [IndicatorType, string][]).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Processus</Label>
+                <Select value={editInd.process_id} onValueChange={(v) => setEditInd({ ...editInd, process_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectContent>{processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Cible</Label><Input type="number" value={editInd.cible} onChange={(e) => setEditInd({ ...editInd, cible: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Seuil d'alerte</Label><Input type="number" value={editInd.seuil_alerte} onChange={(e) => setEditInd({ ...editInd, seuil_alerte: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Unité</Label><Input value={editInd.unite} onChange={(e) => setEditInd({ ...editInd, unite: e.target.value })} placeholder="%" /></div>
+                <div className="space-y-2"><Label>Formule</Label><Input value={editInd.formule} onChange={(e) => setEditInd({ ...editInd, formule: e.target.value })} /></div>
+              </div>
+              <div className="space-y-2">
+                <Label>Fréquence</Label>
+                <Select value={editInd.frequence} onValueChange={(v) => setEditInd({ ...editInd, frequence: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quotidien">Quotidien</SelectItem>
+                    <SelectItem value="hebdomadaire">Hebdomadaire</SelectItem>
+                    <SelectItem value="mensuel">Mensuel</SelectItem>
+                    <SelectItem value="trimestriel">Trimestriel</SelectItem>
+                    <SelectItem value="semestriel">Semestriel</SelectItem>
+                    <SelectItem value="annuel">Annuel</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleUpdate} className="w-full">Enregistrer</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* KPI summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
