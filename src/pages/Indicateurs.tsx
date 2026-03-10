@@ -292,9 +292,9 @@ export default function Indicateurs() {
         {/* Moyens & Actions */}
         <IndicatorMoyensActions
           indicatorId={selectedIndicator.id}
-          moyens={(selectedIndicator as any).moyens ?? null}
+          moyens={null}
           canEdit={canCreate}
-          onMoyensUpdate={(m) => setSelectedIndicator({ ...selectedIndicator, moyens: m } as any)}
+          onMoyensUpdate={() => {}}
         />
 
         {/* Chart */}

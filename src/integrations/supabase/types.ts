@@ -404,6 +404,56 @@ export type Database = {
           },
         ]
       }
+      indicator_moyens: {
+        Row: {
+          budget: number | null
+          created_at: string
+          date_prevue: string | null
+          deadline: string | null
+          description: string
+          id: string
+          indicator_id: string
+          responsable: string | null
+          statut: string
+          type_moyen: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          indicator_id: string
+          responsable?: string | null
+          statut?: string
+          type_moyen?: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          indicator_id?: string
+          responsable?: string | null
+          statut?: string
+          type_moyen?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicator_moyens_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicator_values: {
         Row: {
           commentaire: string | null
