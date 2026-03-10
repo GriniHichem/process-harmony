@@ -311,6 +311,19 @@ export default function ProcessDetail() {
         </TabsContent>
 
       </Tabs>
+
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { setPdfViewerUrl(null); setPdfViewerTitle(""); } }}>
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {pdfViewerUrl && (
+              <iframe src={pdfViewerUrl} className="w-full h-full rounded-md border" title={pdfViewerTitle} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
