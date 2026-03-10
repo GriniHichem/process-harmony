@@ -19,6 +19,7 @@ import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
 import { PartiePrenanteAdder } from "@/components/PartiePrenanteAdder";
+import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
