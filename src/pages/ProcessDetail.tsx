@@ -19,6 +19,7 @@ import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
 import { PartiePrenanteAdder } from "@/components/PartiePrenanteAdder";
+import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
@@ -183,6 +184,7 @@ export default function ProcessDetail() {
         <TabsList>
           <TabsTrigger value="general">Informations générales</TabsTrigger>
           <TabsTrigger value="elements">Éléments</TabsTrigger>
+          <TabsTrigger value="enjeux">Enjeux du contexte</TabsTrigger>
           <TabsTrigger value="tasks">Activités</TabsTrigger>
         </TabsList>
 
@@ -323,6 +325,14 @@ export default function ProcessDetail() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="enjeux">
+          <Card>
+            <CardContent className="pt-6">
+              <ContextIssuesManager processId={id!} canEdit={canEdit} canDelete={canDelete} />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="tasks">

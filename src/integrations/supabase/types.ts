@@ -335,6 +335,119 @@ export type Database = {
           },
         ]
       }
+      context_issue_actions: {
+        Row: {
+          context_issue_id: string
+          created_at: string
+          date_revue: string | null
+          description: string
+          id: string
+          responsable: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          context_issue_id: string
+          created_at?: string
+          date_revue?: string | null
+          description?: string
+          id?: string
+          responsable?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          context_issue_id?: string
+          created_at?: string
+          date_revue?: string | null
+          description?: string
+          id?: string
+          responsable?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_issue_actions_context_issue_id_fkey"
+            columns: ["context_issue_id"]
+            isOneToOne: false
+            referencedRelation: "context_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_issue_processes: {
+        Row: {
+          context_issue_id: string
+          created_at: string
+          id: string
+          process_id: string
+        }
+        Insert: {
+          context_issue_id: string
+          created_at?: string
+          id?: string
+          process_id: string
+        }
+        Update: {
+          context_issue_id?: string
+          created_at?: string
+          id?: string
+          process_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_issue_processes_context_issue_id_fkey"
+            columns: ["context_issue_id"]
+            isOneToOne: false
+            referencedRelation: "context_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "context_issue_processes_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_issues: {
+        Row: {
+          climat_pertinent: boolean
+          created_at: string
+          description: string | null
+          id: string
+          impact: Database["public"]["Enums"]["impact_level"]
+          intitule: string
+          reference: string
+          type_enjeu: Database["public"]["Enums"]["context_issue_type"]
+          updated_at: string
+        }
+        Insert: {
+          climat_pertinent?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact?: Database["public"]["Enums"]["impact_level"]
+          intitule: string
+          reference: string
+          type_enjeu?: Database["public"]["Enums"]["context_issue_type"]
+          updated_at?: string
+        }
+        Update: {
+          climat_pertinent?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact?: Database["public"]["Enums"]["impact_level"]
+          intitule?: string
+          reference?: string
+          type_enjeu?: Database["public"]["Enums"]["context_issue_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_processes: {
         Row: {
           created_at: string
@@ -1231,6 +1344,7 @@ export type Database = {
         | "admin"
       audit_status: "planifie" | "en_cours" | "termine" | "cloture"
       audit_type: "interne" | "externe"
+      context_issue_type: "interne" | "externe"
       document_type:
         | "procedure"
         | "instruction"
@@ -1245,6 +1359,7 @@ export type Database = {
         | "non_conformite_mineure"
         | "non_conformite_majeure"
         | "amelioration"
+      impact_level: "faible" | "moyen" | "fort"
       indicator_frequency:
         | "quotidien"
         | "hebdomadaire"
@@ -1420,6 +1535,7 @@ export const Constants = {
       ],
       audit_status: ["planifie", "en_cours", "termine", "cloture"],
       audit_type: ["interne", "externe"],
+      context_issue_type: ["interne", "externe"],
       document_type: [
         "procedure",
         "instruction",
@@ -1436,6 +1552,7 @@ export const Constants = {
         "non_conformite_majeure",
         "amelioration",
       ],
+      impact_level: ["faible", "moyen", "fort"],
       indicator_frequency: [
         "quotidien",
         "hebdomadaire",

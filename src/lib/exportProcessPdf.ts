@@ -10,6 +10,8 @@ interface ProcessData {
   indicatorValues: Record<string, any[]>;
   risks: any[];
   responsableName: string;
+  contextIssues: any[];
+  contextIssueActions: Record<string, any[]>;
 }
 
 async function fetchAllProcessData(processId: string): Promise<ProcessData> {
@@ -57,6 +59,23 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     }
   }
 
+  // Fetch context issues linked to this process
+  let contextIssues: any[] = [];
+  let contextIssueActions: Record<string, any[]> = {};
+  const { data: ciLinks } = await supabase.from("context_issue_processes").select("context_issue_id").eq("process_id", processId);
+  if (ciLinks && ciLinks.length > 0) {
+    const ciIds = ciLinks.map((l: any) => l.context_issue_id);
+    const { data: ciData } = await supabase.from("context_issues").select("*").in("id", ciIds).order("reference");
+    contextIssues = ciData ?? [];
+    const { data: ciaData } = await supabase.from("context_issue_actions").select("*").in("context_issue_id", ciIds).order("created_at");
+    if (ciaData) {
+      for (const a of ciaData) {
+        if (!contextIssueActions[a.context_issue_id]) contextIssueActions[a.context_issue_id] = [];
+        contextIssueActions[a.context_issue_id].push(a);
+      }
+    }
+  }
+
   const resp = profiles?.find((p: any) => p.id === process?.responsable_id);
   const responsableName = resp ? `${resp.prenom} ${resp.nom}`.trim() || resp.email : "Non assigné";
 
@@ -70,6 +89,8 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     indicatorValues,
     risks: risks ?? [],
     responsableName,
+    contextIssues,
+    contextIssueActions,
   };
 }
 
@@ -79,7 +100,7 @@ function escapeHtml(str: string | null | undefined): string {
 }
 
 function buildHtml(data: ProcessData): string {
-  const { process: p, elements, interactions, targetProcesses, documents, indicators, indicatorValues, risks, responsableName } = data;
+  const { process: p, elements, interactions, targetProcesses, documents, indicators, indicatorValues, risks, responsableName, contextIssues, contextIssueActions } = data;
 
   const typeLabels: Record<string, string> = {
     pilotage: "Management", realisation: "Réalisation", support: "Support",
@@ -303,6 +324,40 @@ function buildHtml(data: ProcessData): string {
   </div>
 
   ${p.description ? `<div class="section"><h2>Description</h2><p>${escapeHtml(p.description)}</p></div>` : ""}
+
+  ${contextIssues.length > 0 ? `<div class="section">
+    <h2>Enjeux du contexte (ISO 9001)</h2>
+    <table>
+      <thead><tr><th style="width:70px">Réf.</th><th style="width:70px">Type</th><th>Intitulé</th><th>Description</th><th style="width:60px">Impact</th><th style="width:55px">Climat</th></tr></thead>
+      <tbody>${contextIssues.map((ci: any) => `<tr>
+        <td class="mono">${escapeHtml(ci.reference)}</td>
+        <td>${ci.type_enjeu === "interne" ? "Interne" : "Externe"}</td>
+        <td><strong>${escapeHtml(ci.intitule)}</strong></td>
+        <td>${escapeHtml(ci.description)}</td>
+        <td>${ci.impact === "faible" ? "Faible" : ci.impact === "moyen" ? "Moyen" : "Fort"}</td>
+        <td>${ci.climat_pertinent ? "Oui" : "Non"}</td>
+      </tr>`).join("")}</tbody>
+    </table>
+    ${contextIssues.some((ci: any) => (contextIssueActions[ci.id] ?? []).length > 0) ? `
+      <div style="margin-top:10px">
+        <h3 style="font-size:12px;font-weight:600;color:#333;margin-bottom:6px">Actions de prise en compte</h3>
+        ${contextIssues.filter((ci: any) => (contextIssueActions[ci.id] ?? []).length > 0).map((ci: any) => `
+          <div class="sub-block">
+            <h4>${escapeHtml(ci.reference)} – ${escapeHtml(ci.intitule)}</h4>
+            <table>
+              <thead><tr><th>Action</th><th style="width:100px">Responsable</th><th style="width:90px">Date revue</th><th style="width:70px">Statut</th></tr></thead>
+              <tbody>${(contextIssueActions[ci.id] ?? []).map((a: any) => `<tr>
+                <td>${escapeHtml(a.description)}</td>
+                <td>${escapeHtml(a.responsable) || "—"}</td>
+                <td>${a.date_revue || "—"}</td>
+                <td>${a.statut === "a_faire" ? "À faire" : a.statut === "en_cours" ? "En cours" : "Terminé"}</td>
+              </tr>`).join("")}</tbody>
+            </table>
+          </div>
+        `).join("")}
+      </div>
+    ` : ""}
+  </div>` : ""}
 
   <div class="section">
     <h2>Éléments du processus</h2>
