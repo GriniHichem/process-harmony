@@ -37,7 +37,7 @@ export default function Indicateurs() {
   const [valueDialogOpen, setValueDialogOpen] = useState(false);
   const [newValue, setNewValue] = useState({ valeur: "", date_mesure: format(new Date(), "yyyy-MM-dd"), commentaire: "" });
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType });
+  const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType, moyens: "" });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
