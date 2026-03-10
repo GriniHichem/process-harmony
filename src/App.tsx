@@ -54,6 +54,7 @@ const App = () => (
             <Route path="/indicateurs" element={<ProtectedPage><Indicateurs /></ProtectedPage>} />
             <Route path="/risques" element={<ProtectedPage><Risques /></ProtectedPage>} />
             <Route path="/incidents" element={<ProtectedPage><Incidents /></ProtectedPage>} />
+            <Route path="/enjeux-contexte" element={<ProtectedPage><EnjeuContexte /></ProtectedPage>} />
             <Route path="/dashboard-audit" element={<ProtectedPage><DashboardAuditNC /></ProtectedPage>} />
             <Route path="/audits" element={<ProtectedPage><Audits /></ProtectedPage>} />
             <Route path="/non-conformites" element={<ProtectedPage><NonConformites /></ProtectedPage>} />
