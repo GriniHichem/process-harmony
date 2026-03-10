@@ -31,13 +31,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [processes, audits, nc, actions, risks, indicators] = await Promise.all([
+      const [processes, audits, nc, actions, risks, indicators, incidentsOuverts, incidentsCritiques] = await Promise.all([
         supabase.from("processes").select("type_processus"),
         supabase.from("audits").select("statut").in("statut", ["planifie", "en_cours"]),
         supabase.from("nonconformities").select("statut").eq("statut", "ouverte"),
         supabase.from("actions").select("statut, echeance").in("statut", ["planifiee", "en_cours"]),
         supabase.from("risks_opportunities").select("id"),
         supabase.from("indicators").select("id"),
+        supabase.from("risk_incidents").select("id").eq("statut", "ouvert"),
+        supabase.from("risk_incidents").select("id").eq("gravite", "critique").neq("statut", "cloture"),
       ]);
 
       const p = processes.data ?? [];
