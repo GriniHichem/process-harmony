@@ -326,7 +326,7 @@ function buildHtml(data: ProcessData): string {
   ${p.description ? `<div class="section"><h2>Description</h2><p>${escapeHtml(p.description)}</p></div>` : ""}
 
   ${contextIssues.length > 0 ? `<div class="section">
-    <h2>Enjeux du contexte (ISO 9001)</h2>
+    <h2>Enjeux du contexte</h2>
     <table>
       <thead><tr><th style="width:70px">Réf.</th><th style="width:70px">Type</th><th style="width:90px">Domaine</th><th>Intitulé</th><th>Description</th><th style="width:60px">Impact</th><th style="width:55px">Climat</th></tr></thead>
       <tbody>${contextIssues.map((ci: any) => {
