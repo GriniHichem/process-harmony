@@ -273,7 +273,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Tâches du processus</h3>
+        <h3 className="text-lg font-semibold">Activités du processus</h3>
         {canEdit && (
           <Button size="sm" onClick={() => openAddDialog()}>
             <Plus className="mr-1 h-4 w-4" /> Ajouter une tâche
