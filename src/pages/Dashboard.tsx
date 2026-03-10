@@ -59,6 +59,8 @@ export default function Dashboard() {
         overdueActions,
         totalRisks: risks.data?.length ?? 0,
         totalIndicators: indicators.data?.length ?? 0,
+        incidentsOuverts: incidentsOuverts.data?.length ?? 0,
+        incidentsCritiques: incidentsCritiques.data?.length ?? 0,
       });
       setLoading(false);
     };
