@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
@@ -74,7 +74,7 @@ export default function ProcessDetail() {
     const docIds = dpData.map((dp: any) => dp.document_id);
     const { data: docsData } = await supabase
       .from("documents")
-      .select("id, titre, type_document, version, nom_fichier")
+      .select("id, titre, type_document, version, nom_fichier, chemin_fichier")
       .in("id", docIds)
       .eq("archive", false);
     setProcessDocuments(docsData ?? []);
@@ -251,7 +251,27 @@ export default function ProcessDetail() {
                               <span>{doc.titre}</span>
                               <span className="text-xs text-muted-foreground">({typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version})</span>
                             </div>
-                            {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                            <div className="flex items-center gap-2">
+                              {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                              {doc.chemin_fichier && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={async () => {
+                                    const { data } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 60);
+                                    if (data?.signedUrl) {
+                                      window.open(data.signedUrl, "_blank");
+                                    } else {
+                                      toast.error("Impossible de télécharger le fichier");
+                                    }
+                                  }}
+                                  title="Télécharger"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
