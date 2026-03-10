@@ -67,8 +67,21 @@ export default function NonConformites() {
     nature_nc: "", audit_id: "", process_id: "", criticite: "",
   });
 
+  const [deleteNC, setDeleteNC] = useState<NC | null>(null);
+
   const canCreate = role === "rmq" || role === "responsable_processus" || role === "auditeur" || role === "admin";
   const canEdit = role === "rmq" || role === "responsable_processus" || role === "admin";
+  const canDelete = role === "admin" || role === "rmq";
+
+  const handleDeleteNC = async () => {
+    if (!deleteNC) return;
+    const { error } = await supabase.from("nonconformities").delete().eq("id", deleteNC.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Non-conformité supprimée");
+    setDeleteNC(null);
+    setDetailNC(null);
+    fetchNCs();
+  };
 
   const fetchNCs = async () => {
     const { data } = await supabase.from("nonconformities").select("*").order("date_detection", { ascending: false });
