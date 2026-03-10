@@ -231,39 +231,60 @@ export type Database = {
       audits: {
         Row: {
           auditeur_id: string | null
+          checklist: Json | null
           created_at: string
           date_audit: string | null
           date_fin: string | null
+          frequence: string | null
           id: string
+          methodes: string | null
           perimetre: string | null
+          preuve_realisation: string | null
+          programme: string | null
           rapport: string | null
           reference: string
+          responsabilites: string | null
+          resultats: string | null
           statut: Database["public"]["Enums"]["audit_status"]
           type_audit: Database["public"]["Enums"]["audit_type"]
           updated_at: string
         }
         Insert: {
           auditeur_id?: string | null
+          checklist?: Json | null
           created_at?: string
           date_audit?: string | null
           date_fin?: string | null
+          frequence?: string | null
           id?: string
+          methodes?: string | null
           perimetre?: string | null
+          preuve_realisation?: string | null
+          programme?: string | null
           rapport?: string | null
           reference: string
+          responsabilites?: string | null
+          resultats?: string | null
           statut?: Database["public"]["Enums"]["audit_status"]
           type_audit: Database["public"]["Enums"]["audit_type"]
           updated_at?: string
         }
         Update: {
           auditeur_id?: string | null
+          checklist?: Json | null
           created_at?: string
           date_audit?: string | null
           date_fin?: string | null
+          frequence?: string | null
           id?: string
+          methodes?: string | null
           perimetre?: string | null
+          preuve_realisation?: string | null
+          programme?: string | null
           rapport?: string | null
           reference?: string
+          responsabilites?: string | null
+          resultats?: string | null
           statut?: Database["public"]["Enums"]["audit_status"]
           type_audit?: Database["public"]["Enums"]["audit_type"]
           updated_at?: string
@@ -593,45 +614,76 @@ export type Database = {
       }
       nonconformities: {
         Row: {
+          audit_id: string | null
+          cause_racine: string | null
+          correction_immediate: string | null
           created_at: string
           created_by: string | null
+          criticite: number | null
           date_detection: string
           description: string
           gravite: Database["public"]["Enums"]["nc_severity"]
           id: string
+          nature_nc: string | null
           origine: string | null
+          plan_action: string | null
           process_id: string | null
           reference: string
+          resultats_actions: string | null
           statut: Database["public"]["Enums"]["nc_status"]
           updated_at: string
+          verification_efficacite: string | null
         }
         Insert: {
+          audit_id?: string | null
+          cause_racine?: string | null
+          correction_immediate?: string | null
           created_at?: string
           created_by?: string | null
+          criticite?: number | null
           date_detection?: string
           description: string
           gravite: Database["public"]["Enums"]["nc_severity"]
           id?: string
+          nature_nc?: string | null
           origine?: string | null
+          plan_action?: string | null
           process_id?: string | null
           reference: string
+          resultats_actions?: string | null
           statut?: Database["public"]["Enums"]["nc_status"]
           updated_at?: string
+          verification_efficacite?: string | null
         }
         Update: {
+          audit_id?: string | null
+          cause_racine?: string | null
+          correction_immediate?: string | null
           created_at?: string
           created_by?: string | null
+          criticite?: number | null
           date_detection?: string
           description?: string
           gravite?: Database["public"]["Enums"]["nc_severity"]
           id?: string
+          nature_nc?: string | null
           origine?: string | null
+          plan_action?: string | null
           process_id?: string | null
           reference?: string
+          resultats_actions?: string | null
           statut?: Database["public"]["Enums"]["nc_status"]
           updated_at?: string
+          verification_efficacite?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "nonconformities_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "audits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "nonconformities_process_id_fkey"
             columns: ["process_id"]
@@ -1202,7 +1254,14 @@ export type Database = {
         | "annuel"
       indicator_type: "activite" | "resultat" | "perception" | "interne"
       nc_severity: "mineure" | "majeure" | "critique"
-      nc_status: "ouverte" | "en_traitement" | "cloturee"
+      nc_status:
+        | "ouverte"
+        | "en_traitement"
+        | "cloturee"
+        | "correction"
+        | "analyse_cause"
+        | "action_corrective"
+        | "verification"
       process_element_type:
         | "finalite"
         | "donnee_entree"
@@ -1387,7 +1446,15 @@ export const Constants = {
       ],
       indicator_type: ["activite", "resultat", "perception", "interne"],
       nc_severity: ["mineure", "majeure", "critique"],
-      nc_status: ["ouverte", "en_traitement", "cloturee"],
+      nc_status: [
+        "ouverte",
+        "en_traitement",
+        "cloturee",
+        "correction",
+        "analyse_cause",
+        "action_corrective",
+        "verification",
+      ],
       process_element_type: [
         "finalite",
         "donnee_entree",
