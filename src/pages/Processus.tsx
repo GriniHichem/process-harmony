@@ -34,7 +34,7 @@ const statusColors: Record<string, string> = {
 };
 
 const typeLabels: Record<string, string> = {
-  pilotage: "Pilotage",
+  pilotage: "Management",
   realisation: "Réalisation",
   support: "Support",
 };
