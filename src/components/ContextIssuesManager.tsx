@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,7 @@ interface ContextIssue {
   description: string;
   impact: "faible" | "moyen" | "fort";
   climat_pertinent: boolean;
+  domaine: string;
 }
 
 interface ContextIssueAction {
@@ -33,8 +34,14 @@ interface ContextIssueAction {
   statut: string;
 }
 
+interface Process {
+  id: string;
+  code: string;
+  nom: string;
+}
+
 interface Props {
-  processId: string;
+  processId?: string;
   canEdit: boolean;
   canDelete: boolean;
 }
@@ -45,61 +52,109 @@ const impactColors: Record<string, string> = {
   fort: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
-const emptyIssue: { reference: string; type_enjeu: "interne" | "externe"; intitule: string; description: string; impact: "faible" | "moyen" | "fort"; climat_pertinent: boolean } = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false };
+const DOMAINES = [
+  { value: "strategique", label: "Stratégique" },
+  { value: "organisationnel", label: "Organisationnel" },
+  { value: "technique", label: "Technique" },
+  { value: "reglementaire", label: "Réglementaire" },
+  { value: "financier", label: "Financier" },
+  { value: "humain", label: "Humain" },
+  { value: "marche_client", label: "Marché / Client" },
+  { value: "fournisseur_prestataire", label: "Fournisseur / Prestataire" },
+  { value: "securite_cyber", label: "Sécurité / Cybersécurité" },
+  { value: "environnement_climat", label: "Environnement / Climat" },
+];
+
+const domaineLabel = (v: string) => DOMAINES.find(d => d.value === v)?.label || v;
+
+type FormType = {
+  reference: string;
+  type_enjeu: "interne" | "externe";
+  intitule: string;
+  description: string;
+  impact: "faible" | "moyen" | "fort";
+  climat_pertinent: boolean;
+  domaine: string;
+  process_ids: string[];
+};
+
+const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false, domaine: "strategique", process_ids: [] };
 const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
 
 export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
   const [issues, setIssues] = useState<ContextIssue[]>([]);
+  const [issueProcesses, setIssueProcesses] = useState<Record<string, string[]>>({});
   const [actions, setActions] = useState<Record<string, ContextIssueAction[]>>({});
+  const [processes, setProcesses] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIssue, setEditingIssue] = useState<ContextIssue | null>(null);
-  const [form, setForm] = useState(emptyIssue);
+  const [form, setForm] = useState<FormType>(emptyIssue);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [actionForm, setActionForm] = useState(emptyAction);
   const [editingAction, setEditingAction] = useState<ContextIssueAction | null>(null);
   const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
 
+  const fetchProcesses = useCallback(async () => {
+    const { data } = await supabase.from("processes").select("id, code, nom").order("code");
+    setProcesses((data ?? []) as Process[]);
+  }, []);
+
   const fetchIssues = useCallback(async () => {
-    // Get issue IDs linked to this process
-    const { data: links } = await supabase
-      .from("context_issue_processes")
-      .select("context_issue_id")
-      .eq("process_id", processId);
-    if (!links || links.length === 0) { setIssues([]); setActions({}); setLoading(false); return; }
+    let issuesData: ContextIssue[];
 
-    const issueIds = links.map((l: any) => l.context_issue_id);
-    const { data: issuesData } = await supabase
-      .from("context_issues")
-      .select("*")
-      .in("id", issueIds)
-      .order("reference");
-
-    setIssues((issuesData as ContextIssue[]) ?? []);
-
-    // Fetch actions for all issues
-    const { data: actionsData } = await supabase
-      .from("context_issue_actions")
-      .select("*")
-      .in("context_issue_id", issueIds)
-      .order("created_at");
-    
-    const grouped: Record<string, ContextIssueAction[]> = {};
-    for (const a of (actionsData ?? []) as ContextIssueAction[]) {
-      if (!grouped[a.context_issue_id]) grouped[a.context_issue_id] = [];
-      grouped[a.context_issue_id].push(a);
+    if (processId) {
+      const { data: links } = await supabase.from("context_issue_processes").select("context_issue_id").eq("process_id", processId);
+      if (!links || links.length === 0) { setIssues([]); setActions({}); setLoading(false); return; }
+      const issueIds = links.map((l: any) => l.context_issue_id);
+      const { data } = await supabase.from("context_issues").select("*").in("id", issueIds).order("reference");
+      issuesData = (data as ContextIssue[]) ?? [];
+    } else {
+      const { data } = await supabase.from("context_issues").select("*").order("reference");
+      issuesData = (data as ContextIssue[]) ?? [];
     }
-    setActions(grouped);
+
+    setIssues(issuesData);
+
+    if (issuesData.length > 0) {
+      const ids = issuesData.map(i => i.id);
+      const [{ data: actionsData }, { data: cipData }] = await Promise.all([
+        supabase.from("context_issue_actions").select("*").in("context_issue_id", ids).order("created_at"),
+        supabase.from("context_issue_processes").select("*").in("context_issue_id", ids),
+      ]);
+
+      const groupedActions: Record<string, ContextIssueAction[]> = {};
+      for (const a of (actionsData ?? []) as ContextIssueAction[]) {
+        if (!groupedActions[a.context_issue_id]) groupedActions[a.context_issue_id] = [];
+        groupedActions[a.context_issue_id].push(a);
+      }
+      setActions(groupedActions);
+
+      const groupedProcesses: Record<string, string[]> = {};
+      for (const link of (cipData ?? []) as any[]) {
+        if (!groupedProcesses[link.context_issue_id]) groupedProcesses[link.context_issue_id] = [];
+        groupedProcesses[link.context_issue_id].push(link.process_id);
+      }
+      setIssueProcesses(groupedProcesses);
+    } else {
+      setActions({});
+      setIssueProcesses({});
+    }
     setLoading(false);
   }, [processId]);
 
-  useEffect(() => { fetchIssues(); }, [fetchIssues]);
+  useEffect(() => { fetchIssues(); fetchProcesses(); }, [fetchIssues, fetchProcesses]);
 
-  const openAdd = () => { setEditingIssue(null); setForm(emptyIssue); setDialogOpen(true); };
-  const openEdit = (issue: ContextIssue) => {
+  const openAdd = () => { setEditingIssue(null); setForm({ ...emptyIssue, process_ids: processId ? [processId] : [] }); setDialogOpen(true); };
+  const openEdit = async (issue: ContextIssue) => {
     setEditingIssue(issue);
-    setForm({ reference: issue.reference, type_enjeu: issue.type_enjeu as "interne" | "externe", intitule: issue.intitule, description: issue.description || "", impact: issue.impact as "faible" | "moyen" | "fort", climat_pertinent: issue.climat_pertinent });
+    const linkedIds = issueProcesses[issue.id] ?? [];
+    setForm({
+      reference: issue.reference, type_enjeu: issue.type_enjeu, intitule: issue.intitule,
+      description: issue.description || "", impact: issue.impact, climat_pertinent: issue.climat_pertinent,
+      domaine: issue.domaine || "strategique", process_ids: linkedIds,
+    });
     setDialogOpen(true);
   };
 
@@ -110,17 +165,31 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
       const { error } = await supabase.from("context_issues").update({
         reference: form.reference, type_enjeu: form.type_enjeu, intitule: form.intitule,
         description: form.description, impact: form.impact, climat_pertinent: form.climat_pertinent,
+        domaine: form.domaine,
       }).eq("id", editingIssue.id);
       if (error) { toast.error(error.message); return; }
+
+      // Update process links
+      await supabase.from("context_issue_processes").delete().eq("context_issue_id", editingIssue.id);
+      if (form.process_ids.length > 0) {
+        await supabase.from("context_issue_processes").insert(
+          form.process_ids.map(pid => ({ context_issue_id: editingIssue.id, process_id: pid }))
+        );
+      }
       toast.success("Enjeu modifié");
     } else {
       const { data, error } = await supabase.from("context_issues").insert({
         reference: form.reference, type_enjeu: form.type_enjeu, intitule: form.intitule,
         description: form.description, impact: form.impact, climat_pertinent: form.climat_pertinent,
+        domaine: form.domaine,
       }).select("id").single();
       if (error || !data) { toast.error(error?.message || "Erreur"); return; }
-      // Link to process
-      await supabase.from("context_issue_processes").insert({ context_issue_id: data.id, process_id: processId });
+
+      if (form.process_ids.length > 0) {
+        await supabase.from("context_issue_processes").insert(
+          form.process_ids.map(pid => ({ context_issue_id: data.id, process_id: pid }))
+        );
+      }
       toast.success("Enjeu ajouté");
     }
     setDialogOpen(false);
@@ -174,6 +243,13 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
     setExpandedIssues(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   };
 
+  const toggleProcessId = (pid: string) => {
+    setForm(prev => ({
+      ...prev,
+      process_ids: prev.process_ids.includes(pid) ? prev.process_ids.filter(p => p !== pid) : [...prev.process_ids, pid],
+    }));
+  };
+
   const statutLabels: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", termine: "Terminé" };
 
   if (loading) return <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
@@ -191,76 +267,89 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
         <p className="text-sm text-muted-foreground italic">Aucun enjeu du contexte défini</p>
       ) : (
         <div className="space-y-3">
-          {issues.map(issue => (
-            <Card key={issue.id} className="border">
-              <Collapsible open={expandedIssues.has(issue.id)} onOpenChange={() => toggleExpand(issue.id)}>
-                <CardHeader className="py-3 px-4">
-                  <div className="flex items-center justify-between">
-                    <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80">
-                      {expandedIssues.has(issue.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      <span className="font-mono text-xs text-muted-foreground">{issue.reference}</span>
-                      <Badge variant="outline" className="text-xs">{issue.type_enjeu}</Badge>
-                      <span className="font-medium text-sm">{issue.intitule}</span>
-                      <Badge className={`text-xs ${impactColors[issue.impact]}`}>{issue.impact}</Badge>
-                      {issue.climat_pertinent && <Badge variant="secondary" className="text-xs">🌍 Climat</Badge>}
-                    </CollapsibleTrigger>
-                    <div className="flex items-center gap-1">
-                      {canEdit && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(issue)}><Pencil className="h-3.5 w-3.5" /></Button>}
-                      {canDelete && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteIssue(issue.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CollapsibleContent>
-                  <CardContent className="pt-0 px-4 pb-4 space-y-3">
-                    {issue.description && <p className="text-sm text-muted-foreground">{issue.description}</p>}
-
+          {issues.map(issue => {
+            const linkedProcesses = (issueProcesses[issue.id] ?? []).map(pid => processes.find(p => p.id === pid)).filter(Boolean) as Process[];
+            return (
+              <Card key={issue.id} className="border">
+                <Collapsible open={expandedIssues.has(issue.id)} onOpenChange={() => toggleExpand(issue.id)}>
+                  <CardHeader className="py-3 px-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Actions de prise en compte</h4>
-                      {canEdit && (
-                        <Button size="sm" variant="outline" onClick={() => openAddAction(issue.id)}>
-                          <ListPlus className="mr-1 h-3.5 w-3.5" /> Action
-                        </Button>
-                      )}
+                      <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 flex-wrap">
+                        {expandedIssues.has(issue.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        <span className="font-mono text-xs text-muted-foreground">{issue.reference}</span>
+                        <Badge variant="outline" className="text-xs">{issue.type_enjeu}</Badge>
+                        <Badge variant="secondary" className="text-xs">{domaineLabel(issue.domaine)}</Badge>
+                        <span className="font-medium text-sm">{issue.intitule}</span>
+                        <Badge className={`text-xs ${impactColors[issue.impact]}`}>{issue.impact}</Badge>
+                        {issue.climat_pertinent && <Badge variant="secondary" className="text-xs">🌍 Climat</Badge>}
+                      </CollapsibleTrigger>
+                      <div className="flex items-center gap-1">
+                        {canEdit && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(issue)}><Pencil className="h-3.5 w-3.5" /></Button>}
+                        {canDelete && <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteIssue(issue.id)}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                      </div>
                     </div>
+                  </CardHeader>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0 px-4 pb-4 space-y-3">
+                      {issue.description && <p className="text-sm text-muted-foreground">{issue.description}</p>}
 
-                    {(actions[issue.id] ?? []).length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">Aucune action définie</p>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Action</TableHead>
-                            <TableHead className="w-[120px]">Responsable</TableHead>
-                            <TableHead className="w-[110px]">Date revue</TableHead>
-                            <TableHead className="w-[90px]">Statut</TableHead>
-                            {(canEdit || canDelete) && <TableHead className="w-[60px]" />}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(actions[issue.id] ?? []).map(action => (
-                            <TableRow key={action.id}>
-                              <TableCell className="text-sm">{action.description}</TableCell>
-                              <TableCell className="text-sm">{action.responsable || "—"}</TableCell>
-                              <TableCell className="text-sm">{action.date_revue || "—"}</TableCell>
-                              <TableCell><Badge variant="outline" className="text-xs">{statutLabels[action.statut] ?? action.statut}</Badge></TableCell>
-                              {(canEdit || canDelete) && (
-                                <TableCell>
-                                  <div className="flex gap-1">
-                                    {canEdit && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditAction(action)}><Pencil className="h-3 w-3" /></Button>}
-                                    {canDelete && <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAction(action.id)}><Trash2 className="h-3 w-3" /></Button>}
-                                  </div>
-                                </TableCell>
-                              )}
-                            </TableRow>
+                      {!processId && linkedProcesses.length > 0 && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-muted-foreground font-medium">Processus :</span>
+                          {linkedProcesses.map(p => (
+                            <Badge key={p.id} variant="outline" className="text-xs">{p.code} – {p.nom}</Badge>
                           ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium">Actions de prise en compte</h4>
+                        {canEdit && (
+                          <Button size="sm" variant="outline" onClick={() => openAddAction(issue.id)}>
+                            <ListPlus className="mr-1 h-3.5 w-3.5" /> Action
+                          </Button>
+                        )}
+                      </div>
+
+                      {(actions[issue.id] ?? []).length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">Aucune action définie</p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Action</TableHead>
+                              <TableHead className="w-[120px]">Responsable</TableHead>
+                              <TableHead className="w-[110px]">Date revue</TableHead>
+                              <TableHead className="w-[90px]">Statut</TableHead>
+                              {(canEdit || canDelete) && <TableHead className="w-[60px]" />}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(actions[issue.id] ?? []).map(action => (
+                              <TableRow key={action.id}>
+                                <TableCell className="text-sm">{action.description}</TableCell>
+                                <TableCell className="text-sm">{action.responsable || "—"}</TableCell>
+                                <TableCell className="text-sm">{action.date_revue || "—"}</TableCell>
+                                <TableCell><Badge variant="outline" className="text-xs">{statutLabels[action.statut] ?? action.statut}</Badge></TableCell>
+                                {(canEdit || canDelete) && (
+                                  <TableCell>
+                                    <div className="flex gap-1">
+                                      {canEdit && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditAction(action)}><Pencil className="h-3 w-3" /></Button>}
+                                      {canDelete && <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAction(action.id)}><Trash2 className="h-3 w-3" /></Button>}
+                                    </div>
+                                  </TableCell>
+                                )}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -282,6 +371,17 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
                 </Select>
               </div>
             </div>
+            <div className="space-y-1">
+              <Label>Domaine / Catégorie</Label>
+              <Select value={form.domaine} onValueChange={v => setForm({ ...form, domaine: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DOMAINES.map(d => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1"><Label>Intitulé</Label><Input value={form.intitule} onChange={e => setForm({ ...form, intitule: e.target.value })} /></div>
             <div className="space-y-1"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -299,6 +399,24 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
               <div className="space-y-1 flex flex-col justify-end">
                 <Label>Climat pertinent ?</Label>
                 <Switch checked={form.climat_pertinent} onCheckedChange={v => setForm({ ...form, climat_pertinent: v })} />
+              </div>
+            </div>
+            {/* Multi-select processus */}
+            <div className="space-y-1">
+              <Label>Processus concerné(s)</Label>
+              <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
+                {processes.map(p => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
+                    <input
+                      type="checkbox"
+                      checked={form.process_ids.includes(p.id)}
+                      onChange={() => toggleProcessId(p.id)}
+                      className="rounded"
+                    />
+                    <span className="font-mono text-xs text-muted-foreground">{p.code}</span>
+                    <span>{p.nom}</span>
+                  </label>
+                ))}
               </div>
             </div>
           </div>
