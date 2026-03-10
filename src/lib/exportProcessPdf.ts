@@ -274,12 +274,13 @@ function buildHtml(data: ProcessData): string {
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:16px;">
+      <div class="doc-ref">
+        <strong>FICHE PROCESSUS</strong>
+        Réf : ${escapeHtml(p.code)}<br>
+        Version : ${p.version_courante}<br>
+        Date : ${now}
+      </div>
       <img src="/images/logo-amour.jpg" alt="AMOUR" style="height:40px;border-radius:4px;" />
-    <div class="doc-ref">
-      <strong>FICHE PROCESSUS</strong>
-      Réf : ${escapeHtml(p.code)}<br>
-      Version : ${p.version_courante}<br>
-      Date : ${now}
     </div>
   </div>
 
