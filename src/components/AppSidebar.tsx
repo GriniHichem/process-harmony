@@ -78,7 +78,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div>
-              <p className="text-sm font-semibold text-sidebar-foreground">ISO 9001</p>
+              <p className="text-sm font-bold tracking-tight text-sidebar-foreground">Q-Process</p>
               <p className="text-xs text-sidebar-foreground/60">SMQ</p>
             </div>
           )}
