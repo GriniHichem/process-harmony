@@ -26,6 +26,7 @@ const qualityItems = [
   { title: "Indicateurs", url: "/indicateurs", icon: BarChart3 },
   { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle },
   { title: "Incidents", url: "/incidents", icon: AlertOctagon },
+  { title: "Enjeux du contexte", url: "/enjeux-contexte", icon: Landmark },
 ];
 
 const auditItems = [

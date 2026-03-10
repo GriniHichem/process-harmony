@@ -8,11 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Plus, Search, Eye, UserCheck, Trash2 } from "lucide-react";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
-import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -97,7 +95,6 @@ export default function Processus() {
 
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
   const canDelete = role === "admin" || role === "rmq";
-  const canEdit = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
 
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -123,125 +120,110 @@ export default function Processus() {
           <h1 className="text-2xl font-bold">Processus</h1>
           <p className="text-muted-foreground">Gestion du référentiel des processus</p>
         </div>
+        {canCreate && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" /> Nouveau processus</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Créer un processus</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2"><Label>Code</Label><Input value={newProcess.code} onChange={(e) => setNewProcess({ ...newProcess, code: e.target.value })} placeholder="PRO-001" /></div>
+                <div className="space-y-2"><Label>Intitulé</Label><Input value={newProcess.nom} onChange={(e) => setNewProcess({ ...newProcess, nom: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select value={newProcess.type_processus} onValueChange={(v: any) => setNewProcess({ ...newProcess, type_processus: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pilotage">Management</SelectItem>
+                      <SelectItem value="realisation">Réalisation</SelectItem>
+                      <SelectItem value="support">Support</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2"><Label>Finalité</Label><Textarea value={newProcess.finalite} onChange={(e) => setNewProcess({ ...newProcess, finalite: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Responsable</Label>
+                  <Select value={newProcess.responsable_id || "none"} onValueChange={(v) => setNewProcess({ ...newProcess, responsable_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Non assigné</SelectItem>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{getUserLabel(u)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleCreate} className="w-full">Créer</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
-      <Tabs defaultValue="processus">
-        <TabsList>
-          <TabsTrigger value="processus">Liste des processus</TabsTrigger>
-          <TabsTrigger value="enjeux">Enjeux du contexte</TabsTrigger>
-        </TabsList>
+      <div className="flex gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les types</SelectItem>
+            <SelectItem value="pilotage">Management</SelectItem>
+            <SelectItem value="realisation">Réalisation</SelectItem>
+            <SelectItem value="support">Support</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Statut" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="brouillon">Brouillon</SelectItem>
+            <SelectItem value="en_validation">En validation</SelectItem>
+            <SelectItem value="valide">Validé</SelectItem>
+            <SelectItem value="archive">Archivé</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <TabsContent value="processus" className="space-y-4 mt-4">
-          <div className="flex items-center justify-between">
-            <div className="flex gap-3 flex-wrap flex-1">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Rechercher..." value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="pilotage">Management</SelectItem>
-                  <SelectItem value="realisation">Réalisation</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Statut" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="brouillon">Brouillon</SelectItem>
-                  <SelectItem value="en_validation">En validation</SelectItem>
-                  <SelectItem value="valide">Validé</SelectItem>
-                  <SelectItem value="archive">Archivé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {canCreate && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="ml-3"><Plus className="mr-2 h-4 w-4" /> Nouveau processus</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Créer un processus</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2"><Label>Code</Label><Input value={newProcess.code} onChange={(e) => setNewProcess({ ...newProcess, code: e.target.value })} placeholder="PRO-001" /></div>
-                    <div className="space-y-2"><Label>Intitulé</Label><Input value={newProcess.nom} onChange={(e) => setNewProcess({ ...newProcess, nom: e.target.value })} /></div>
-                    <div className="space-y-2">
-                      <Label>Type</Label>
-                      <Select value={newProcess.type_processus} onValueChange={(v: any) => setNewProcess({ ...newProcess, type_processus: v })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pilotage">Management</SelectItem>
-                          <SelectItem value="realisation">Réalisation</SelectItem>
-                          <SelectItem value="support">Support</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2"><Label>Finalité</Label><Textarea value={newProcess.finalite} onChange={(e) => setNewProcess({ ...newProcess, finalite: e.target.value })} /></div>
-                    <div className="space-y-2">
-                      <Label>Responsable</Label>
-                      <Select value={newProcess.responsable_id || "none"} onValueChange={(v) => setNewProcess({ ...newProcess, responsable_id: v === "none" ? "" : v })}>
-                        <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Non assigné</SelectItem>
-                          {users.map((u) => (
-                            <SelectItem key={u.id} value={u.id}>{getUserLabel(u)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={handleCreate} className="w-full">Créer</Button>
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun processus trouvé</CardContent></Card>
+      ) : (
+        <div className="grid gap-3">
+          {filtered.map((p) => {
+            const responsable = users.find(u => u.id === p.responsable_id);
+            return (
+            <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/processus/${p.id}`)}>
+              <CardContent className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-4">
+                  <div className="font-mono text-sm font-medium text-primary">{p.code}</div>
+                  <div>
+                    <p className="font-medium">{p.nom}</p>
+                    <p className="text-xs text-muted-foreground">{typeLabels[p.type_processus]} • v{p.version_courante}</p>
                   </div>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-          ) : filtered.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun processus trouvé</CardContent></Card>
-          ) : (
-            <div className="grid gap-3">
-              {filtered.map((p) => {
-                const responsable = users.find(u => u.id === p.responsable_id);
-                return (
-                  <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/processus/${p.id}`)}>
-                    <CardContent className="flex items-center justify-between py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="font-mono text-sm font-medium text-primary">{p.code}</div>
-                        <div>
-                          <p className="font-medium">{p.nom}</p>
-                          <p className="text-xs text-muted-foreground">{typeLabels[p.type_processus]} • v{p.version_courante}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Responsable">
-                          <UserCheck className="h-3.5 w-3.5" />
-                          <span>{responsable ? getUserLabel(responsable) : "Non assigné"}</span>
-                        </div>
-                        <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                        {canDelete && (
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="enjeux" className="mt-4">
-          <ContextIssuesManager canEdit={canEdit} canDelete={canDelete} />
-        </TabsContent>
-      </Tabs>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Responsable">
+                    <UserCheck className="h-3.5 w-3.5" />
+                    <span>{responsable ? getUserLabel(responsable) : "Non assigné"}</span>
+                  </div>
+                  <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  {canDelete && (
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            );
+          })}
+        </div>
+      )}
 
       <AdminPasswordDialog
         open={adminDialogOpen}
