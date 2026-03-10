@@ -235,6 +235,29 @@ export default function ProcessDetail() {
                     onUpdate={handleUpdateElement}
                     onRemove={handleRemoveElement}
                   />
+                  {type === "ressource" && processDocuments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5" /> Documents associés
+                      </h4>
+                      {processDocuments.map((doc: any) => {
+                        const typeLabels: Record<string, string> = {
+                          procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
+                          enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve",
+                        };
+                        return (
+                          <div key={doc.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-primary" />
+                              <span>{doc.titre}</span>
+                              <span className="text-xs text-muted-foreground">({typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version})</span>
+                            </div>
+                            {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
