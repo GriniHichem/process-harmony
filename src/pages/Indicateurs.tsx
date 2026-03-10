@@ -37,7 +37,8 @@ export default function Indicateurs() {
   const [newValue, setNewValue] = useState({ valeur: "", date_mesure: format(new Date(), "yyyy-MM-dd"), commentaire: "" });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
-  const canCreate = role === "rmq" || role === "responsable_processus";
+  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
+  const canDelete = role === "admin" || role === "rmq";
 
   const fetchData = async () => {
     const [indRes, procRes] = await Promise.all([

@@ -4,11 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, FileText, Download, Archive } from "lucide-react";
+import { Plus, FileText, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Doc = { id: string; titre: string; type_document: string; version: number; archive: boolean; nom_fichier: string | null; process_id: string | null; created_at: string };
@@ -28,7 +29,8 @@ export default function Documents() {
   const [file, setFile] = useState<File | null>(null);
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
-  const canCreate = role === "rmq" || role === "responsable_processus";
+  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
+  const canDelete = role === "admin" || role === "rmq";
 
   const fetchDocs = async () => {
     const { data } = await supabase.from("documents").select("*").eq("archive", false).order("created_at", { ascending: false });
@@ -69,6 +71,13 @@ export default function Documents() {
     setDialogOpen(false);
     setNewDoc({ titre: "", type_document: "procedure", process_id: "" });
     setFile(null);
+    fetchDocs();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("documents").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Document supprimé");
     fetchDocs();
   };
 
@@ -141,6 +150,25 @@ export default function Documents() {
                 </div>
                 <div className="flex items-center gap-2">
                   {d.nom_fichier && <Badge variant="secondary">{d.nom_fichier}</Badge>}
+                  {canDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer ce document ?</AlertDialogTitle>
+                          <AlertDialogDescription>Cette action est irréversible. Le document « {d.titre} » sera définitivement supprimé.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(d.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardContent>
             </Card>

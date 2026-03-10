@@ -4,12 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, AlertTriangle, Lightbulb } from "lucide-react";
+import { Plus, AlertTriangle, Lightbulb, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
@@ -23,7 +24,8 @@ export default function Risques() {
   const [newRisk, setNewRisk] = useState({ type: "risque" as const, description: "", probabilite: "3", impact: "3", process_id: "" });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
-  const canCreate = role === "rmq" || role === "responsable_processus" || role === "consultant";
+  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
+  const canDelete = role === "admin" || role === "rmq";
 
   const fetchData = async () => {
     const [rRes, pRes] = await Promise.all([
@@ -49,6 +51,13 @@ export default function Risques() {
     if (error) { toast.error(error.message); return; }
     toast.success("Élément ajouté");
     setDialogOpen(false);
+    fetchData();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("risks_opportunities").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Élément supprimé");
     fetchData();
   };
 
@@ -131,6 +140,25 @@ export default function Risques() {
                 <div className="flex items-center gap-3">
                   <span className={`text-lg font-bold ${criticityColor(r.criticite)}`}>{r.criticite ?? "-"}</span>
                   <Badge variant={r.type === "risque" ? "destructive" : "secondary"}>{r.type}</Badge>
+                  {canDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer cet élément ?</AlertDialogTitle>
+                          <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardContent>
             </Card>

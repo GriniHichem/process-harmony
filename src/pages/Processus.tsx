@@ -93,7 +93,15 @@ export default function Processus() {
     fetchProcesses();
   };
 
-  const canCreate = role === "rmq" || role === "responsable_processus" || role === "consultant";
+  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
+  const canDelete = role === "admin" || role === "rmq";
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("processes").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Processus supprimé");
+    fetchProcesses();
+  };
 
   return (
     <div className="space-y-6">
