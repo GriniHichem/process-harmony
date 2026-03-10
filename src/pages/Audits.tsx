@@ -12,8 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Plus, ClipboardCheck, Pencil, Eye, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, ClipboardCheck, Pencil, Eye, ChevronRight, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 
 type Audit = {
   id: string; reference: string; type_audit: string; perimetre: string | null;
@@ -68,6 +69,7 @@ export default function Audits() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailAudit, setDetailAudit] = useState<Audit | null>(null);
   const [editAudit, setEditAudit] = useState<Audit | null>(null);
+  const [deleteAudit, setDeleteAudit] = useState<Audit | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [newFinding, setNewFinding] = useState({ type_constat: "observation", description: "", preuve: "" });
   const [newAudit, setNewAudit] = useState({
@@ -151,6 +153,18 @@ export default function Audits() {
     toast.success("Constat ajouté");
     setNewFinding({ type_constat: "observation", description: "", preuve: "" });
     fetchFindings(detailAudit.id);
+  };
+
+  const handleDeleteAudit = async () => {
+    if (!deleteAudit) return;
+    // Delete findings first, then the audit
+    await supabase.from("audit_findings").delete().eq("audit_id", deleteAudit.id);
+    const { error } = await supabase.from("audits").delete().eq("id", deleteAudit.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Audit ${deleteAudit.reference} supprimé`);
+    setDeleteAudit(null);
+    setDetailAudit(null);
+    fetchAudits();
   };
 
   const openDetail = (audit: Audit) => {
@@ -244,11 +258,16 @@ export default function Audits() {
                   <DialogTitle className="flex items-center gap-2">
                     <ClipboardCheck className="h-5 w-5" /> {detailAudit.reference}
                   </DialogTitle>
-                  {canEdit && (
-                    <Button variant="outline" size="sm" onClick={() => { setEditAudit({ ...detailAudit }); setDetailAudit(null); }}>
-                      <Pencil className="mr-2 h-4 w-4" /> Modifier
+                   <div className="flex items-center gap-2">
+                    {canEdit && (
+                      <Button variant="outline" size="sm" onClick={() => { setEditAudit({ ...detailAudit }); setDetailAudit(null); }}>
+                        <Pencil className="mr-2 h-4 w-4" /> Modifier
+                      </Button>
+                    )}
+                    <Button variant="destructive" size="sm" onClick={() => { setDeleteAudit(detailAudit); }}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Supprimer
                     </Button>
-                  )}
+                  </div>
                 </div>
               </DialogHeader>
 
@@ -459,6 +478,15 @@ export default function Audits() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Admin Delete Confirmation */}
+      <AdminPasswordDialog
+        open={!!deleteAudit}
+        onOpenChange={(o) => !o && setDeleteAudit(null)}
+        onConfirm={handleDeleteAudit}
+        title="Suppression d'audit"
+        description={`La suppression de l'audit "${deleteAudit?.reference}" est irréversible. Tous les constats associés seront également supprimés. Cette action nécessite les identifiants d'un administrateur.`}
+      />
     </div>
   );
 }
