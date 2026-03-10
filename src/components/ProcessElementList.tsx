@@ -89,8 +89,12 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
             {editingId === el.id ? (
               <>
                 <span className="font-mono text-xs font-medium text-primary w-24 shrink-0 pt-1">{el.code}</span>
-                <DescField value={editDesc} onChange={setEditDesc} />
-                <div className="flex flex-col gap-1">
+                {multiline ? (
+                  <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="flex-1 text-xs min-h-[60px] resize-y" rows={3} />
+                ) : (
+                  <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="h-7 flex-1 text-xs" />
+                )}
+                <div className={`flex ${multiline ? "flex-col" : ""} gap-1`}>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleUpdate}><Check className="h-3 w-3" /></Button>
                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
                 </div>
@@ -113,7 +117,11 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
 
       {adding && (
         <div className={`flex ${multiline ? "items-start" : "items-center"} gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-2`}>
-          <DescField value={newDesc} onChange={setNewDesc} placeholder="Description" />
+          {multiline ? (
+            <Textarea placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="flex-1 text-xs min-h-[60px] resize-y" rows={3} />
+          ) : (
+            <Input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="h-7 flex-1 text-xs" />
+          )}
           <div className={`flex ${multiline ? "flex-col" : ""} gap-1`}>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleAdd}><Check className="h-3 w-3" /></Button>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setAdding(false); setNewDesc(""); }}><X className="h-3 w-3" /></Button>
