@@ -342,7 +342,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                           </Button>
                         )}
                         {canDelete && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(task.id, task.code)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteClick(task.id, task.code)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
