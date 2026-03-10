@@ -78,6 +78,7 @@ export default function Dashboard() {
     { label: "Actions en retard", value: stats.overdueActions, icon: Zap, desc: "Échéance dépassée", color: "text-warning" },
     { label: "Risques identifiés", value: stats.totalRisks, icon: AlertTriangle, desc: "Risques & opportunités", color: "text-orange-500" },
     { label: "Indicateurs", value: stats.totalIndicators, icon: BarChart3, desc: "Indicateurs définis", color: "text-primary" },
+    { label: "Incidents ouverts", value: stats.incidentsOuverts, icon: AlertOctagon, desc: `dont ${stats.incidentsCritiques} critique(s)`, color: "text-orange-600" },
   ];
 
   return (
