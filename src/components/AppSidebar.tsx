@@ -85,7 +85,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <NavGroup label="Principal" items={mainItems} collapsed={collapsed} />
-        <NavGroup label="Qualité" items={qualityItems} collapsed={collapsed} />
+        <NavGroup label="Manager processus" items={qualityItems} collapsed={collapsed} />
         <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />
         {(role === "rmq" || role === "admin") && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
       </SidebarContent>
