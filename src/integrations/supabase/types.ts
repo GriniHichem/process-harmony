@@ -879,6 +879,100 @@ export type Database = {
         }
         Relationships: []
       }
+      risk_actions: {
+        Row: {
+          created_at: string
+          date_prevue: string | null
+          deadline: string | null
+          description: string
+          id: string
+          responsable: string | null
+          risk_id: string
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          responsable?: string | null
+          risk_id: string
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          responsable?: string | null
+          risk_id?: string
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_actions_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "risks_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      risk_moyens: {
+        Row: {
+          budget: number | null
+          created_at: string
+          date_prevue: string | null
+          deadline: string | null
+          description: string
+          id: string
+          responsable: string | null
+          risk_id: string
+          statut: string
+          type_moyen: string
+          updated_at: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          responsable?: string | null
+          risk_id: string
+          statut?: string
+          type_moyen?: string
+          updated_at?: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          responsable?: string | null
+          risk_id?: string
+          statut?: string
+          type_moyen?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_moyens_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "risks_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       risks_opportunities: {
         Row: {
           actions_traitement: string | null
