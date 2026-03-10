@@ -255,6 +255,12 @@ export default function ProcessDetail() {
                         onAdd={(desc) => handleAddElement(type, prefix, desc)}
                         onUpdate={handleUpdateElement}
                         onRemove={handleRemoveElement}
+                        customAdder={type === "partie_prenante" ? (
+                          <PartiePrenanteAdder
+                            existingDescriptions={elements.filter(e => e.type === "partie_prenante").map(e => e.description)}
+                            onAdd={(desc) => handleAddElement("partie_prenante", "PP", desc)}
+                          />
+                        ) : undefined}
                       />
                       {type === "ressource" && processDocuments.length > 0 && (
                         <div className="mt-4 space-y-2">

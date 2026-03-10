@@ -108,6 +108,8 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
           </div>
         </div>
       )}
+
+      {canEdit && customAdder}
     </div>
   );
 }
