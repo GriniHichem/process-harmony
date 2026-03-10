@@ -437,6 +437,14 @@ export default function NonConformites() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AdminPasswordDialog
+        open={!!deleteNC}
+        onOpenChange={(o) => !o && setDeleteNC(null)}
+        onConfirm={handleDeleteNC}
+        title="Supprimer la non-conformité"
+        description={`Supprimer définitivement ${deleteNC?.reference ?? ""} ? Cette action est irréversible.`}
+      />
     </div>
   );
 }
