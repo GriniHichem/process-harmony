@@ -221,6 +221,25 @@ export default function ProcessDetail() {
             ))}
           </div>
         </TabsContent>
+
+        <TabsContent value="tasks">
+          <Card>
+            <CardContent className="pt-6">
+              <ProcessTasksTable
+                processId={id!}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                processElements={elements}
+                onAddElement={async (type: ElementType, description: string) => {
+                  const section = ELEMENT_SECTIONS.find(s => s.type === type);
+                  if (section) {
+                    await handleAddElement(type, section.prefix, description);
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
