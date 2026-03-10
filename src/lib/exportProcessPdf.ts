@@ -267,12 +267,14 @@ function buildHtml(data: ProcessData): string {
 
   <div class="company-header">
     <div class="company-logo">
-      <div class="logo-circle">CM</div>
+      <img src="/images/logo-conserverie.jpg" alt="Conserverie du Maghreb" />
       <div class="company-info">
         <h2>Conserverie du Maghreb</h2>
         <p>Système de Management de la Qualité – ISO 9001</p>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <img src="/images/logo-amour.jpg" alt="AMOUR" style="height:40px;border-radius:4px;" />
     <div class="doc-ref">
       <strong>FICHE PROCESSUS</strong>
       Réf : ${escapeHtml(p.code)}<br>
