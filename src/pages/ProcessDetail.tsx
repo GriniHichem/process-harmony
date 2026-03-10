@@ -173,7 +173,7 @@ export default function ProcessDetail() {
           <TabsTrigger value="general">Informations générales</TabsTrigger>
           <TabsTrigger value="elements">Éléments</TabsTrigger>
           <TabsTrigger value="tasks">Activités</TabsTrigger>
-          <TabsTrigger value="documents">Documents ({processDocuments.length})</TabsTrigger>
+          </TabsList>
         </TabsList>
 
         <TabsContent value="general">
