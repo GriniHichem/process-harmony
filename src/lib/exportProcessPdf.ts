@@ -10,6 +10,8 @@ interface ProcessData {
   indicatorValues: Record<string, any[]>;
   risks: any[];
   responsableName: string;
+  contextIssues: any[];
+  contextIssueActions: Record<string, any[]>;
 }
 
 async function fetchAllProcessData(processId: string): Promise<ProcessData> {
