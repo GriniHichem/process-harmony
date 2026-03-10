@@ -71,7 +71,7 @@ export default function Login() {
   };
 
   const titles: Record<Mode, string> = {
-    login: "Système de Management de la Qualité",
+    login: "Système intégré ISO 9001 et gestion par processus",
     signup: "Créer un nouveau compte",
     reset: "Entrez votre email pour réinitialiser le mot de passe",
   };
