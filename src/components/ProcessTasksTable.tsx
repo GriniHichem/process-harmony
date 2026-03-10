@@ -180,13 +180,19 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   };
 
   const handleQuickAddElement = async (type: "donnee_entree" | "donnee_sortie", description: string) => {
-    if (!description.trim()) return;
-    await onAddElement(type, description.trim());
-    // After onAddElement, the parent refetches elements and passes updated processElements
-    if (type === "donnee_entree") {
-      setNewEntreeDesc("");
-    } else {
-      setNewSortieDesc("");
+    if (!description.trim()) {
+      toast.error("Veuillez saisir une description");
+      return;
+    }
+    try {
+      await onAddElement(type, description.trim());
+      if (type === "donnee_entree") {
+        setNewEntreeDesc("");
+      } else {
+        setNewSortieDesc("");
+      }
+    } catch (err) {
+      toast.error("Erreur lors de l'ajout de l'élément");
     }
   };
 
