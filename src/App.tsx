@@ -22,6 +22,7 @@ import Actions from "./pages/Actions";
 import Journal from "./pages/Journal";
 import Utilisateurs from "./pages/Utilisateurs";
 import Acteurs from "./pages/Acteurs";
+import Incidents from "./pages/Incidents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
