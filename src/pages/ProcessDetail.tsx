@@ -318,8 +318,8 @@ export default function ProcessDetail() {
 
       </Tabs>
 
-      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { setPdfViewerUrl(null); setPdfViewerTitle(""); } }}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); } }}>
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
           </DialogHeader>
