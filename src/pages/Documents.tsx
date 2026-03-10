@@ -41,8 +41,6 @@ export default function Documents() {
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
   const canDelete = role === "admin" || role === "rmq";
 
-  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const fetchDocs = async () => {
     // Fetch documents
