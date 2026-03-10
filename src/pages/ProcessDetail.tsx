@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText, Download, Eye, Maximize2, Minimize2 } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download, Eye, Maximize2, Minimize2, FileDown } from "lucide-react";
+import { exportProcessPdf } from "@/lib/exportProcessPdf";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
