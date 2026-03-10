@@ -170,6 +170,9 @@ export default function ProcessDetail() {
           </div>
           <h1 className="text-2xl font-bold mt-1">{process.nom}</h1>
         </div>
+        <Button variant="outline" onClick={() => exportProcessPdf(id!)}>
+          <FileDown className="mr-2 h-4 w-4" /> Exporter PDF
+        </Button>
         {canEdit && (
           <Button onClick={handleSave} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? "..." : "Enregistrer"}</Button>
         )}
