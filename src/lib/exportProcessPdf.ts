@@ -325,6 +325,40 @@ function buildHtml(data: ProcessData): string {
 
   ${p.description ? `<div class="section"><h2>Description</h2><p>${escapeHtml(p.description)}</p></div>` : ""}
 
+  ${contextIssues.length > 0 ? `<div class="section">
+    <h2>Enjeux du contexte (ISO 9001)</h2>
+    <table>
+      <thead><tr><th style="width:70px">Réf.</th><th style="width:70px">Type</th><th>Intitulé</th><th>Description</th><th style="width:60px">Impact</th><th style="width:55px">Climat</th></tr></thead>
+      <tbody>${contextIssues.map((ci: any) => `<tr>
+        <td class="mono">${escapeHtml(ci.reference)}</td>
+        <td>${ci.type_enjeu === "interne" ? "Interne" : "Externe"}</td>
+        <td><strong>${escapeHtml(ci.intitule)}</strong></td>
+        <td>${escapeHtml(ci.description)}</td>
+        <td>${ci.impact === "faible" ? "Faible" : ci.impact === "moyen" ? "Moyen" : "Fort"}</td>
+        <td>${ci.climat_pertinent ? "Oui" : "Non"}</td>
+      </tr>`).join("")}</tbody>
+    </table>
+    ${contextIssues.some((ci: any) => (contextIssueActions[ci.id] ?? []).length > 0) ? `
+      <div style="margin-top:10px">
+        <h3 style="font-size:12px;font-weight:600;color:#333;margin-bottom:6px">Actions de prise en compte</h3>
+        ${contextIssues.filter((ci: any) => (contextIssueActions[ci.id] ?? []).length > 0).map((ci: any) => `
+          <div class="sub-block">
+            <h4>${escapeHtml(ci.reference)} – ${escapeHtml(ci.intitule)}</h4>
+            <table>
+              <thead><tr><th>Action</th><th style="width:100px">Responsable</th><th style="width:90px">Date revue</th><th style="width:70px">Statut</th></tr></thead>
+              <tbody>${(contextIssueActions[ci.id] ?? []).map((a: any) => `<tr>
+                <td>${escapeHtml(a.description)}</td>
+                <td>${escapeHtml(a.responsable) || "—"}</td>
+                <td>${a.date_revue || "—"}</td>
+                <td>${a.statut === "a_faire" ? "À faire" : a.statut === "en_cours" ? "En cours" : "Terminé"}</td>
+              </tr>`).join("")}</tbody>
+            </table>
+          </div>
+        `).join("")}
+      </div>
+    ` : ""}
+  </div>` : ""}
+
   <div class="section">
     <h2>Éléments du processus</h2>
     ${elementSection("Finalité", "finalite")}
