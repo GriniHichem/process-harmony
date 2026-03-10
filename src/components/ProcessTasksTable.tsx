@@ -514,13 +514,6 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         </DialogContent>
       </Dialog>
 
-      <AdminPasswordDialog
-        open={adminDialogOpen}
-        onOpenChange={setAdminDialogOpen}
-        onConfirm={handleDeleteConfirm}
-        title="Suppression d'activité"
-        description="Veuillez entrer les identifiants administrateur pour confirmer la suppression de cette activité."
-      />
     </div>
   );
 }

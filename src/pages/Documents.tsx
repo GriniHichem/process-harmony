@@ -262,13 +262,6 @@ export default function Documents() {
         </div>
       )}
 
-      <AdminPasswordDialog
-        open={adminDialogOpen}
-        onOpenChange={setAdminDialogOpen}
-        onConfirm={handleDeleteConfirm}
-        title="Suppression de document"
-        description="Veuillez entrer les identifiants administrateur pour confirmer la suppression de ce document."
-      />
     </div>
   );
 }
