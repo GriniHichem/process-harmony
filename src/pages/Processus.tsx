@@ -224,6 +224,14 @@ export default function Processus() {
           })}
         </div>
       )}
+
+      <AdminPasswordDialog
+        open={adminDialogOpen}
+        onOpenChange={setAdminDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title="Suppression de processus"
+        description="Cette action supprimera le processus et tous ses objets associés. Veuillez entrer les identifiants administrateur pour confirmer."
+      />
     </div>
   );
 }
