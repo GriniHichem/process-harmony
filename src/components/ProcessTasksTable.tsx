@@ -358,7 +358,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingTask ? "Modifier la tâche" : branchParent ? `Ajouter une branche à ${branchParent.code}` : "Nouvelle tâche"}
+              {editingTask ? "Modifier l'activité" : branchParent ? `Ajouter une branche à ${branchParent.code}` : "Nouvelle activité"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
