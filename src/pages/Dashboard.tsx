@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Network, ClipboardCheck, XCircle, Zap, AlertTriangle, BarChart3 } from "lucide-react";
+import { Network, ClipboardCheck, XCircle, Zap, AlertTriangle, BarChart3, AlertOctagon } from "lucide-react";
 
 interface DashboardStats {
   totalProcesses: number;
@@ -11,6 +11,8 @@ interface DashboardStats {
   overdueActions: number;
   totalRisks: number;
   totalIndicators: number;
+  incidentsOuverts: number;
+  incidentsCritiques: number;
 }
 
 export default function Dashboard() {
@@ -22,18 +24,22 @@ export default function Dashboard() {
     overdueActions: 0,
     totalRisks: 0,
     totalIndicators: 0,
+    incidentsOuverts: 0,
+    incidentsCritiques: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [processes, audits, nc, actions, risks, indicators] = await Promise.all([
+      const [processes, audits, nc, actions, risks, indicators, incidentsOuverts, incidentsCritiques] = await Promise.all([
         supabase.from("processes").select("type_processus"),
         supabase.from("audits").select("statut").in("statut", ["planifie", "en_cours"]),
         supabase.from("nonconformities").select("statut").eq("statut", "ouverte"),
         supabase.from("actions").select("statut, echeance").in("statut", ["planifiee", "en_cours"]),
         supabase.from("risks_opportunities").select("id"),
         supabase.from("indicators").select("id"),
+        supabase.from("risk_incidents").select("id").eq("statut", "ouvert"),
+        supabase.from("risk_incidents").select("id").eq("gravite", "critique").neq("statut", "cloture"),
       ]);
 
       const p = processes.data ?? [];
@@ -53,6 +59,8 @@ export default function Dashboard() {
         overdueActions,
         totalRisks: risks.data?.length ?? 0,
         totalIndicators: indicators.data?.length ?? 0,
+        incidentsOuverts: incidentsOuverts.data?.length ?? 0,
+        incidentsCritiques: incidentsCritiques.data?.length ?? 0,
       });
       setLoading(false);
     };
@@ -70,6 +78,7 @@ export default function Dashboard() {
     { label: "Actions en retard", value: stats.overdueActions, icon: Zap, desc: "Échéance dépassée", color: "text-warning" },
     { label: "Risques identifiés", value: stats.totalRisks, icon: AlertTriangle, desc: "Risques & opportunités", color: "text-orange-500" },
     { label: "Indicateurs", value: stats.totalIndicators, icon: BarChart3, desc: "Indicateurs définis", color: "text-primary" },
+    { label: "Incidents ouverts", value: stats.incidentsOuverts, icon: AlertOctagon, desc: `dont ${stats.incidentsCritiques} critique(s)`, color: "text-orange-600" },
   ];
 
   return (
