@@ -135,7 +135,7 @@ export default function Processus() {
                   <Select value={newProcess.type_processus} onValueChange={(v: any) => setNewProcess({ ...newProcess, type_processus: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pilotage">Pilotage</SelectItem>
+                      <SelectItem value="pilotage">Management</SelectItem>
                       <SelectItem value="realisation">Réalisation</SelectItem>
                       <SelectItem value="support">Support</SelectItem>
                     </SelectContent>
