@@ -123,17 +123,11 @@ export default function Documents() {
     fetchDocs();
   };
 
-  const handleDeleteClick = (id: string) => {
-    setPendingDeleteId(id);
-    setAdminDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!pendingDeleteId) return;
-    const { error } = await supabase.from("documents").delete().eq("id", pendingDeleteId);
+  const handleDeleteClick = async (id: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce document ?")) return;
+    const { error } = await supabase.from("documents").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Document supprimé");
-    setPendingDeleteId(null);
     fetchDocs();
   };
 
