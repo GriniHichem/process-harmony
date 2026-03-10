@@ -10,6 +10,7 @@ import { Users, Shield } from "lucide-react";
 type UserWithRole = { id: string; nom: string; prenom: string; email: string; fonction: string; actif: boolean; role: string | null };
 
 const roleLabels: Record<string, string> = {
+  admin: "Admin",
   rmq: "RMQ",
   responsable_processus: "Resp. processus",
   consultant: "Consultant",
@@ -32,7 +33,7 @@ export default function Utilisateurs() {
   useEffect(() => { fetchUsers(); }, []);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    if (role !== "rmq") return;
+    if (role !== "rmq" && role !== "admin") return;
     const { data: existing } = await supabase.from("user_roles").select("id").eq("user_id", userId).single();
     let error;
     if (existing) {
@@ -45,17 +46,17 @@ export default function Utilisateurs() {
   };
 
   const toggleActive = async (userId: string, currentActive: boolean) => {
-    if (role !== "rmq") return;
+    if (role !== "rmq" && role !== "admin") return;
     const { error } = await supabase.from("profiles").update({ actif: !currentActive }).eq("id", userId);
     if (error) toast.error(error.message);
     else { toast.success(currentActive ? "Compte désactivé" : "Compte activé"); fetchUsers(); }
   };
 
-  if (role !== "rmq") {
+  if (role !== "rmq" && role !== "admin") {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Utilisateurs</h1>
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé au RMQ</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé au RMQ ou Admin</CardContent></Card>
       </div>
     );
   }

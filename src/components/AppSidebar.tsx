@@ -85,7 +85,7 @@ export function AppSidebar() {
         <NavGroup label="Principal" items={mainItems} collapsed={collapsed} />
         <NavGroup label="Qualité" items={qualityItems} collapsed={collapsed} />
         <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />
-        {role === "rmq" && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
+        {(role === "rmq" || role === "admin") && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
