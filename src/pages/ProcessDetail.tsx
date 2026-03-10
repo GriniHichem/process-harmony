@@ -74,7 +74,7 @@ export default function ProcessDetail() {
     const docIds = dpData.map((dp: any) => dp.document_id);
     const { data: docsData } = await supabase
       .from("documents")
-      .select("id, titre, type_document, version, nom_fichier")
+      .select("id, titre, type_document, version, nom_fichier, chemin_fichier")
       .in("id", docIds)
       .eq("archive", false);
     setProcessDocuments(docsData ?? []);
