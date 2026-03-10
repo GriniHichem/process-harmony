@@ -22,6 +22,7 @@ export default function Risques() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newRisk, setNewRisk] = useState({ type: "risque" as const, description: "", probabilite: "3", impact: "3", process_id: "" });
 
+  const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = role === "rmq" || role === "responsable_processus" || role === "consultant";
 
   const fetchData = async () => {

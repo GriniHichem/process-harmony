@@ -35,6 +35,7 @@ export default function Indicateurs() {
   const [valueDialogOpen, setValueDialogOpen] = useState(false);
   const [newValue, setNewValue] = useState({ valeur: "", date_mesure: format(new Date(), "yyyy-MM-dd"), commentaire: "" });
 
+  const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = role === "rmq" || role === "responsable_processus";
 
   const fetchData = async () => {

@@ -27,6 +27,7 @@ export default function Documents() {
   const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", process_id: "" });
   const [file, setFile] = useState<File | null>(null);
 
+  const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = role === "rmq" || role === "responsable_processus";
 
   const fetchDocs = async () => {
