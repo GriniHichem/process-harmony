@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, FileText, Trash2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
+
 
 type Doc = {
   id: string;
@@ -41,8 +41,6 @@ export default function Documents() {
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
   const canDelete = role === "admin" || role === "rmq";
 
-  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const fetchDocs = async () => {
     // Fetch documents
@@ -125,17 +123,11 @@ export default function Documents() {
     fetchDocs();
   };
 
-  const handleDeleteClick = (id: string) => {
-    setPendingDeleteId(id);
-    setAdminDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!pendingDeleteId) return;
-    const { error } = await supabase.from("documents").delete().eq("id", pendingDeleteId);
+  const handleDeleteClick = async (id: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce document ?")) return;
+    const { error } = await supabase.from("documents").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Document supprimé");
-    setPendingDeleteId(null);
     fetchDocs();
   };
 
@@ -270,13 +262,6 @@ export default function Documents() {
         </div>
       )}
 
-      <AdminPasswordDialog
-        open={adminDialogOpen}
-        onOpenChange={setAdminDialogOpen}
-        onConfirm={handleDeleteConfirm}
-        title="Suppression de document"
-        description="Veuillez entrer les identifiants administrateur pour confirmer la suppression de ce document."
-      />
     </div>
   );
 }
