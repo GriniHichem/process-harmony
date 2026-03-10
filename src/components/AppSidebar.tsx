@@ -29,6 +29,7 @@ const qualityItems = [
 ];
 
 const auditItems = [
+  { title: "Tableau Audit/NC", url: "/dashboard-audit", icon: BarChart3 },
   { title: "Audits", url: "/audits", icon: ClipboardCheck },
   { title: "Non-conformités", url: "/non-conformites", icon: XCircle },
   { title: "Actions", url: "/actions", icon: Zap },
