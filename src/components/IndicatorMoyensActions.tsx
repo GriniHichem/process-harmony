@@ -9,8 +9,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Check, X, Wrench, ClipboardList, CalendarClock } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Wrench, ClipboardList, CalendarClock, DollarSign } from "lucide-react";
 import { format } from "date-fns";
+
+interface IndicatorMoyen {
+  id: string;
+  indicator_id: string;
+  description: string;
+  type_moyen: string;
+  budget: number | null;
+  date_prevue: string | null;
+  deadline: string | null;
+  responsable: string | null;
+  statut: string;
+}
 
 interface IndicatorAction {
   id: string;
@@ -41,13 +53,104 @@ const STATUT_COLORS: Record<string, string> = {
   realisee: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
 };
 
-export function IndicatorMoyensActions({ indicatorId, moyens, canEdit, onMoyensUpdate }: IndicatorMoyensActionsProps) {
+const TYPE_MOYEN_LABELS: Record<string, string> = {
+  humain: "Humain",
+  materiel: "Matériel",
+  financier: "Financier",
+  logiciel: "Logiciel",
+  autre: "Autre",
+};
+
+function ItemCard({
+  description,
+  statut,
+  responsable,
+  datePrevue,
+  deadline,
+  budget,
+  typeMoyen,
+  canEdit,
+  onEdit,
+  onDelete,
+}: {
+  description: string;
+  statut: string;
+  responsable: string | null;
+  datePrevue: string | null;
+  deadline: string | null;
+  budget?: number | null;
+  typeMoyen?: string;
+  canEdit: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const overdue = deadline && statut !== "realisee" && new Date(deadline) < new Date();
+  return (
+    <div className={`rounded-md border px-3 py-2 text-sm ${overdue ? "border-destructive/50 bg-destructive/5" : "bg-muted/30"}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 space-y-1">
+          <p className="font-medium">{description}</p>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="secondary" className={`text-[10px] ${STATUT_COLORS[statut] ?? ""}`}>
+              {STATUT_LABELS[statut] ?? statut}
+            </Badge>
+            {typeMoyen && (
+              <Badge variant="outline" className="text-[10px]">
+                {TYPE_MOYEN_LABELS[typeMoyen] ?? typeMoyen}
+              </Badge>
+            )}
+            {budget != null && (
+              <span className="flex items-center gap-0.5">
+                <DollarSign className="h-3 w-3" /> {budget.toLocaleString()} DH
+              </span>
+            )}
+            {responsable && <span>👤 {responsable}</span>}
+            {datePrevue && (
+              <span className="flex items-center gap-0.5">
+                <CalendarClock className="h-3 w-3" /> Prévu : {format(new Date(datePrevue), "dd/MM/yyyy")}
+              </span>
+            )}
+            {deadline && (
+              <span className={`flex items-center gap-0.5 ${overdue ? "text-destructive font-medium" : ""}`}>
+                🎯 Deadline : {format(new Date(deadline), "dd/MM/yyyy")}
+                {overdue && " ⚠️"}
+              </span>
+            )}
+          </div>
+        </div>
+        {canEdit && (
+          <div className="flex gap-0.5 shrink-0">
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit}><Pencil className="h-3 w-3" /></Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={onDelete}><Trash2 className="h-3 w-3" /></Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyensActionsProps) {
+  const [moyens, setMoyens] = useState<IndicatorMoyen[]>([]);
   const [actions, setActions] = useState<IndicatorAction[]>([]);
-  const [editingMoyens, setEditingMoyens] = useState(false);
-  const [moyensText, setMoyensText] = useState(moyens ?? "");
+
+  // Moyen dialog
+  const [moyenDialogOpen, setMoyenDialogOpen] = useState(false);
+  const [editingMoyen, setEditingMoyen] = useState<IndicatorMoyen | null>(null);
+  const [moyenForm, setMoyenForm] = useState({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" });
+
+  // Action dialog
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<IndicatorAction | null>(null);
-  const [form, setForm] = useState({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
+  const [actionForm, setActionForm] = useState({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
+
+  const fetchMoyens = useCallback(async () => {
+    const { data } = await supabase
+      .from("indicator_moyens" as any)
+      .select("*")
+      .eq("indicator_id", indicatorId)
+      .order("created_at", { ascending: true });
+    setMoyens((data ?? []) as any);
+  }, [indicatorId]);
 
   const fetchActions = useCallback(async () => {
     const { data } = await supabase
@@ -58,26 +161,66 @@ export function IndicatorMoyensActions({ indicatorId, moyens, canEdit, onMoyensU
     setActions((data ?? []) as IndicatorAction[]);
   }, [indicatorId]);
 
-  useEffect(() => { fetchActions(); }, [fetchActions]);
-  useEffect(() => { setMoyensText(moyens ?? ""); }, [moyens]);
+  useEffect(() => { fetchMoyens(); fetchActions(); }, [fetchMoyens, fetchActions]);
 
-  const handleSaveMoyens = async () => {
-    const { error } = await supabase.from("indicators").update({ moyens: moyensText || null } as any).eq("id", indicatorId);
+  // === MOYENS CRUD ===
+  const openAddMoyen = () => {
+    setEditingMoyen(null);
+    setMoyenForm({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" });
+    setMoyenDialogOpen(true);
+  };
+  const openEditMoyen = (m: IndicatorMoyen) => {
+    setEditingMoyen(m);
+    setMoyenForm({
+      description: m.description,
+      type_moyen: m.type_moyen,
+      budget: m.budget != null ? String(m.budget) : "",
+      date_prevue: m.date_prevue ?? "",
+      deadline: m.deadline ?? "",
+      responsable: m.responsable ?? "",
+      statut: m.statut,
+    });
+    setMoyenDialogOpen(true);
+  };
+  const handleSaveMoyen = async () => {
+    if (!moyenForm.description.trim()) { toast.error("Description requise"); return; }
+    const payload = {
+      description: moyenForm.description.trim(),
+      type_moyen: moyenForm.type_moyen,
+      budget: moyenForm.budget ? Number(moyenForm.budget) : null,
+      date_prevue: moyenForm.date_prevue || null,
+      deadline: moyenForm.deadline || null,
+      responsable: moyenForm.responsable || null,
+      statut: moyenForm.statut,
+    };
+    if (editingMoyen) {
+      const { error } = await supabase.from("indicator_moyens" as any).update(payload as any).eq("id", editingMoyen.id);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Moyen mis à jour");
+    } else {
+      const { error } = await supabase.from("indicator_moyens" as any).insert({ ...payload, indicator_id: indicatorId } as any);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Moyen ajouté");
+    }
+    setMoyenDialogOpen(false);
+    fetchMoyens();
+  };
+  const handleDeleteMoyen = async (id: string) => {
+    const { error } = await supabase.from("indicator_moyens" as any).delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Moyens mis à jour");
-    setEditingMoyens(false);
-    onMoyensUpdate(moyensText);
+    toast.success("Moyen supprimé");
+    fetchMoyens();
   };
 
+  // === ACTIONS CRUD ===
   const openAddAction = () => {
     setEditingAction(null);
-    setForm({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
+    setActionForm({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
     setActionDialogOpen(true);
   };
-
   const openEditAction = (a: IndicatorAction) => {
     setEditingAction(a);
-    setForm({
+    setActionForm({
       description: a.description,
       statut: a.statut,
       date_prevue: a.date_prevue ?? "",
@@ -86,17 +229,15 @@ export function IndicatorMoyensActions({ indicatorId, moyens, canEdit, onMoyensU
     });
     setActionDialogOpen(true);
   };
-
   const handleSaveAction = async () => {
-    if (!form.description.trim()) { toast.error("Description requise"); return; }
+    if (!actionForm.description.trim()) { toast.error("Description requise"); return; }
     const payload = {
-      description: form.description.trim(),
-      statut: form.statut,
-      date_prevue: form.date_prevue || null,
-      deadline: form.deadline || null,
-      responsable: form.responsable || null,
+      description: actionForm.description.trim(),
+      statut: actionForm.statut,
+      date_prevue: actionForm.date_prevue || null,
+      deadline: actionForm.deadline || null,
+      responsable: actionForm.responsable || null,
     };
-
     if (editingAction) {
       const { error } = await supabase.from("indicator_actions").update(payload as any).eq("id", editingAction.id);
       if (error) { toast.error(error.message); return; }
@@ -109,7 +250,6 @@ export function IndicatorMoyensActions({ indicatorId, moyens, canEdit, onMoyensU
     setActionDialogOpen(false);
     fetchActions();
   };
-
   const handleDeleteAction = async (id: string) => {
     const { error } = await supabase.from("indicator_actions").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
@@ -117,47 +257,42 @@ export function IndicatorMoyensActions({ indicatorId, moyens, canEdit, onMoyensU
     fetchActions();
   };
 
-  const isOverdue = (deadline: string | null, statut: string) => {
-    if (!deadline || statut === "realisee") return false;
-    return new Date(deadline) < new Date();
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Moyens */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Wrench className="h-4 w-4" /> Moyens
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wrench className="h-4 w-4" /> Moyens
+            </CardTitle>
+            {canEdit && (
+              <Button variant="ghost" size="sm" onClick={openAddMoyen}>
+                <Plus className="h-3 w-3 mr-1" /> Ajouter
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {editingMoyens ? (
-            <div className="space-y-2">
-              <Textarea
-                value={moyensText}
-                onChange={(e) => setMoyensText(e.target.value)}
-                placeholder="Ressources humaines, matérielles, financières..."
-                rows={4}
-                className="text-sm"
-              />
-              <div className="flex gap-1 justify-end">
-                <Button variant="ghost" size="sm" onClick={handleSaveMoyens}><Check className="h-3 w-3 mr-1" /> Enregistrer</Button>
-                <Button variant="ghost" size="sm" onClick={() => { setEditingMoyens(false); setMoyensText(moyens ?? ""); }}><X className="h-3 w-3 mr-1" /> Annuler</Button>
-              </div>
-            </div>
+          {moyens.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Aucun moyen défini</p>
           ) : (
-            <div>
-              {moyens ? (
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{moyens}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">Aucun moyen défini</p>
-              )}
-              {canEdit && (
-                <Button variant="ghost" size="sm" className="mt-2" onClick={() => setEditingMoyens(true)}>
-                  <Pencil className="h-3 w-3 mr-1" /> {moyens ? "Modifier" : "Ajouter"}
-                </Button>
-              )}
+            <div className="space-y-2">
+              {moyens.map((m) => (
+                <ItemCard
+                  key={m.id}
+                  description={m.description}
+                  statut={m.statut}
+                  responsable={m.responsable}
+                  datePrevue={m.date_prevue}
+                  deadline={m.deadline}
+                  budget={m.budget}
+                  typeMoyen={m.type_moyen}
+                  canEdit={canEdit}
+                  onEdit={() => openEditMoyen(m)}
+                  onDelete={() => handleDeleteMoyen(m.id)}
+                />
+              ))}
             </div>
           )}
         </CardContent>
@@ -182,60 +317,57 @@ export function IndicatorMoyensActions({ indicatorId, moyens, canEdit, onMoyensU
             <p className="text-sm text-muted-foreground italic">Aucune action définie</p>
           ) : (
             <div className="space-y-2">
-              {actions.map((a) => {
-                const overdue = isOverdue(a.deadline, a.statut);
-                return (
-                  <div key={a.id} className={`rounded-md border px-3 py-2 text-sm ${overdue ? "border-destructive/50 bg-destructive/5" : "bg-muted/30"}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 space-y-1">
-                        <p className="font-medium">{a.description}</p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="secondary" className={`text-[10px] ${STATUT_COLORS[a.statut] ?? ""}`}>
-                            {STATUT_LABELS[a.statut] ?? a.statut}
-                          </Badge>
-                          {a.responsable && <span>👤 {a.responsable}</span>}
-                          {a.date_prevue && (
-                            <span className="flex items-center gap-0.5">
-                              <CalendarClock className="h-3 w-3" /> Prévu : {format(new Date(a.date_prevue), "dd/MM/yyyy")}
-                            </span>
-                          )}
-                          {a.deadline && (
-                            <span className={`flex items-center gap-0.5 ${overdue ? "text-destructive font-medium" : ""}`}>
-                              🎯 Deadline : {format(new Date(a.deadline), "dd/MM/yyyy")}
-                              {overdue && " ⚠️"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {canEdit && (
-                        <div className="flex gap-0.5 shrink-0">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditAction(a)}><Pencil className="h-3 w-3" /></Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAction(a.id)}><Trash2 className="h-3 w-3" /></Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {actions.map((a) => (
+                <ItemCard
+                  key={a.id}
+                  description={a.description}
+                  statut={a.statut}
+                  responsable={a.responsable}
+                  datePrevue={a.date_prevue}
+                  deadline={a.deadline}
+                  canEdit={canEdit}
+                  onEdit={() => openEditAction(a)}
+                  onDelete={() => handleDeleteAction(a.id)}
+                />
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Action dialog */}
-      <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
+      {/* Moyen dialog */}
+      <Dialog open={moyenDialogOpen} onOpenChange={setMoyenDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingAction ? "Modifier l'action" : "Nouvelle action"}</DialogTitle>
+            <DialogTitle>{editingMoyen ? "Modifier le moyen" : "Nouveau moyen"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
+              <Textarea value={moyenForm.description} onChange={(e) => setMoyenForm({ ...moyenForm, description: e.target.value })} rows={2} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={moyenForm.type_moyen} onValueChange={(v) => setMoyenForm({ ...moyenForm, type_moyen: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="humain">Humain</SelectItem>
+                    <SelectItem value="materiel">Matériel</SelectItem>
+                    <SelectItem value="financier">Financier</SelectItem>
+                    <SelectItem value="logiciel">Logiciel</SelectItem>
+                    <SelectItem value="autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Budget (DH)</Label>
+                <Input type="number" value={moyenForm.budget} onChange={(e) => setMoyenForm({ ...moyenForm, budget: e.target.value })} placeholder="0" />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Statut</Label>
-              <Select value={form.statut} onValueChange={(v) => setForm({ ...form, statut: v })}>
+              <Select value={moyenForm.statut} onValueChange={(v) => setMoyenForm({ ...moyenForm, statut: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="a_faire">À faire</SelectItem>
@@ -246,16 +378,57 @@ export function IndicatorMoyensActions({ indicatorId, moyens, canEdit, onMoyensU
             </div>
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <Input value={form.responsable} onChange={(e) => setForm({ ...form, responsable: e.target.value })} placeholder="Nom du responsable" />
+              <Input value={moyenForm.responsable} onChange={(e) => setMoyenForm({ ...moyenForm, responsable: e.target.value })} placeholder="Nom du responsable" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Date prévue</Label>
-                <Input type="date" value={form.date_prevue} onChange={(e) => setForm({ ...form, date_prevue: e.target.value })} />
+                <Input type="date" value={moyenForm.date_prevue} onChange={(e) => setMoyenForm({ ...moyenForm, date_prevue: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Deadline finale</Label>
-                <Input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+                <Input type="date" value={moyenForm.deadline} onChange={(e) => setMoyenForm({ ...moyenForm, deadline: e.target.value })} />
+              </div>
+            </div>
+            <Button onClick={handleSaveMoyen} className="w-full">Enregistrer</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Action dialog */}
+      <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingAction ? "Modifier l'action" : "Nouvelle action"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={actionForm.description} onChange={(e) => setActionForm({ ...actionForm, description: e.target.value })} rows={2} />
+            </div>
+            <div className="space-y-2">
+              <Label>Statut</Label>
+              <Select value={actionForm.statut} onValueChange={(v) => setActionForm({ ...actionForm, statut: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="a_faire">À faire</SelectItem>
+                  <SelectItem value="en_cours">En cours</SelectItem>
+                  <SelectItem value="realisee">Réalisée</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Responsable</Label>
+              <Input value={actionForm.responsable} onChange={(e) => setActionForm({ ...actionForm, responsable: e.target.value })} placeholder="Nom du responsable" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Date prévue</Label>
+                <Input type="date" value={actionForm.date_prevue} onChange={(e) => setActionForm({ ...actionForm, date_prevue: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Deadline finale</Label>
+                <Input type="date" value={actionForm.deadline} onChange={(e) => setActionForm({ ...actionForm, deadline: e.target.value })} />
               </div>
             </div>
             <Button onClick={handleSaveAction} className="w-full">Enregistrer</Button>
