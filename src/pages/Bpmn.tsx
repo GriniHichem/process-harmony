@@ -118,11 +118,11 @@ export default function Bpmn() {
       ],
       edges: [{ id: "e1", from: "n1", to: "n2" }],
     };
-    const { error } = await supabase.from("bpmn_diagrams").insert({
+    const { error } = await supabase.from("bpmn_diagrams").insert([{
       nom: `BPMN - ${processName}`,
       process_id: selectedProcessId,
-      donnees: defaultData as unknown as Record<string, unknown>,
-    });
+      donnees: defaultData as unknown as null,
+    }]);
     if (error) { toast.error(error.message); return; }
     toast.success("Diagramme créé");
     fetchDiagram(selectedProcessId);
