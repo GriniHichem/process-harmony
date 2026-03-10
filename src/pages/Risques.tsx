@@ -91,7 +91,7 @@ export default function Risques() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label>Probabilité (1-5)</Label><Input type="number" min="1" max="5" value={newRisk.probabilite} onChange={(e) => setNewRisk({ ...newRisk, probabilite: e.target.value })} /></div>
-                  <div className="space-y-2"><Label>Impact (1-5)</Label><Input type="number" min="1" max="5" value={newRisk.impact} onChange={(e) => setNewRisk({ ...newRisk, impact: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Gravité (1-4)</Label><Input type="number" min="1" max="4" value={newRisk.impact} onChange={(e) => setNewRisk({ ...newRisk, impact: e.target.value })} /></div>
                 </div>
                 <Button onClick={handleCreate} className="w-full">Ajouter</Button>
               </div>
@@ -113,7 +113,7 @@ export default function Risques() {
                   {r.type === "risque" ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Lightbulb className="h-5 w-5 text-accent" />}
                   <div>
                     <p className="font-medium">{r.description}</p>
-                    <p className="text-xs text-muted-foreground">P:{r.probabilite} × I:{r.impact}</p>
+                    <p className="text-xs text-muted-foreground">P:{r.probabilite} × G:{r.impact}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
