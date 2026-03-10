@@ -96,10 +96,20 @@ export default function Processus() {
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
   const canDelete = role === "admin" || role === "rmq";
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("processes").delete().eq("id", id);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const handleDeleteClick = (id: string) => {
+    setPendingDeleteId(id);
+    setAdminDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDeleteId) return;
+    const { error } = await supabase.from("processes").delete().eq("id", pendingDeleteId);
     if (error) { toast.error(error.message); return; }
     toast.success("Processus supprimé");
+    setPendingDeleteId(null);
     fetchProcesses();
   };
 
