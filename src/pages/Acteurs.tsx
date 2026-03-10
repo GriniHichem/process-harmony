@@ -24,7 +24,7 @@ interface Acteur {
   created_at: string;
 }
 
-const emptyForm = { nom: "", prenom: "", fonction: "", organisation: "", type_acteur: "interne" as const };
+const emptyForm = { nom: "", prenom: "", fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe" };
 
 export default function Acteurs() {
   const { role } = useAuth();
