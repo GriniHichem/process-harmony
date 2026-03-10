@@ -268,6 +268,42 @@ export type Database = {
           },
         ]
       }
+      document_processes: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          process_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          process_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          process_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_processes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_processes_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           archive: boolean
