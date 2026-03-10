@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText, Download } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
@@ -53,7 +54,8 @@ export default function ProcessDetail() {
   const [elements, setElements] = useState<ProcessElement[]>([]);
   const [users, setUsers] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
   const [processDocuments, setProcessDocuments] = useState<any[]>([]);
-
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
+  const [pdfViewerTitle, setPdfViewerTitle] = useState("");
   const fetchElements = useCallback(async () => {
     if (!id) return;
     const { data } = await supabase
@@ -259,16 +261,22 @@ export default function ProcessDetail() {
                                   size="icon"
                                   className="h-7 w-7"
                                   onClick={async () => {
-                                    const { data } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 60);
-                                    if (data?.signedUrl) {
-                                      window.open(data.signedUrl, "_blank");
+                                    const { data } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 300);
+                                    if (!data?.signedUrl) {
+                                      toast.error("Impossible d'accéder au fichier");
+                                      return;
+                                    }
+                                    const isPdf = doc.nom_fichier?.toLowerCase().endsWith(".pdf");
+                                    if (isPdf) {
+                                      setPdfViewerTitle(doc.titre);
+                                      setPdfViewerUrl(data.signedUrl);
                                     } else {
-                                      toast.error("Impossible de télécharger le fichier");
+                                      window.open(data.signedUrl, "_blank");
                                     }
                                   }}
-                                  title="Télécharger"
+                                  title={doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Lire" : "Télécharger"}
                                 >
-                                  <Download className="h-3.5 w-3.5" />
+                                  {doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? <Eye className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
                                 </Button>
                               )}
                             </div>
@@ -303,6 +311,19 @@ export default function ProcessDetail() {
         </TabsContent>
 
       </Tabs>
+
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { setPdfViewerUrl(null); setPdfViewerTitle(""); } }}>
+        <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {pdfViewerUrl && (
+              <iframe src={pdfViewerUrl} className="w-full h-full rounded-md border" title={pdfViewerTitle} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
