@@ -250,6 +250,7 @@ export default function ProcessDetail() {
                         elements={elements.filter(e => e.type === type)}
                         canEdit={canEdit}
                         canDelete={canDelete}
+                        multiline={type === "finalite"}
                         onAdd={(desc) => handleAddElement(type, prefix, desc)}
                         onUpdate={handleUpdateElement}
                         onRemove={handleRemoveElement}
