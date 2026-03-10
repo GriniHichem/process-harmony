@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, BarChart3, AlertTriangle, TrendingUp, ChevronLeft, Trash2 } from "lucide-react";
+import { Plus, BarChart3, AlertTriangle, TrendingUp, ChevronLeft, Trash2, Pencil } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Area, ComposedChart } from "recharts";
@@ -35,6 +35,8 @@ export default function Indicateurs() {
   const [loadingValues, setLoadingValues] = useState(false);
   const [valueDialogOpen, setValueDialogOpen] = useState(false);
   const [newValue, setNewValue] = useState({ valeur: "", date_mesure: format(new Date(), "yyyy-MM-dd"), commentaire: "" });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
@@ -114,6 +116,40 @@ export default function Indicateurs() {
 
   const getProcessName = (id: string) => processes.find((p) => p.id === id)?.nom ?? "";
 
+  const openEditDialog = (ind: Indicator) => {
+    setEditInd({
+      nom: ind.nom,
+      formule: ind.formule ?? "",
+      unite: ind.unite ?? "",
+      cible: ind.cible != null ? String(ind.cible) : "",
+      seuil_alerte: ind.seuil_alerte != null ? String(ind.seuil_alerte) : "",
+      frequence: ind.frequence,
+      process_id: ind.process_id,
+      type_indicateur: ind.type_indicateur,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedIndicator || !editInd.nom || !editInd.process_id) { toast.error("Nom et processus requis"); return; }
+    const { error } = await supabase.from("indicators").update({
+      nom: editInd.nom,
+      formule: editInd.formule || null,
+      unite: editInd.unite || null,
+      cible: editInd.cible ? Number(editInd.cible) : null,
+      seuil_alerte: editInd.seuil_alerte ? Number(editInd.seuil_alerte) : null,
+      frequence: editInd.frequence as any,
+      process_id: editInd.process_id,
+      type_indicateur: editInd.type_indicateur as any,
+    }).eq("id", selectedIndicator.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Indicateur mis à jour");
+    setEditDialogOpen(false);
+    const updated = { ...selectedIndicator, ...editInd, cible: editInd.cible ? Number(editInd.cible) : null, seuil_alerte: editInd.seuil_alerte ? Number(editInd.seuil_alerte) : null, formule: editInd.formule || null, unite: editInd.unite || null };
+    setSelectedIndicator(updated as Indicator);
+    fetchData();
+  };
+
   const chartData = values.map((v) => ({
     date: format(new Date(v.date_mesure), "dd MMM yy", { locale: fr }),
     valeur: v.valeur,
@@ -141,31 +177,85 @@ export default function Indicateurs() {
             </p>
           </div>
           {canCreate && (
-            <Dialog open={valueDialogOpen} onOpenChange={setValueDialogOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" /> Saisir une valeur</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Nouvelle mesure</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Valeur {selectedIndicator.unite ? `(${selectedIndicator.unite})` : ""}</Label>
-                    <Input type="number" value={newValue.valeur} onChange={(e) => setNewValue({ ...newValue, valeur: e.target.value })} placeholder="0" />
+            <>
+              <Button variant="outline" onClick={() => openEditDialog(selectedIndicator)}>
+                <Pencil className="mr-2 h-4 w-4" /> Modifier
+              </Button>
+              <Dialog open={valueDialogOpen} onOpenChange={setValueDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="mr-2 h-4 w-4" /> Saisir une valeur</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Nouvelle mesure</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Valeur {selectedIndicator.unite ? `(${selectedIndicator.unite})` : ""}</Label>
+                      <Input type="number" value={newValue.valeur} onChange={(e) => setNewValue({ ...newValue, valeur: e.target.value })} placeholder="0" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Date de mesure</Label>
+                      <Input type="date" value={newValue.date_mesure} onChange={(e) => setNewValue({ ...newValue, date_mesure: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Commentaire</Label>
+                      <Textarea value={newValue.commentaire} onChange={(e) => setNewValue({ ...newValue, commentaire: e.target.value })} placeholder="Optionnel" rows={2} />
+                    </div>
+                    <Button onClick={handleAddValue} className="w-full">Enregistrer</Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Date de mesure</Label>
-                    <Input type="date" value={newValue.date_mesure} onChange={(e) => setNewValue({ ...newValue, date_mesure: e.target.value })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Commentaire</Label>
-                    <Textarea value={newValue.commentaire} onChange={(e) => setNewValue({ ...newValue, commentaire: e.target.value })} placeholder="Optionnel" rows={2} />
-                  </div>
-                  <Button onClick={handleAddValue} className="w-full">Enregistrer</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
+
+        {/* Edit indicator dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Modifier l'indicateur</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2"><Label>Nom</Label><Input value={editInd.nom} onChange={(e) => setEditInd({ ...editInd, nom: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Type d'indicateur</Label>
+                <Select value={editInd.type_indicateur} onValueChange={(v) => setEditInd({ ...editInd, type_indicateur: v as IndicatorType })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(TYPE_LABELS) as [IndicatorType, string][]).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Processus</Label>
+                <Select value={editInd.process_id} onValueChange={(v) => setEditInd({ ...editInd, process_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectContent>{processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Cible</Label><Input type="number" value={editInd.cible} onChange={(e) => setEditInd({ ...editInd, cible: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Seuil d'alerte</Label><Input type="number" value={editInd.seuil_alerte} onChange={(e) => setEditInd({ ...editInd, seuil_alerte: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Unité</Label><Input value={editInd.unite} onChange={(e) => setEditInd({ ...editInd, unite: e.target.value })} placeholder="%" /></div>
+                <div className="space-y-2"><Label>Formule</Label><Input value={editInd.formule} onChange={(e) => setEditInd({ ...editInd, formule: e.target.value })} /></div>
+              </div>
+              <div className="space-y-2">
+                <Label>Fréquence</Label>
+                <Select value={editInd.frequence} onValueChange={(v) => setEditInd({ ...editInd, frequence: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quotidien">Quotidien</SelectItem>
+                    <SelectItem value="hebdomadaire">Hebdomadaire</SelectItem>
+                    <SelectItem value="mensuel">Mensuel</SelectItem>
+                    <SelectItem value="trimestriel">Trimestriel</SelectItem>
+                    <SelectItem value="semestriel">Semestriel</SelectItem>
+                    <SelectItem value="annuel">Annuel</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleUpdate} className="w-full">Enregistrer</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* KPI summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
