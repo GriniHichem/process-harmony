@@ -923,6 +923,63 @@ export type Database = {
           },
         ]
       }
+      risk_incidents: {
+        Row: {
+          actions_correctives: string | null
+          created_at: string
+          date_incident: string
+          description: string
+          gravite: string
+          id: string
+          process_id: string | null
+          responsable: string | null
+          risk_id: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          actions_correctives?: string | null
+          created_at?: string
+          date_incident?: string
+          description: string
+          gravite?: string
+          id?: string
+          process_id?: string | null
+          responsable?: string | null
+          risk_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          actions_correctives?: string | null
+          created_at?: string
+          date_incident?: string
+          description?: string
+          gravite?: string
+          id?: string
+          process_id?: string | null
+          responsable?: string | null
+          risk_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_incidents_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_incidents_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "risks_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       risk_moyens: {
         Row: {
           budget: number | null
