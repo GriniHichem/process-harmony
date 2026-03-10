@@ -417,6 +417,7 @@ export type Database = {
           climat_pertinent: boolean
           created_at: string
           description: string | null
+          domaine: string
           id: string
           impact: Database["public"]["Enums"]["impact_level"]
           intitule: string
@@ -428,6 +429,7 @@ export type Database = {
           climat_pertinent?: boolean
           created_at?: string
           description?: string | null
+          domaine?: string
           id?: string
           impact?: Database["public"]["Enums"]["impact_level"]
           intitule: string
@@ -439,6 +441,7 @@ export type Database = {
           climat_pertinent?: boolean
           created_at?: string
           description?: string | null
+          domaine?: string
           id?: string
           impact?: Database["public"]["Enums"]["impact_level"]
           intitule?: string

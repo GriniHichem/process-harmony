@@ -1,0 +1,1 @@
+ALTER TABLE public.context_issues ADD COLUMN domaine text NOT NULL DEFAULT 'strategique';
