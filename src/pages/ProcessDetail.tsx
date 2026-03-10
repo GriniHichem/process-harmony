@@ -57,6 +57,7 @@ export default function ProcessDetail() {
   const [processDocuments, setProcessDocuments] = useState<any[]>([]);
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
   const [pdfViewerTitle, setPdfViewerTitle] = useState("");
+  const [pdfFullscreen, setPdfFullscreen] = useState(false);
   const fetchElements = useCallback(async () => {
     if (!id) return;
     const { data } = await supabase
