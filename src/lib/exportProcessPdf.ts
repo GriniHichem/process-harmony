@@ -59,6 +59,23 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     }
   }
 
+  // Fetch context issues linked to this process
+  let contextIssues: any[] = [];
+  let contextIssueActions: Record<string, any[]> = {};
+  const { data: ciLinks } = await supabase.from("context_issue_processes").select("context_issue_id").eq("process_id", processId);
+  if (ciLinks && ciLinks.length > 0) {
+    const ciIds = ciLinks.map((l: any) => l.context_issue_id);
+    const { data: ciData } = await supabase.from("context_issues").select("*").in("id", ciIds).order("reference");
+    contextIssues = ciData ?? [];
+    const { data: ciaData } = await supabase.from("context_issue_actions").select("*").in("context_issue_id", ciIds).order("created_at");
+    if (ciaData) {
+      for (const a of ciaData) {
+        if (!contextIssueActions[a.context_issue_id]) contextIssueActions[a.context_issue_id] = [];
+        contextIssueActions[a.context_issue_id].push(a);
+      }
+    }
+  }
+
   const resp = profiles?.find((p: any) => p.id === process?.responsable_id);
   const responsableName = resp ? `${resp.prenom} ${resp.nom}`.trim() || resp.email : "Non assigné";
 
@@ -72,6 +89,8 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     indicatorValues,
     risks: risks ?? [],
     responsableName,
+    contextIssues,
+    contextIssueActions,
   };
 }
 
