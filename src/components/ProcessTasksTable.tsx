@@ -388,73 +388,107 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
               </div>
             )}
 
-            {/* Entrées - checkboxes from process elements */}
+            {/* Entrées - select from process elements */}
             <div className="space-y-2">
               <Label>Entrées (données d'entrée)</Label>
-              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                {entreesElements.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Aucune donnée d'entrée définie dans les éléments.</p>
-                )}
-                {entreesElements.map(el => (
-                  <div key={el.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`entree-${el.id}`}
-                      checked={form.selectedEntrees.includes(el.code)}
-                      onCheckedChange={() => setForm({ ...form, selectedEntrees: toggleCode(form.selectedEntrees, el.code) })}
-                    />
-                    <label htmlFor={`entree-${el.id}`} className="text-sm cursor-pointer">
-                      <span className="font-mono text-xs text-primary mr-1">{el.code}</span>
-                      {el.description}
-                    </label>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2 pt-1 border-t">
-                  <Input
-                    value={newEntreeDesc}
-                    onChange={(e) => setNewEntreeDesc(e.target.value)}
-                    placeholder="Nouvelle donnée d'entrée..."
-                    className="h-8 text-sm"
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddElement("donnee_entree", newEntreeDesc); } }}
-                  />
-                  <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => handleQuickAddElement("donnee_entree", newEntreeDesc)}>
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {form.selectedEntrees.map(code => {
+                  const el = entreesElements.find(e => e.code === code);
+                  return (
+                    <Badge key={code} variant="secondary" className="gap-1">
+                      <span className="font-mono text-xs">{code}</span> {el?.description || code}
+                      <button type="button" onClick={() => setForm({ ...form, selectedEntrees: form.selectedEntrees.filter(c => c !== code) })} className="ml-1 hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  value="__placeholder__"
+                  onValueChange={(v) => {
+                    if (v && v !== "__placeholder__" && !form.selectedEntrees.includes(v)) {
+                      setForm({ ...form, selectedEntrees: [...form.selectedEntrees, v] });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Sélectionner une entrée..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__placeholder__" disabled>Sélectionner une entrée...</SelectItem>
+                    {entreesElements.filter(el => !form.selectedEntrees.includes(el.code)).map(el => (
+                      <SelectItem key={el.id} value={el.code}>
+                        <span className="font-mono text-xs mr-1">{el.code}</span> {el.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newEntreeDesc}
+                  onChange={(e) => setNewEntreeDesc(e.target.value)}
+                  placeholder="Ou ajouter une nouvelle donnée d'entrée..."
+                  className="h-8 text-sm"
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddElement("donnee_entree", newEntreeDesc); } }}
+                />
+                <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => handleQuickAddElement("donnee_entree", newEntreeDesc)}>
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
             </div>
 
-            {/* Sorties - checkboxes from process elements */}
+            {/* Sorties - select from process elements */}
             <div className="space-y-2">
               <Label>Sorties (données de sortie)</Label>
-              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                {sortiesElements.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Aucune donnée de sortie définie dans les éléments.</p>
-                )}
-                {sortiesElements.map(el => (
-                  <div key={el.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`sortie-${el.id}`}
-                      checked={form.selectedSorties.includes(el.code)}
-                      onCheckedChange={() => setForm({ ...form, selectedSorties: toggleCode(form.selectedSorties, el.code) })}
-                    />
-                    <label htmlFor={`sortie-${el.id}`} className="text-sm cursor-pointer">
-                      <span className="font-mono text-xs text-primary mr-1">{el.code}</span>
-                      {el.description}
-                    </label>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2 pt-1 border-t">
-                  <Input
-                    value={newSortieDesc}
-                    onChange={(e) => setNewSortieDesc(e.target.value)}
-                    placeholder="Nouvelle donnée de sortie..."
-                    className="h-8 text-sm"
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddElement("donnee_sortie", newSortieDesc); } }}
-                  />
-                  <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => handleQuickAddElement("donnee_sortie", newSortieDesc)}>
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {form.selectedSorties.map(code => {
+                  const el = sortiesElements.find(e => e.code === code);
+                  return (
+                    <Badge key={code} variant="secondary" className="gap-1">
+                      <span className="font-mono text-xs">{code}</span> {el?.description || code}
+                      <button type="button" onClick={() => setForm({ ...form, selectedSorties: form.selectedSorties.filter(c => c !== code) })} className="ml-1 hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  value="__placeholder__"
+                  onValueChange={(v) => {
+                    if (v && v !== "__placeholder__" && !form.selectedSorties.includes(v)) {
+                      setForm({ ...form, selectedSorties: [...form.selectedSorties, v] });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Sélectionner une sortie..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__placeholder__" disabled>Sélectionner une sortie...</SelectItem>
+                    {sortiesElements.filter(el => !form.selectedSorties.includes(el.code)).map(el => (
+                      <SelectItem key={el.id} value={el.code}>
+                        <span className="font-mono text-xs mr-1">{el.code}</span> {el.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newSortieDesc}
+                  onChange={(e) => setNewSortieDesc(e.target.value)}
+                  placeholder="Ou ajouter une nouvelle donnée de sortie..."
+                  className="h-8 text-sm"
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddElement("donnee_sortie", newSortieDesc); } }}
+                />
+                <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => handleQuickAddElement("donnee_sortie", newSortieDesc)}>
+                  <Plus className="h-3 w-3" />
+                </Button>
               </div>
             </div>
 
