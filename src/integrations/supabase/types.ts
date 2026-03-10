@@ -360,6 +360,50 @@ export type Database = {
           },
         ]
       }
+      indicator_actions: {
+        Row: {
+          created_at: string
+          date_prevue: string | null
+          deadline: string | null
+          description: string
+          id: string
+          indicator_id: string
+          responsable: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          indicator_id: string
+          responsable?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          indicator_id?: string
+          responsable?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicator_actions_indicator_id_fkey"
+            columns: ["indicator_id"]
+            isOneToOne: false
+            referencedRelation: "indicators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicator_values: {
         Row: {
           commentaire: string | null
@@ -405,6 +449,7 @@ export type Database = {
           formule: string | null
           frequence: Database["public"]["Enums"]["indicator_frequency"]
           id: string
+          moyens: string | null
           nom: string
           process_id: string
           seuil_alerte: number | null
@@ -418,6 +463,7 @@ export type Database = {
           formule?: string | null
           frequence?: Database["public"]["Enums"]["indicator_frequency"]
           id?: string
+          moyens?: string | null
           nom: string
           process_id: string
           seuil_alerte?: number | null
@@ -431,6 +477,7 @@ export type Database = {
           formule?: string | null
           frequence?: Database["public"]["Enums"]["indicator_frequency"]
           id?: string
+          moyens?: string | null
           nom?: string
           process_id?: string
           seuil_alerte?: number | null

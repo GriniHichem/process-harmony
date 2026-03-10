@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, BarChart3, AlertTriangle, TrendingUp, ChevronLeft, Trash2, Pencil } from "lucide-react";
+import { IndicatorMoyensActions } from "@/components/IndicatorMoyensActions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Area, ComposedChart } from "recharts";
@@ -16,7 +17,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type IndicatorType = "activite" | "resultat" | "perception" | "interne";
-type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType };
+type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType; moyens?: string | null };
 type IndicatorValue = { id: string; indicator_id: string; valeur: number; date_mesure: string; commentaire: string | null; saisi_par: string | null; created_at: string };
 
 const TYPE_LABELS: Record<IndicatorType, string> = { activite: "Activité", resultat: "Résultat", perception: "Perception", interne: "Interne" };
@@ -36,7 +37,7 @@ export default function Indicateurs() {
   const [valueDialogOpen, setValueDialogOpen] = useState(false);
   const [newValue, setNewValue] = useState({ valeur: "", date_mesure: format(new Date(), "yyyy-MM-dd"), commentaire: "" });
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType });
+  const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType, moyens: "" });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
@@ -126,6 +127,7 @@ export default function Indicateurs() {
       frequence: ind.frequence,
       process_id: ind.process_id,
       type_indicateur: ind.type_indicateur,
+      moyens: (ind as any).moyens ?? "",
     });
     setEditDialogOpen(true);
   };
@@ -286,6 +288,14 @@ export default function Indicateurs() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Moyens & Actions */}
+        <IndicatorMoyensActions
+          indicatorId={selectedIndicator.id}
+          moyens={(selectedIndicator as any).moyens ?? null}
+          canEdit={canCreate}
+          onMoyensUpdate={(m) => setSelectedIndicator({ ...selectedIndicator, moyens: m } as any)}
+        />
 
         {/* Chart */}
         <Card>
