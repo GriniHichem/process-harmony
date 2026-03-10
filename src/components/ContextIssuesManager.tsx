@@ -45,7 +45,7 @@ const impactColors: Record<string, string> = {
   fort: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
-const emptyIssue = { reference: "", type_enjeu: "interne" as const, intitule: "", description: "", impact: "moyen" as const, climat_pertinent: false };
+const emptyIssue: { reference: string; type_enjeu: "interne" | "externe"; intitule: string; description: string; impact: "faible" | "moyen" | "fort"; climat_pertinent: boolean } = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false };
 const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
 
 export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
