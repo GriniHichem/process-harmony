@@ -100,7 +100,7 @@ function escapeHtml(str: string | null | undefined): string {
 }
 
 function buildHtml(data: ProcessData): string {
-  const { process: p, elements, interactions, targetProcesses, documents, indicators, indicatorValues, risks, responsableName } = data;
+  const { process: p, elements, interactions, targetProcesses, documents, indicators, indicatorValues, risks, responsableName, contextIssues, contextIssueActions } = data;
 
   const typeLabels: Record<string, string> = {
     pilotage: "Management", realisation: "Réalisation", support: "Support",
