@@ -99,7 +99,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
   const openAdd = () => { setEditingIssue(null); setForm(emptyIssue); setDialogOpen(true); };
   const openEdit = (issue: ContextIssue) => {
     setEditingIssue(issue);
-    setForm({ reference: issue.reference, type_enjeu: issue.type_enjeu, intitule: issue.intitule, description: issue.description || "", impact: issue.impact, climat_pertinent: issue.climat_pertinent });
+    setForm({ reference: issue.reference, type_enjeu: issue.type_enjeu as "interne" | "externe", intitule: issue.intitule, description: issue.description || "", impact: issue.impact as "faible" | "moyen" | "fort", climat_pertinent: issue.climat_pertinent });
     setDialogOpen(true);
   };
 
