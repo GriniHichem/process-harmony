@@ -12,8 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Plus, ClipboardCheck, Pencil, Eye, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, ClipboardCheck, Pencil, Eye, ChevronRight, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 
 type Audit = {
   id: string; reference: string; type_audit: string; perimetre: string | null;
