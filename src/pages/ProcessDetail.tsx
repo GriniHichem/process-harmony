@@ -261,17 +261,23 @@ export default function ProcessDetail() {
                                   size="icon"
                                   className="h-7 w-7"
                                   onClick={async () => {
-                                    const { data } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 300);
-                                    if (!data?.signedUrl) {
+                                    const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
+                                    if (!data) {
                                       toast.error("Impossible d'accéder au fichier");
                                       return;
                                     }
                                     const isPdf = doc.nom_fichier?.toLowerCase().endsWith(".pdf");
                                     if (isPdf) {
+                                      const blobUrl = URL.createObjectURL(data);
                                       setPdfViewerTitle(doc.titre);
-                                      setPdfViewerUrl(data.signedUrl);
+                                      setPdfViewerUrl(blobUrl);
                                     } else {
-                                      window.open(data.signedUrl, "_blank");
+                                      const blobUrl = URL.createObjectURL(data);
+                                      const a = document.createElement("a");
+                                      a.href = blobUrl;
+                                      a.download = doc.nom_fichier || "document";
+                                      a.click();
+                                      URL.revokeObjectURL(blobUrl);
                                     }
                                   }}
                                   title={doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Lire" : "Télécharger"}
