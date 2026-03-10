@@ -327,13 +327,6 @@ export default function ProcessDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="enjeux">
-          <Card>
-            <CardContent className="pt-6">
-              <ContextIssuesManager processId={id!} canEdit={canEdit} canDelete={canDelete} />
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="tasks">
           <Card>
