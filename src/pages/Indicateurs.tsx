@@ -127,6 +127,7 @@ export default function Indicateurs() {
       frequence: ind.frequence,
       process_id: ind.process_id,
       type_indicateur: ind.type_indicateur,
+      moyens: (ind as any).moyens ?? "",
     });
     setEditDialogOpen(true);
   };
