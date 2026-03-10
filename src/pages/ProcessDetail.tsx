@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText, Download, Eye } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download, Eye, Maximize2, Minimize2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
@@ -56,6 +57,7 @@ export default function ProcessDetail() {
   const [processDocuments, setProcessDocuments] = useState<any[]>([]);
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
   const [pdfViewerTitle, setPdfViewerTitle] = useState("");
+  const [pdfFullscreen, setPdfFullscreen] = useState(false);
   const fetchElements = useCallback(async () => {
     if (!id) return;
     const { data } = await supabase
@@ -318,10 +320,23 @@ export default function ProcessDetail() {
 
       </Tabs>
 
-      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); } }}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col" aria-describedby={undefined}>
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
+        <DialogContent
+          className={cn(
+            "flex flex-col transition-all duration-300",
+            pdfFullscreen
+              ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0"
+              : "max-w-5xl w-[90vw] h-[85vh]"
+          )}
+          aria-describedby={undefined}
+        >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPdfFullscreen(f => !f)} title={pdfFullscreen ? "Réduire" : "Plein écran"}>
+                {pdfFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </div>
           </DialogHeader>
           <div className="flex-1 min-h-0">
             {pdfViewerUrl && (
