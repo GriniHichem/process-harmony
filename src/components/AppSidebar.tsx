@@ -25,6 +25,7 @@ const qualityItems = [
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Indicateurs", url: "/indicateurs", icon: BarChart3 },
   { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle },
+  { title: "Incidents", url: "/incidents", icon: AlertOctagon },
 ];
 
 const auditItems = [
