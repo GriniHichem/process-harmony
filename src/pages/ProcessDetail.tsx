@@ -261,16 +261,22 @@ export default function ProcessDetail() {
                                   size="icon"
                                   className="h-7 w-7"
                                   onClick={async () => {
-                                    const { data } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 60);
-                                    if (data?.signedUrl) {
-                                      window.open(data.signedUrl, "_blank");
+                                    const { data } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 300);
+                                    if (!data?.signedUrl) {
+                                      toast.error("Impossible d'accéder au fichier");
+                                      return;
+                                    }
+                                    const isPdf = doc.nom_fichier?.toLowerCase().endsWith(".pdf");
+                                    if (isPdf) {
+                                      setPdfViewerTitle(doc.titre);
+                                      setPdfViewerUrl(data.signedUrl);
                                     } else {
-                                      toast.error("Impossible de télécharger le fichier");
+                                      window.open(data.signedUrl, "_blank");
                                     }
                                   }}
-                                  title="Télécharger"
+                                  title={doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Lire" : "Télécharger"}
                                 >
-                                  <Download className="h-3.5 w-3.5" />
+                                  {doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? <Eye className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
                                 </Button>
                               )}
                             </div>
