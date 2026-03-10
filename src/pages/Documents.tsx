@@ -4,15 +4,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2 } from "lucide-react";
+import { Plus, FileText, Trash2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 
-type Doc = { id: string; titre: string; type_document: string; version: number; archive: boolean; nom_fichier: string | null; process_id: string | null; created_at: string };
+type Doc = {
+  id: string;
+  titre: string;
+  type_document: string;
+  version: number;
+  archive: boolean;
+  nom_fichier: string | null;
+  created_at: string;
+  process_ids: string[];
+};
 
 const typeLabels: Record<string, string> = {
   procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
@@ -24,17 +33,47 @@ export default function Documents() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [processes, setProcesses] = useState<{id: string; nom: string}[]>([]);
-  const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", process_id: "" });
+  const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
+  const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", selectedProcessIds: [] as string[] });
   const [file, setFile] = useState<File | null>(null);
-
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
+
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
   const canDelete = role === "admin" || role === "rmq";
 
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   const fetchDocs = async () => {
-    const { data } = await supabase.from("documents").select("*").eq("archive", false).order("created_at", { ascending: false });
-    setDocs((data ?? []) as Doc[]);
+    // Fetch documents
+    const { data: docsData } = await supabase
+      .from("documents")
+      .select("*")
+      .eq("archive", false)
+      .order("created_at", { ascending: false });
+
+    // Fetch all document-process associations
+    const { data: dpData } = await supabase.from("document_processes").select("document_id, process_id");
+
+    const dpMap = new Map<string, string[]>();
+    (dpData ?? []).forEach((dp: any) => {
+      const list = dpMap.get(dp.document_id) || [];
+      list.push(dp.process_id);
+      dpMap.set(dp.document_id, list);
+    });
+
+    const enriched: Doc[] = (docsData ?? []).map((d: any) => ({
+      id: d.id,
+      titre: d.titre,
+      type_document: d.type_document,
+      version: d.version,
+      archive: d.archive,
+      nom_fichier: d.nom_fichier,
+      created_at: d.created_at,
+      process_ids: dpMap.get(d.id) || [],
+    }));
+
+    setDocs(enriched);
     setLoading(false);
   };
 
@@ -58,28 +97,64 @@ export default function Documents() {
       taille_fichier = file.size;
     }
 
-    const { error } = await supabase.from("documents").insert({
+    const { data: insertedDoc, error } = await supabase.from("documents").insert({
       titre: newDoc.titre,
       type_document: newDoc.type_document as any,
-      process_id: newDoc.process_id || null,
+      process_id: newDoc.selectedProcessIds[0] || null, // keep legacy column for compatibility
       chemin_fichier: chemin,
       nom_fichier,
       taille_fichier,
-    });
-    if (error) { toast.error(error.message); return; }
+    }).select("id").single();
+
+    if (error || !insertedDoc) { toast.error(error?.message || "Erreur"); return; }
+
+    // Insert junction table rows
+    if (newDoc.selectedProcessIds.length > 0) {
+      const rows = newDoc.selectedProcessIds.map(pid => ({
+        document_id: insertedDoc.id,
+        process_id: pid,
+      }));
+      const { error: dpError } = await supabase.from("document_processes").insert(rows);
+      if (dpError) { toast.error("Erreur association processus: " + dpError.message); }
+    }
+
     toast.success("Document ajouté");
     setDialogOpen(false);
-    setNewDoc({ titre: "", type_document: "procedure", process_id: "" });
+    setNewDoc({ titre: "", type_document: "procedure", selectedProcessIds: [] });
     setFile(null);
     fetchDocs();
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("documents").delete().eq("id", id);
+  const handleDeleteClick = (id: string) => {
+    setPendingDeleteId(id);
+    setAdminDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDeleteId) return;
+    const { error } = await supabase.from("documents").delete().eq("id", pendingDeleteId);
     if (error) { toast.error(error.message); return; }
     toast.success("Document supprimé");
+    setPendingDeleteId(null);
     fetchDocs();
   };
+
+  const addProcessToSelection = (pid: string) => {
+    if (pid && !newDoc.selectedProcessIds.includes(pid)) {
+      setNewDoc({ ...newDoc, selectedProcessIds: [...newDoc.selectedProcessIds, pid] });
+    }
+  };
+
+  const removeProcessFromSelection = (pid: string) => {
+    setNewDoc({ ...newDoc, selectedProcessIds: newDoc.selectedProcessIds.filter(p => p !== pid) });
+  };
+
+  const getProcessName = (pid: string) => processes.find(p => p.id === pid)?.nom || pid;
+
+  const filteredDocs = docs.filter(d => {
+    if (filterProcessId === "all") return true;
+    return d.process_ids.includes(filterProcessId);
+  });
 
   return (
     <div className="space-y-6">
@@ -94,7 +169,10 @@ export default function Documents() {
             <DialogContent>
               <DialogHeader><DialogTitle>Ajouter un document</DialogTitle></DialogHeader>
               <div className="space-y-4">
-                <div className="space-y-2"><Label>Titre</Label><Input value={newDoc.titre} onChange={(e) => setNewDoc({ ...newDoc, titre: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Titre</Label>
+                  <Input value={newDoc.titre} onChange={(e) => setNewDoc({ ...newDoc, titre: e.target.value })} />
+                </div>
                 <div className="space-y-2">
                   <Label>Type</Label>
                   <Select value={newDoc.type_document} onValueChange={(v) => setNewDoc({ ...newDoc, type_document: v })}>
@@ -105,15 +183,34 @@ export default function Documents() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Processus associé</Label>
-                  <Select value={newDoc.process_id} onValueChange={(v) => setNewDoc({ ...newDoc, process_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Optionnel" /></SelectTrigger>
+                  <Label>Processus associés</Label>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {newDoc.selectedProcessIds.map(pid => (
+                      <Badge key={pid} variant="secondary" className="gap-1">
+                        {getProcessName(pid)}
+                        <button type="button" onClick={() => removeProcessFromSelection(pid)} className="ml-1 hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <Select
+                    value="__placeholder__"
+                    onValueChange={(v) => { if (v !== "__placeholder__") addProcessToSelection(v); }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Sélectionner un processus..." /></SelectTrigger>
                     <SelectContent>
-                      {processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
+                      <SelectItem value="__placeholder__" disabled>Sélectionner un processus...</SelectItem>
+                      {processes.filter(p => !newDoc.selectedProcessIds.includes(p.id)).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2"><Label>Fichier</Label><Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></div>
+                <div className="space-y-2">
+                  <Label>Fichier</Label>
+                  <Input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                </div>
                 <Button onClick={handleUpload} className="w-full">Ajouter</Button>
               </div>
             </DialogContent>
@@ -134,40 +231,37 @@ export default function Documents() {
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-      ) : docs.filter((d) => filterProcessId === "all" || d.process_id === filterProcessId).length === 0 ? (
+      ) : filteredDocs.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun document</CardContent></Card>
       ) : (
         <div className="grid gap-3">
-          {docs.filter((d) => filterProcessId === "all" || d.process_id === filterProcessId).map((d) => (
+          {filteredDocs.map((d) => (
             <Card key={d.id}>
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-3">
                   <FileText className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">{d.titre}</p>
-                    <p className="text-xs text-muted-foreground">{typeLabels[d.type_document] ?? d.type_document} • v{d.version}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {typeLabels[d.type_document] ?? d.type_document} • v{d.version}
+                    </p>
+                    {d.process_ids.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {d.process_ids.map(pid => (
+                          <Badge key={pid} variant="outline" className="text-xs">
+                            {getProcessName(pid)}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {d.nom_fichier && <Badge variant="secondary">{d.nom_fichier}</Badge>}
                   {canDelete && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Supprimer ce document ?</AlertDialogTitle>
-                          <AlertDialogDescription>Cette action est irréversible. Le document « {d.titre} » sera définitivement supprimé.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(d.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(d.id); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
               </CardContent>
@@ -175,6 +269,14 @@ export default function Documents() {
           ))}
         </div>
       )}
+
+      <AdminPasswordDialog
+        open={adminDialogOpen}
+        onOpenChange={setAdminDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title="Suppression de document"
+        description="Veuillez entrer les identifiants administrateur pour confirmer la suppression de ce document."
+      />
     </div>
   );
 }

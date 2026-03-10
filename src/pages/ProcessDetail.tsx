@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
@@ -52,6 +52,7 @@ export default function ProcessDetail() {
   const [saving, setSaving] = useState(false);
   const [elements, setElements] = useState<ProcessElement[]>([]);
   const [users, setUsers] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
+  const [processDocuments, setProcessDocuments] = useState<any[]>([]);
 
   const fetchElements = useCallback(async () => {
     if (!id) return;
@@ -61,6 +62,22 @@ export default function ProcessDetail() {
       .eq("process_id", id)
       .order("ordre", { ascending: true });
     if (data) setElements(data as ProcessElement[]);
+  }, [id]);
+
+  const fetchDocuments = useCallback(async () => {
+    if (!id) return;
+    const { data: dpData } = await supabase
+      .from("document_processes")
+      .select("document_id")
+      .eq("process_id", id);
+    if (!dpData || dpData.length === 0) { setProcessDocuments([]); return; }
+    const docIds = dpData.map((dp: any) => dp.document_id);
+    const { data: docsData } = await supabase
+      .from("documents")
+      .select("id, titre, type_document, version, nom_fichier")
+      .in("id", docIds)
+      .eq("archive", false);
+    setProcessDocuments(docsData ?? []);
   }, [id]);
 
   useEffect(() => {
@@ -76,9 +93,10 @@ export default function ProcessDetail() {
     if (id) {
       fetch();
       fetchElements();
+      fetchDocuments();
       fetchUsers();
     }
-  }, [id, fetchElements]);
+  }, [id, fetchElements, fetchDocuments]);
 
   const canEdit = role === "rmq" || role === "consultant" || (role === "responsable_processus" && process?.responsable_id === user?.id);
   const canDelete = role === "rmq" || role === "responsable_processus";
@@ -155,6 +173,7 @@ export default function ProcessDetail() {
           <TabsTrigger value="general">Informations générales</TabsTrigger>
           <TabsTrigger value="elements">Éléments</TabsTrigger>
           <TabsTrigger value="tasks">Activités</TabsTrigger>
+          <TabsTrigger value="documents">Documents ({processDocuments.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -237,6 +256,38 @@ export default function ProcessDetail() {
                   }
                 }}
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Documents associés</CardTitle></CardHeader>
+            <CardContent>
+              {processDocuments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Aucun document associé à ce processus. Associez des documents depuis la page Gestion documentaire.</p>
+              ) : (
+                <div className="space-y-2">
+                  {processDocuments.map((doc: any) => {
+                    const typeLabels: Record<string, string> = {
+                      procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
+                      enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve",
+                    };
+                    return (
+                      <div key={doc.id} className="flex items-center justify-between p-3 rounded-md border">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-4 w-4 text-primary" />
+                          <div>
+                            <p className="font-medium text-sm">{doc.titre}</p>
+                            <p className="text-xs text-muted-foreground">{typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version}</p>
+                          </div>
+                        </div>
+                        {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
