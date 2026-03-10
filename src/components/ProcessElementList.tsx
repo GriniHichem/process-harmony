@@ -46,28 +46,6 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
     setEditingId(null);
   };
 
-  const DescField = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) => {
-    if (multiline) {
-      return (
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 text-xs min-h-[60px] resize-y"
-          rows={3}
-        />
-      );
-    }
-    return (
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-7 flex-1 text-xs"
-      />
-    );
-  };
-
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
