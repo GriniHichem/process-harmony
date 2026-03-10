@@ -184,7 +184,7 @@ export default function ProcessDetail() {
         <TabsList>
           <TabsTrigger value="general">Informations générales</TabsTrigger>
           <TabsTrigger value="elements">Éléments</TabsTrigger>
-          <TabsTrigger value="enjeux">Enjeux du contexte</TabsTrigger>
+          
           <TabsTrigger value="tasks">Activités</TabsTrigger>
         </TabsList>
 
