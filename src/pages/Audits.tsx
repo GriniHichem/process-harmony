@@ -155,6 +155,18 @@ export default function Audits() {
     fetchFindings(detailAudit.id);
   };
 
+  const handleDeleteAudit = async () => {
+    if (!deleteAudit) return;
+    // Delete findings first, then the audit
+    await supabase.from("audit_findings").delete().eq("audit_id", deleteAudit.id);
+    const { error } = await supabase.from("audits").delete().eq("id", deleteAudit.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Audit ${deleteAudit.reference} supprimé`);
+    setDeleteAudit(null);
+    setDetailAudit(null);
+    fetchAudits();
+  };
+
   const openDetail = (audit: Audit) => {
     setDetailAudit(audit);
     fetchFindings(audit.id);
