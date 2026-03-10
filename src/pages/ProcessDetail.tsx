@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
+import { PartiePrenanteAdder } from "@/components/PartiePrenanteAdder";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
