@@ -111,9 +111,9 @@ export default function ProcessDetail() {
       description,
       ordre: maxOrdre + 1,
     });
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(error.message); throw error; }
     toast.success("Élément ajouté");
-    fetchElements();
+    await fetchElements();
   };
 
   const handleUpdateElement = async (elId: string, code: string, description: string) => {
