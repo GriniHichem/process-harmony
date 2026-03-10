@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle,
+  LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
