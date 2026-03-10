@@ -34,7 +34,7 @@ const statusColors: Record<string, string> = {
 };
 
 const typeLabels: Record<string, string> = {
-  pilotage: "Pilotage",
+  pilotage: "Management",
   realisation: "Réalisation",
   support: "Support",
 };
@@ -135,7 +135,7 @@ export default function Processus() {
                   <Select value={newProcess.type_processus} onValueChange={(v: any) => setNewProcess({ ...newProcess, type_processus: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pilotage">Pilotage</SelectItem>
+                      <SelectItem value="pilotage">Management</SelectItem>
                       <SelectItem value="realisation">Réalisation</SelectItem>
                       <SelectItem value="support">Support</SelectItem>
                     </SelectContent>
@@ -170,7 +170,7 @@ export default function Processus() {
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les types</SelectItem>
-            <SelectItem value="pilotage">Pilotage</SelectItem>
+            <SelectItem value="pilotage">Management</SelectItem>
             <SelectItem value="realisation">Réalisation</SelectItem>
             <SelectItem value="support">Support</SelectItem>
           </SelectContent>

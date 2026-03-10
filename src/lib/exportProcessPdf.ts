@@ -82,7 +82,7 @@ function buildHtml(data: ProcessData): string {
   const { process: p, elements, interactions, targetProcesses, documents, indicators, indicatorValues, risks, responsableName } = data;
 
   const typeLabels: Record<string, string> = {
-    pilotage: "Pilotage", realisation: "Réalisation", support: "Support",
+    pilotage: "Management", realisation: "Réalisation", support: "Support",
   };
   const statutLabels: Record<string, string> = {
     brouillon: "Brouillon", en_validation: "En validation", valide: "Validé", archive: "Archivé",
