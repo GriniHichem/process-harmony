@@ -27,6 +27,7 @@ export default function Documents() {
   const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", process_id: "" });
   const [file, setFile] = useState<File | null>(null);
 
+  const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = role === "rmq" || role === "responsable_processus";
 
   const fetchDocs = async () => {
@@ -111,13 +112,24 @@ export default function Documents() {
         )}
       </div>
 
+      <div className="flex items-center gap-3">
+        <Label className="text-sm whitespace-nowrap">Filtrer par processus</Label>
+        <Select value={filterProcessId} onValueChange={setFilterProcessId}>
+          <SelectTrigger className="w-[250px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les processus</SelectItem>
+            {processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-      ) : docs.length === 0 ? (
+      ) : docs.filter((d) => filterProcessId === "all" || d.process_id === filterProcessId).length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun document</CardContent></Card>
       ) : (
         <div className="grid gap-3">
-          {docs.map((d) => (
+          {docs.filter((d) => filterProcessId === "all" || d.process_id === filterProcessId).map((d) => (
             <Card key={d.id}>
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-3">
