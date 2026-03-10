@@ -11,6 +11,8 @@ interface DashboardStats {
   overdueActions: number;
   totalRisks: number;
   totalIndicators: number;
+  incidentsOuverts: number;
+  incidentsCritiques: number;
 }
 
 export default function Dashboard() {
