@@ -18,6 +18,7 @@ const mainItems = [
   { title: "Processus", url: "/processus", icon: Network },
   { title: "Cartographie", url: "/cartographie", icon: Map },
   { title: "BPMN", url: "/bpmn", icon: Settings },
+  { title: "Acteurs", url: "/acteurs", icon: Contact },
 ];
 
 const qualityItems = [
