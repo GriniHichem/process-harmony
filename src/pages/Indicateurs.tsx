@@ -116,6 +116,40 @@ export default function Indicateurs() {
 
   const getProcessName = (id: string) => processes.find((p) => p.id === id)?.nom ?? "";
 
+  const openEditDialog = (ind: Indicator) => {
+    setEditInd({
+      nom: ind.nom,
+      formule: ind.formule ?? "",
+      unite: ind.unite ?? "",
+      cible: ind.cible != null ? String(ind.cible) : "",
+      seuil_alerte: ind.seuil_alerte != null ? String(ind.seuil_alerte) : "",
+      frequence: ind.frequence,
+      process_id: ind.process_id,
+      type_indicateur: ind.type_indicateur,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedIndicator || !editInd.nom || !editInd.process_id) { toast.error("Nom et processus requis"); return; }
+    const { error } = await supabase.from("indicators").update({
+      nom: editInd.nom,
+      formule: editInd.formule || null,
+      unite: editInd.unite || null,
+      cible: editInd.cible ? Number(editInd.cible) : null,
+      seuil_alerte: editInd.seuil_alerte ? Number(editInd.seuil_alerte) : null,
+      frequence: editInd.frequence as any,
+      process_id: editInd.process_id,
+      type_indicateur: editInd.type_indicateur as any,
+    }).eq("id", selectedIndicator.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Indicateur mis à jour");
+    setEditDialogOpen(false);
+    const updated = { ...selectedIndicator, ...editInd, cible: editInd.cible ? Number(editInd.cible) : null, seuil_alerte: editInd.seuil_alerte ? Number(editInd.seuil_alerte) : null, formule: editInd.formule || null, unite: editInd.unite || null };
+    setSelectedIndicator(updated as Indicator);
+    fetchData();
+  };
+
   const chartData = values.map((v) => ({
     date: format(new Date(v.date_mesure), "dd MMM yy", { locale: fr }),
     valeur: v.valeur,
