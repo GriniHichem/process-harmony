@@ -202,14 +202,6 @@ export default function ProcessDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="tasks">
-          <Card>
-            <CardContent className="pt-6">
-              <ProcessTasksTable processId={id!} canEdit={canEdit} canDelete={canDelete} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="elements">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {ELEMENT_SECTIONS.map(({ type, title, prefix }) => (
