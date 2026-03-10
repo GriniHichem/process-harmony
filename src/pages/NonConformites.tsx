@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Plus, XCircle, Pencil, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, XCircle, Pencil, ChevronRight, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 type NC = {
@@ -66,8 +67,21 @@ export default function NonConformites() {
     nature_nc: "", audit_id: "", process_id: "", criticite: "",
   });
 
+  const [deleteNC, setDeleteNC] = useState<NC | null>(null);
+
   const canCreate = role === "rmq" || role === "responsable_processus" || role === "auditeur" || role === "admin";
   const canEdit = role === "rmq" || role === "responsable_processus" || role === "admin";
+  const canDelete = role === "admin" || role === "rmq";
+
+  const handleDeleteNC = async () => {
+    if (!deleteNC) return;
+    const { error } = await supabase.from("nonconformities").delete().eq("id", deleteNC.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Non-conformité supprimée");
+    setDeleteNC(null);
+    setDetailNC(null);
+    fetchNCs();
+  };
 
   const fetchNCs = async () => {
     const { data } = await supabase.from("nonconformities").select("*").order("date_detection", { ascending: false });
@@ -243,11 +257,18 @@ export default function NonConformites() {
                   <DialogTitle className="flex items-center gap-2">
                     <XCircle className="h-5 w-5 text-destructive" /> {detailNC.reference}
                   </DialogTitle>
-                  {canEdit && (
-                    <Button variant="outline" size="sm" onClick={() => { setEditNC({ ...detailNC }); setDetailNC(null); }}>
-                      <Pencil className="mr-2 h-4 w-4" /> Modifier
-                    </Button>
-                  )}
+                   {canEdit && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setEditNC({ ...detailNC }); setDetailNC(null); }}>
+                        <Pencil className="mr-2 h-4 w-4" /> Modifier
+                      </Button>
+                      {canDelete && (
+                        <Button variant="destructive" size="sm" onClick={() => setDeleteNC(detailNC)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                        </Button>
+                      )}
+                    </div>
+                   )}
                 </div>
               </DialogHeader>
 
@@ -416,6 +437,14 @@ export default function NonConformites() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AdminPasswordDialog
+        open={!!deleteNC}
+        onOpenChange={(o) => !o && setDeleteNC(null)}
+        onConfirm={handleDeleteNC}
+        title="Supprimer la non-conformité"
+        description={`Supprimer définitivement ${deleteNC?.reference ?? ""} ? Cette action est irréversible.`}
+      />
     </div>
   );
 }
