@@ -689,7 +689,12 @@ export type Database = {
         | "cloturee"
         | "en_retard"
       action_type: "corrective" | "preventive" | "amelioration"
-      app_role: "rmq" | "responsable_processus" | "consultant" | "auditeur"
+      app_role:
+        | "rmq"
+        | "responsable_processus"
+        | "consultant"
+        | "auditeur"
+        | "admin"
       audit_status: "planifie" | "en_cours" | "termine" | "cloture"
       audit_type: "interne" | "externe"
       document_type:
@@ -863,7 +868,13 @@ export const Constants = {
         "en_retard",
       ],
       action_type: ["corrective", "preventive", "amelioration"],
-      app_role: ["rmq", "responsable_processus", "consultant", "auditeur"],
+      app_role: [
+        "rmq",
+        "responsable_processus",
+        "consultant",
+        "auditeur",
+        "admin",
+      ],
       audit_status: ["planifie", "en_cours", "termine", "cloture"],
       audit_type: ["interne", "externe"],
       document_type: [
