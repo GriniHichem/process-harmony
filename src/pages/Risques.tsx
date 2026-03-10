@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Plus, AlertTriangle, Lightbulb, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { RiskMoyensActions } from "@/components/RiskMoyensActions";
+import { RiskIncidents } from "@/components/RiskIncidents";
 
 type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
 
@@ -175,8 +176,11 @@ export default function Risques() {
                     </div>
                   </div>
                   {isExpanded && (
-                    <div className="mt-4 border-t pt-4">
+                    <div className="mt-4 border-t pt-4 space-y-6">
                       <RiskMoyensActions riskId={r.id} canEdit={canEditActions} />
+                      <div className="border-t pt-4">
+                        <RiskIncidents riskId={r.id} canEdit={canEditActions} />
+                      </div>
                     </div>
                   )}
                 </CardContent>

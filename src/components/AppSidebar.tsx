@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle,
-  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact
+  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -25,6 +25,7 @@ const qualityItems = [
   { title: "Documents", url: "/documents", icon: FileText },
   { title: "Indicateurs", url: "/indicateurs", icon: BarChart3 },
   { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle },
+  { title: "Incidents", url: "/incidents", icon: AlertOctagon },
 ];
 
 const auditItems = [

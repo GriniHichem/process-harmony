@@ -22,6 +22,7 @@ import Actions from "./pages/Actions";
 import Journal from "./pages/Journal";
 import Utilisateurs from "./pages/Utilisateurs";
 import Acteurs from "./pages/Acteurs";
+import Incidents from "./pages/Incidents";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/documents" element={<ProtectedPage><Documents /></ProtectedPage>} />
             <Route path="/indicateurs" element={<ProtectedPage><Indicateurs /></ProtectedPage>} />
             <Route path="/risques" element={<ProtectedPage><Risques /></ProtectedPage>} />
+            <Route path="/incidents" element={<ProtectedPage><Incidents /></ProtectedPage>} />
             <Route path="/audits" element={<ProtectedPage><Audits /></ProtectedPage>} />
             <Route path="/non-conformites" element={<ProtectedPage><NonConformites /></ProtectedPage>} />
             <Route path="/actions" element={<ProtectedPage><Actions /></ProtectedPage>} />
