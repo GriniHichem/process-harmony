@@ -113,6 +113,15 @@ function buildHtml(data: ProcessData): string {
   const elementSection = (title: string, type: string) => {
     const els = elByType(type);
     if (els.length === 0) return "";
+    if (type === "finalite") {
+      return `
+        <div class="section-small">
+          <h3>${title}</h3>
+          ${els.map(e => `<div style="margin-bottom:6px;padding:6px 10px;background:#f8fafc;border-left:3px solid #1565c0;border-radius:3px;font-size:12px;line-height:1.6">
+            <span class="mono" style="color:#888;margin-right:6px">${escapeHtml(e.code)}</span> ${escapeHtml(e.description)}
+          </div>`).join("")}
+        </div>`;
+    }
     return `
       <div class="section-small">
         <h3>${title}</h3>
