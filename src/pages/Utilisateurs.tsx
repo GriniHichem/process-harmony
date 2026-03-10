@@ -46,7 +46,7 @@ export default function Utilisateurs() {
   };
 
   const toggleActive = async (userId: string, currentActive: boolean) => {
-    if (role !== "rmq") return;
+    if (role !== "rmq" && role !== "admin") return;
     const { error } = await supabase.from("profiles").update({ actif: !currentActive }).eq("id", userId);
     if (error) toast.error(error.message);
     else { toast.success(currentActive ? "Compte désactivé" : "Compte activé"); fetchUsers(); }
