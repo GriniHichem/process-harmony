@@ -21,6 +21,7 @@ import NonConformites from "./pages/NonConformites";
 import Actions from "./pages/Actions";
 import Journal from "./pages/Journal";
 import Utilisateurs from "./pages/Utilisateurs";
+import Acteurs from "./pages/Acteurs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
