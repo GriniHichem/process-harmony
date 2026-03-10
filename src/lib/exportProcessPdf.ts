@@ -221,8 +221,8 @@ function buildHtml(data: ProcessData): string {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #1a1a2e; line-height: 1.5; padding: 20px; }
   .company-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; margin-bottom: 6px; background: linear-gradient(135deg, #0d47a1, #1565c0); border-radius: 8px; color: #fff; }
-  .company-header .company-logo { display: flex; align-items: center; gap: 12px; }
-  .company-header .company-logo .logo-circle { width: 48px; height: 48px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #0d47a1; }
+  .company-header .company-logo { display: flex; align-items: center; gap: 14px; }
+  .company-header .company-logo img { height: 44px; border-radius: 4px; }
   .company-header .company-info h2 { font-size: 16px; font-weight: 700; margin: 0; }
   .company-header .company-info p { font-size: 10px; opacity: 0.85; margin: 0; }
   .company-header .doc-ref { text-align: right; font-size: 10px; }
