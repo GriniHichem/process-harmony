@@ -26,6 +26,7 @@ interface ProcessElement {
   description: string;
   type: ElementType;
   ordre: number;
+  process_id: string;
 }
 
 const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string }[] = [
