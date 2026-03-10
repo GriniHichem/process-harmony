@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
+import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
@@ -25,6 +26,7 @@ interface ProcessElement {
   description: string;
   type: ElementType;
   ordre: number;
+  process_id: string;
 }
 
 const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string }[] = [
@@ -229,69 +231,81 @@ export default function ProcessDetail() {
             {ELEMENT_SECTIONS.map(({ type, title, prefix }) => (
               <Card key={type}>
                 <CardContent className="pt-6">
-                  <ProcessElementList
-                    title={title}
-                    elements={elements.filter(e => e.type === type)}
-                    canEdit={canEdit}
-                    canDelete={canDelete}
-                    onAdd={(desc) => handleAddElement(type, prefix, desc)}
-                    onUpdate={handleUpdateElement}
-                    onRemove={handleRemoveElement}
-                  />
-                  {type === "ressource" && processDocuments.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5" /> Documents associés
-                      </h4>
-                      {processDocuments.map((doc: any) => {
-                        const typeLabels: Record<string, string> = {
-                          procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
-                          enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve",
-                        };
-                        return (
-                          <div key={doc.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-primary" />
-                              <span>{doc.titre}</span>
-                              <span className="text-xs text-muted-foreground">({typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
-                              {doc.chemin_fichier && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={async () => {
-                                    const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
-                                    if (!data) {
-                                      toast.error("Impossible d'accéder au fichier");
-                                      return;
-                                    }
-                                    const isPdf = doc.nom_fichier?.toLowerCase().endsWith(".pdf");
-                                    if (isPdf) {
-                                      const blobUrl = URL.createObjectURL(data);
-                                      setPdfViewerTitle(doc.titre);
-                                      setPdfViewerUrl(blobUrl);
-                                    } else {
-                                      const blobUrl = URL.createObjectURL(data);
-                                      const a = document.createElement("a");
-                                      a.href = blobUrl;
-                                      a.download = doc.nom_fichier || "document";
-                                      a.click();
-                                      URL.revokeObjectURL(blobUrl);
-                                    }
-                                  }}
-                                  title={doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Lire" : "Télécharger"}
-                                >
-                                  {doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? <Eye className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  {type === "interaction" ? (
+                    <ProcessInteractionManager
+                      processId={id!}
+                      processElements={elements}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
+                      onRefreshElements={fetchElements}
+                    />
+                  ) : (
+                    <>
+                      <ProcessElementList
+                        title={title}
+                        elements={elements.filter(e => e.type === type)}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
+                        onAdd={(desc) => handleAddElement(type, prefix, desc)}
+                        onUpdate={handleUpdateElement}
+                        onRemove={handleRemoveElement}
+                      />
+                      {type === "ressource" && processDocuments.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                            <FileText className="h-3.5 w-3.5" /> Documents associés
+                          </h4>
+                          {processDocuments.map((doc: any) => {
+                            const typeLabels: Record<string, string> = {
+                              procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
+                              enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve",
+                            };
+                            return (
+                              <div key={doc.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-primary" />
+                                  <span>{doc.titre}</span>
+                                  <span className="text-xs text-muted-foreground">({typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version})</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                                  {doc.chemin_fichier && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={async () => {
+                                        const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
+                                        if (!data) {
+                                          toast.error("Impossible d'accéder au fichier");
+                                          return;
+                                        }
+                                        const isPdf = doc.nom_fichier?.toLowerCase().endsWith(".pdf");
+                                        if (isPdf) {
+                                          const blobUrl = URL.createObjectURL(data);
+                                          setPdfViewerTitle(doc.titre);
+                                          setPdfViewerUrl(blobUrl);
+                                        } else {
+                                          const blobUrl = URL.createObjectURL(data);
+                                          const a = document.createElement("a");
+                                          a.href = blobUrl;
+                                          a.download = doc.nom_fichier || "document";
+                                          a.click();
+                                          URL.revokeObjectURL(blobUrl);
+                                        }
+                                      }}
+                                      title={doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Lire" : "Télécharger"}
+                                    >
+                                      {doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? <Eye className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
