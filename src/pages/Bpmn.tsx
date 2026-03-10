@@ -132,7 +132,7 @@ export default function Bpmn() {
     if (!diagram) return;
     setSaving(true);
     const { error } = await supabase.from("bpmn_diagrams").update({
-      donnees: diagram.donnees as unknown as Record<string, unknown>,
+      donnees: diagram.donnees as unknown as null,
     }).eq("id", diagram.id);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
