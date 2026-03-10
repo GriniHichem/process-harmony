@@ -69,6 +69,7 @@ export default function Audits() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailAudit, setDetailAudit] = useState<Audit | null>(null);
   const [editAudit, setEditAudit] = useState<Audit | null>(null);
+  const [deleteAudit, setDeleteAudit] = useState<Audit | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [newFinding, setNewFinding] = useState({ type_constat: "observation", description: "", preuve: "" });
   const [newAudit, setNewAudit] = useState({
