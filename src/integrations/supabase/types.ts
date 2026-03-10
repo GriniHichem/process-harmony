@@ -134,7 +134,15 @@ export type Database = {
           type_action?: Database["public"]["Enums"]["action_type"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "actions_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_findings: {
         Row: {
