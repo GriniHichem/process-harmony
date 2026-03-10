@@ -83,7 +83,9 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
           <img src={logo} alt="AMOUR" className="mx-auto h-14 object-contain" />
-          <CardTitle className="text-2xl">ISO 9001 - SMQ</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Q-Process
+          </CardTitle>
           <CardDescription>{titles[mode]}</CardDescription>
         </CardHeader>
         <CardContent>
