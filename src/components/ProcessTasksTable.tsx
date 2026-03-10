@@ -246,7 +246,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
     for (const t of toDelete) {
       await supabase.from("process_tasks").delete().eq("id", t.id);
     }
-    toast.success("Tâche supprimée");
+    toast.success("Activité supprimée");
     fetchTasks();
   };
 
