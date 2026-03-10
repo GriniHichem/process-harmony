@@ -21,6 +21,7 @@ import NonConformites from "./pages/NonConformites";
 import Actions from "./pages/Actions";
 import Journal from "./pages/Journal";
 import Utilisateurs from "./pages/Utilisateurs";
+import Acteurs from "./pages/Acteurs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/actions" element={<ProtectedPage><Actions /></ProtectedPage>} />
             <Route path="/journal" element={<ProtectedPage><Journal /></ProtectedPage>} />
             <Route path="/utilisateurs" element={<ProtectedPage><Utilisateurs /></ProtectedPage>} />
+            <Route path="/acteurs" element={<ProtectedPage><Acteurs /></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
