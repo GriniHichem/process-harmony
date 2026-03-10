@@ -258,11 +258,16 @@ export default function Audits() {
                   <DialogTitle className="flex items-center gap-2">
                     <ClipboardCheck className="h-5 w-5" /> {detailAudit.reference}
                   </DialogTitle>
-                  {canEdit && (
-                    <Button variant="outline" size="sm" onClick={() => { setEditAudit({ ...detailAudit }); setDetailAudit(null); }}>
-                      <Pencil className="mr-2 h-4 w-4" /> Modifier
+                   <div className="flex items-center gap-2">
+                    {canEdit && (
+                      <Button variant="outline" size="sm" onClick={() => { setEditAudit({ ...detailAudit }); setDetailAudit(null); }}>
+                        <Pencil className="mr-2 h-4 w-4" /> Modifier
+                      </Button>
+                    )}
+                    <Button variant="destructive" size="sm" onClick={() => { setDeleteAudit(detailAudit); }}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Supprimer
                     </Button>
-                  )}
+                  </div>
                 </div>
               </DialogHeader>
 
