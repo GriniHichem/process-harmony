@@ -62,6 +62,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm font-medium text-foreground">v1.01</p>
+            <p className="text-xs text-muted-foreground italic">
+              Système intégré ISO 9001 et gestion par processus
+            </p>
             <div className="h-px bg-border" />
             <p className="text-xs text-muted-foreground">
               © 2026 Groupe AMOUR. Tous droits réservés.
