@@ -50,6 +50,44 @@ export type Database = {
         }
         Relationships: []
       }
+      action_notes: {
+        Row: {
+          action_id: string
+          avancement: number
+          contenu: string
+          created_at: string
+          created_by: string | null
+          date_note: string
+          id: string
+        }
+        Insert: {
+          action_id: string
+          avancement?: number
+          contenu?: string
+          created_at?: string
+          created_by?: string | null
+          date_note?: string
+          id?: string
+        }
+        Update: {
+          action_id?: string
+          avancement?: number
+          contenu?: string
+          created_at?: string
+          created_by?: string | null
+          date_note?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_notes_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       actions: {
         Row: {
           commentaire_cloture: string | null
