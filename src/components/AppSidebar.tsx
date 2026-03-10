@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle,
+  LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -26,6 +26,7 @@ const qualityItems = [
   { title: "Indicateurs", url: "/indicateurs", icon: BarChart3 },
   { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle },
   { title: "Incidents", url: "/incidents", icon: AlertOctagon },
+  { title: "Enjeux du contexte", url: "/enjeux-contexte", icon: Landmark },
 ];
 
 const auditItems = [
