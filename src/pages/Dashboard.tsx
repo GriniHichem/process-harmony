@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Network, ClipboardCheck, XCircle, Zap, AlertTriangle, BarChart3 } from "lucide-react";
+import { Network, ClipboardCheck, XCircle, Zap, AlertTriangle, BarChart3, AlertOctagon } from "lucide-react";
 
 interface DashboardStats {
   totalProcesses: number;
