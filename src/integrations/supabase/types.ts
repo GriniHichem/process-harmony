@@ -503,6 +503,72 @@ export type Database = {
           },
         ]
       }
+      process_tasks: {
+        Row: {
+          code: string
+          condition: string | null
+          created_at: string
+          description: string
+          documents: string[] | null
+          entrees: string | null
+          id: string
+          ordre: number
+          parent_code: string | null
+          process_id: string
+          responsable_id: string | null
+          sorties: string | null
+          type_flux: Database["public"]["Enums"]["task_flow_type"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          condition?: string | null
+          created_at?: string
+          description?: string
+          documents?: string[] | null
+          entrees?: string | null
+          id?: string
+          ordre?: number
+          parent_code?: string | null
+          process_id: string
+          responsable_id?: string | null
+          sorties?: string | null
+          type_flux?: Database["public"]["Enums"]["task_flow_type"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          condition?: string | null
+          created_at?: string
+          description?: string
+          documents?: string[] | null
+          entrees?: string | null
+          id?: string
+          ordre?: number
+          parent_code?: string | null
+          process_id?: string
+          responsable_id?: string | null
+          sorties?: string | null
+          type_flux?: Database["public"]["Enums"]["task_flow_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_tasks_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_tasks_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_versions: {
         Row: {
           created_at: string
@@ -769,6 +835,7 @@ export type Database = {
       process_status: "brouillon" | "en_validation" | "valide" | "archive"
       process_type: "pilotage" | "realisation" | "support"
       risk_type: "risque" | "opportunite"
+      task_flow_type: "sequentiel" | "conditionnel" | "parallele" | "inclusif"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -954,6 +1021,7 @@ export const Constants = {
       process_status: ["brouillon", "en_validation", "valide", "archive"],
       process_type: ["pilotage", "realisation", "support"],
       risk_type: ["risque", "opportunite"],
+      task_flow_type: ["sequentiel", "conditionnel", "parallele", "inclusif"],
     },
   },
 } as const
