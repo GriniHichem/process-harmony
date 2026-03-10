@@ -336,6 +336,7 @@ export type Database = {
           nom: string
           process_id: string
           seuil_alerte: number | null
+          type_indicateur: Database["public"]["Enums"]["indicator_type"]
           unite: string | null
           updated_at: string
         }
@@ -348,6 +349,7 @@ export type Database = {
           nom: string
           process_id: string
           seuil_alerte?: number | null
+          type_indicateur?: Database["public"]["Enums"]["indicator_type"]
           unite?: string | null
           updated_at?: string
         }
@@ -360,6 +362,7 @@ export type Database = {
           nom?: string
           process_id?: string
           seuil_alerte?: number | null
+          type_indicateur?: Database["public"]["Enums"]["indicator_type"]
           unite?: string | null
           updated_at?: string
         }
@@ -710,6 +713,7 @@ export type Database = {
         | "trimestriel"
         | "semestriel"
         | "annuel"
+      indicator_type: "activite" | "resultat" | "perception" | "interne"
       nc_severity: "mineure" | "majeure" | "critique"
       nc_status: "ouverte" | "en_traitement" | "cloturee"
       process_element_type:
@@ -886,6 +890,7 @@ export const Constants = {
         "semestriel",
         "annuel",
       ],
+      indicator_type: ["activite", "resultat", "perception", "interne"],
       nc_severity: ["mineure", "majeure", "critique"],
       nc_status: ["ouverte", "en_traitement", "cloturee"],
       process_element_type: [

@@ -10,7 +10,10 @@ import { toast } from "sonner";
 import { Plus, BarChart3, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string };
+type IndicatorType = "activite" | "resultat" | "perception" | "interne";
+type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType };
+
+const TYPE_LABELS: Record<IndicatorType, string> = { activite: "Activité", resultat: "Résultat", perception: "Perception", interne: "Interne" };
 
 export default function Indicateurs() {
   const { role } = useAuth();
@@ -18,7 +21,7 @@ export default function Indicateurs() {
   const [loading, setLoading] = useState(true);
   const [processes, setProcesses] = useState<{id: string; nom: string}[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newInd, setNewInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "" });
+  const [newInd, setNewInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType });
 
   const canCreate = role === "rmq" || role === "responsable_processus";
 
@@ -44,11 +47,12 @@ export default function Indicateurs() {
       seuil_alerte: newInd.seuil_alerte ? Number(newInd.seuil_alerte) : null,
       frequence: newInd.frequence as any,
       process_id: newInd.process_id,
+      type_indicateur: newInd.type_indicateur as any,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Indicateur créé");
     setDialogOpen(false);
-    setNewInd({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "" });
+    setNewInd({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" });
     fetchData();
   };
 
@@ -68,6 +72,15 @@ export default function Indicateurs() {
               <DialogHeader><DialogTitle>Créer un indicateur</DialogTitle></DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2"><Label>Nom</Label><Input value={newInd.nom} onChange={(e) => setNewInd({ ...newInd, nom: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Type d'indicateur</Label>
+                  <Select value={newInd.type_indicateur} onValueChange={(v) => setNewInd({ ...newInd, type_indicateur: v as IndicatorType })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.entries(TYPE_LABELS) as [IndicatorType, string][]).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label>Processus</Label>
                   <Select value={newInd.process_id} onValueChange={(v) => setNewInd({ ...newInd, process_id: v })}>
@@ -107,6 +120,7 @@ export default function Indicateurs() {
               <CardContent>
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p>Processus : {getProcessName(ind.process_id)}</p>
+                  <p>Type : <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-primary font-medium">{TYPE_LABELS[ind.type_indicateur] ?? ind.type_indicateur}</span></p>
                   {ind.cible != null && <p>Cible : {ind.cible} {ind.unite}</p>}
                   {ind.seuil_alerte != null && <p className="flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-warning" /> Seuil : {ind.seuil_alerte} {ind.unite}</p>}
                   <p>Fréquence : {ind.frequence}</p>
