@@ -64,6 +64,22 @@ export default function ProcessDetail() {
     if (data) setElements(data as ProcessElement[]);
   }, [id]);
 
+  const fetchDocuments = useCallback(async () => {
+    if (!id) return;
+    const { data: dpData } = await supabase
+      .from("document_processes")
+      .select("document_id")
+      .eq("process_id", id);
+    if (!dpData || dpData.length === 0) { setProcessDocuments([]); return; }
+    const docIds = dpData.map((dp: any) => dp.document_id);
+    const { data: docsData } = await supabase
+      .from("documents")
+      .select("id, titre, type_document, version, nom_fichier")
+      .in("id", docIds)
+      .eq("archive", false);
+    setProcessDocuments(docsData ?? []);
+  }, [id]);
+
   useEffect(() => {
     const fetch = async () => {
       const { data } = await supabase.from("processes").select("*").eq("id", id).single();
@@ -77,9 +93,10 @@ export default function ProcessDetail() {
     if (id) {
       fetch();
       fetchElements();
+      fetchDocuments();
       fetchUsers();
     }
-  }, [id, fetchElements]);
+  }, [id, fetchElements, fetchDocuments]);
 
   const canEdit = role === "rmq" || role === "consultant" || (role === "responsable_processus" && process?.responsable_id === user?.id);
   const canDelete = role === "rmq" || role === "responsable_processus";
