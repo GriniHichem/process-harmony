@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit, GitBranch, X } from "lucide-react";
-import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
+
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
