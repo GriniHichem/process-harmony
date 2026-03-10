@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit, GitBranch, X } from "lucide-react";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
@@ -90,6 +91,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   const [branchParent, setBranchParent] = useState<ProcessTask | null>(null);
   const [newEntreeDesc, setNewEntreeDesc] = useState("");
   const [newSortieDesc, setNewSortieDesc] = useState("");
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; code: string } | null>(null);
 
   const entreesElements = processElements.filter(e => e.type === "donnee_entree");
   const sortiesElements = processElements.filter(e => e.type === "donnee_sortie");
@@ -241,12 +244,19 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
     fetchTasks();
   };
 
-  const handleDelete = async (taskId: string, code: string) => {
-    const toDelete = tasks.filter((t) => t.id === taskId || t.parent_code === code);
+  const handleDeleteClick = (taskId: string, code: string) => {
+    setPendingDelete({ id: taskId, code });
+    setAdminDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDelete) return;
+    const toDelete = tasks.filter((t) => t.id === pendingDelete.id || t.parent_code === pendingDelete.code);
     for (const t of toDelete) {
       await supabase.from("process_tasks").delete().eq("id", t.id);
     }
     toast.success("Activité supprimée");
+    setPendingDelete(null);
     fetchTasks();
   };
 
@@ -332,7 +342,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                           </Button>
                         )}
                         {canDelete && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(task.id, task.code)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteClick(task.id, task.code)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
@@ -511,6 +521,14 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AdminPasswordDialog
+        open={adminDialogOpen}
+        onOpenChange={setAdminDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title="Suppression d'activité"
+        description="Veuillez entrer les identifiants administrateur pour confirmer la suppression de cette activité."
+      />
     </div>
   );
 }

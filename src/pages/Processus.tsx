@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Search, Eye, UserCheck, Trash2 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -96,10 +96,20 @@ export default function Processus() {
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
   const canDelete = role === "admin" || role === "rmq";
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("processes").delete().eq("id", id);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  const handleDeleteClick = (id: string) => {
+    setPendingDeleteId(id);
+    setAdminDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDeleteId) return;
+    const { error } = await supabase.from("processes").delete().eq("id", pendingDeleteId);
     if (error) { toast.error(error.message); return; }
     toast.success("Processus supprimé");
+    setPendingDeleteId(null);
     fetchProcesses();
   };
 
@@ -203,23 +213,9 @@ export default function Processus() {
                   <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
                   <Eye className="h-4 w-4 text-muted-foreground" />
                   {canDelete && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Supprimer ce processus ?</AlertDialogTitle>
-                          <AlertDialogDescription>Cette action supprimera le processus « {p.nom} » et tous ses objets associés (indicateurs, risques, documents, etc.).</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(p.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
               </CardContent>
@@ -228,6 +224,14 @@ export default function Processus() {
           })}
         </div>
       )}
+
+      <AdminPasswordDialog
+        open={adminDialogOpen}
+        onOpenChange={setAdminDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        title="Suppression de processus"
+        description="Cette action supprimera le processus et tous ses objets associés. Veuillez entrer les identifiants administrateur pour confirmer."
+      />
     </div>
   );
 }
