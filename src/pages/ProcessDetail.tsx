@@ -153,8 +153,8 @@ export default function ProcessDetail() {
       <Tabs defaultValue="general" className="w-full">
         <TabsList>
           <TabsTrigger value="general">Informations générales</TabsTrigger>
-          <TabsTrigger value="tasks">Tâches</TabsTrigger>
           <TabsTrigger value="elements">Éléments</TabsTrigger>
+          <TabsTrigger value="tasks">Tâches</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -202,14 +202,6 @@ export default function ProcessDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="tasks">
-          <Card>
-            <CardContent className="pt-6">
-              <ProcessTasksTable processId={id!} canEdit={canEdit} canDelete={canDelete} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="elements">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {ELEMENT_SECTIONS.map(({ type, title, prefix }) => (
@@ -228,6 +220,25 @@ export default function ProcessDetail() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <Card>
+            <CardContent className="pt-6">
+              <ProcessTasksTable
+                processId={id!}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                processElements={elements}
+                onAddElement={async (type: ElementType, description: string) => {
+                  const section = ELEMENT_SECTIONS.find(s => s.type === type);
+                  if (section) {
+                    await handleAddElement(type, section.prefix, description);
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
