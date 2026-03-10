@@ -235,7 +235,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         sorties: sortiesStr,
       });
       if (error) { toast.error(error.message); return; }
-      toast.success("Tâche ajoutée");
+      toast.success("Activité ajoutée");
     }
     setDialogOpen(false);
     fetchTasks();
