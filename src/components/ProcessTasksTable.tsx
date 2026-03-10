@@ -91,6 +91,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   const [branchParent, setBranchParent] = useState<ProcessTask | null>(null);
   const [newEntreeDesc, setNewEntreeDesc] = useState("");
   const [newSortieDesc, setNewSortieDesc] = useState("");
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; code: string } | null>(null);
 
   const entreesElements = processElements.filter(e => e.type === "donnee_entree");
   const sortiesElements = processElements.filter(e => e.type === "donnee_sortie");
