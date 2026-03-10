@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      acteurs: {
+        Row: {
+          actif: boolean
+          created_at: string
+          fonction: string | null
+          id: string
+          nom: string
+          organisation: string | null
+          prenom: string
+          type_acteur: Database["public"]["Enums"]["acteur_type"]
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          fonction?: string | null
+          id?: string
+          nom: string
+          organisation?: string | null
+          prenom?: string
+          type_acteur?: Database["public"]["Enums"]["acteur_type"]
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          fonction?: string | null
+          id?: string
+          nom?: string
+          organisation?: string | null
+          prenom?: string
+          type_acteur?: Database["public"]["Enums"]["acteur_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       actions: {
         Row: {
           commentaire_cloture: string | null
@@ -681,6 +717,7 @@ export type Database = {
       }
     }
     Enums: {
+      acteur_type: "interne" | "externe"
       action_status:
         | "planifiee"
         | "en_cours"
@@ -859,6 +896,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      acteur_type: ["interne", "externe"],
       action_status: [
         "planifiee",
         "en_cours",
