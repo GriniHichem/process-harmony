@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProcessElementList } from "@/components/ProcessElementList";
+import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
@@ -132,7 +134,7 @@ export default function ProcessDetail() {
   if (!process) return <div className="text-center py-12 text-muted-foreground">Processus non trouvé</div>;
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/processus")}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1">
@@ -148,66 +150,86 @@ export default function ProcessDetail() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader><CardTitle className="text-base">Informations générales</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2"><Label>Intitulé</Label><Input value={process.nom} onChange={(e) => updateField("nom", e.target.value)} disabled={!canEdit} /></div>
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select value={process.type_processus} onValueChange={(v) => updateField("type_processus", v)} disabled={!canEdit}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pilotage">Pilotage</SelectItem>
-                  <SelectItem value="realisation">Réalisation</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Statut</Label>
-              <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={role !== "rmq"}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="brouillon">Brouillon</SelectItem>
-                  <SelectItem value="en_validation">En validation</SelectItem>
-                  <SelectItem value="valide">Validé</SelectItem>
-                  <SelectItem value="archive">Archivé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Responsable</Label>
-              <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={role !== "rmq"}>
-                <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Non assigné</SelectItem>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{`${u.prenom} ${u.nom}`.trim() || u.email}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>Description</Label><Textarea value={process.description ?? ""} onChange={(e) => updateField("description", e.target.value)} disabled={!canEdit} rows={3} /></div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList>
+          <TabsTrigger value="general">Informations générales</TabsTrigger>
+          <TabsTrigger value="tasks">Tâches</TabsTrigger>
+          <TabsTrigger value="elements">Éléments</TabsTrigger>
+        </TabsList>
 
-        {ELEMENT_SECTIONS.map(({ type, title, prefix }) => (
-          <Card key={type}>
-            <CardContent className="pt-6">
-              <ProcessElementList
-                title={title}
-                elements={elements.filter(e => e.type === type)}
-                canEdit={canEdit}
-                canDelete={canDelete}
-                onAdd={(desc) => handleAddElement(type, prefix, desc)}
-                onUpdate={handleUpdateElement}
-                onRemove={handleRemoveElement}
-              />
+        <TabsContent value="general">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Informations générales</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2"><Label>Intitulé</Label><Input value={process.nom} onChange={(e) => updateField("nom", e.target.value)} disabled={!canEdit} /></div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={process.type_processus} onValueChange={(v) => updateField("type_processus", v)} disabled={!canEdit}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pilotage">Pilotage</SelectItem>
+                    <SelectItem value="realisation">Réalisation</SelectItem>
+                    <SelectItem value="support">Support</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Statut</Label>
+                <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={role !== "rmq"}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="brouillon">Brouillon</SelectItem>
+                    <SelectItem value="en_validation">En validation</SelectItem>
+                    <SelectItem value="valide">Validé</SelectItem>
+                    <SelectItem value="archive">Archivé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Responsable</Label>
+                <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={role !== "rmq"}>
+                  <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non assigné</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{`${u.prenom} ${u.nom}`.trim() || u.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Description</Label><Textarea value={process.description ?? ""} onChange={(e) => updateField("description", e.target.value)} disabled={!canEdit} rows={3} /></div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <Card>
+            <CardContent className="pt-6">
+              <ProcessTasksTable processId={id!} canEdit={canEdit} canDelete={canDelete} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="elements">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {ELEMENT_SECTIONS.map(({ type, title, prefix }) => (
+              <Card key={type}>
+                <CardContent className="pt-6">
+                  <ProcessElementList
+                    title={title}
+                    elements={elements.filter(e => e.type === type)}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                    onAdd={(desc) => handleAddElement(type, prefix, desc)}
+                    onUpdate={handleUpdateElement}
+                    onRemove={handleRemoveElement}
+                  />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
