@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Plus, Zap, ChevronDown, ChevronRight, StickyNote, User, Trash2 } from "lucide-react";
+import { Plus, Zap, ChevronDown, ChevronRight, StickyNote, User, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Acteur = { id: string; nom: string; prenom: string };
@@ -47,8 +48,13 @@ export default function Actions() {
   const [notesMap, setNotesMap] = useState<Record<string, ActionNote[]>>({});
   const [newNote, setNewNote] = useState<Record<string, { contenu: string; avancement: string }>>({});
 
+  // Edit state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editAction, setEditAction] = useState<{ id: string; description: string; type_action: string; echeance: string; responsable_id: string } | null>(null);
+
   const canCreate = role === "rmq" || role === "responsable_processus" || role === "auditeur" || role === "admin";
   const canEdit = role === "rmq" || role === "responsable_processus" || role === "admin";
+  const canDelete = role === "rmq" || role === "admin";
 
   const fetchActions = async () => {
     const { data } = await supabase.from("actions").select("*").order("echeance", { ascending: true });
@@ -88,6 +94,41 @@ export default function Actions() {
     toast.success("Action créée");
     setDialogOpen(false);
     setNewAction({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "" });
+    fetchActions();
+  };
+
+  const handleOpenEdit = (a: Action) => {
+    setEditAction({
+      id: a.id,
+      description: a.description,
+      type_action: a.type_action,
+      echeance: a.echeance ?? "",
+      responsable_id: a.responsable_id ?? "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateAction = async () => {
+    if (!editAction) return;
+    if (!editAction.description) { toast.error("Description requise"); return; }
+    const { error } = await supabase.from("actions").update({
+      description: editAction.description,
+      type_action: editAction.type_action as any,
+      echeance: editAction.echeance || null,
+      responsable_id: editAction.responsable_id || null,
+    }).eq("id", editAction.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Action modifiée");
+    setEditDialogOpen(false);
+    setEditAction(null);
+    fetchActions();
+  };
+
+  const handleDeleteAction = async (id: string) => {
+    const { error } = await supabase.from("actions").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Action supprimée");
+    if (expandedAction === id) setExpandedAction(null);
     fetchActions();
   };
 
@@ -252,9 +293,9 @@ export default function Actions() {
 
                   <CollapsibleContent>
                     <div className="border-t px-6 py-4 space-y-4 bg-muted/10">
-                      {/* Statut & Responsable inline edit */}
+                      {/* Statut & Responsable inline edit + Edit/Delete buttons */}
                       {canEdit && (
-                        <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-wrap gap-4 items-end">
                           <div className="space-y-1">
                             <Label className="text-xs">Statut</Label>
                             <Select value={a.statut} onValueChange={(v) => handleUpdateStatus(a.id, v)}>
@@ -276,6 +317,30 @@ export default function Actions() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="flex gap-1 ml-auto">
+                            <Button variant="outline" size="sm" className="h-8" onClick={() => handleOpenEdit(a)}>
+                              <Pencil className="h-3 w-3 mr-1" /> Modifier
+                            </Button>
+                            {canDelete && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="outline" size="sm" className="h-8 text-destructive border-destructive/30 hover:bg-destructive/10">
+                                    <Trash2 className="h-3 w-3 mr-1" /> Supprimer
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Supprimer cette action ?</AlertDialogTitle>
+                                    <AlertDialogDescription>Cette action et toutes ses notes de suivi seront supprimées définitivement.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteAction(a.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </div>
                         </div>
                       )}
@@ -349,6 +414,48 @@ export default function Actions() {
           })}
         </div>
       )}
+
+      {/* Edit Action Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditAction(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier l'action</DialogTitle></DialogHeader>
+          {editAction && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea value={editAction.description} onChange={(e) => setEditAction({ ...editAction, description: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={editAction.type_action} onValueChange={(v) => setEditAction({ ...editAction, type_action: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="corrective">Corrective</SelectItem>
+                    <SelectItem value="preventive">Préventive</SelectItem>
+                    <SelectItem value="amelioration">Amélioration</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Responsable</Label>
+                <Select value={editAction.responsable_id} onValueChange={(v) => setEditAction({ ...editAction, responsable_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectContent>
+                    {acteurs.map((act) => (
+                      <SelectItem key={act.id} value={act.id}>{act.prenom} {act.nom}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Échéance</Label>
+                <Input type="date" value={editAction.echeance} onChange={(e) => setEditAction({ ...editAction, echeance: e.target.value })} />
+              </div>
+              <Button onClick={handleUpdateAction} className="w-full">Enregistrer</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

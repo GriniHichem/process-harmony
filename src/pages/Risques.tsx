@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, AlertTriangle, Lightbulb, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, AlertTriangle, Lightbulb, Trash2, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
@@ -25,8 +25,12 @@ export default function Risques() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newRisk, setNewRisk] = useState({ type: "risque" as const, description: "", probabilite: "3", impact: "3", process_id: "" });
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
+
+  // Edit state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editRisk, setEditRisk] = useState<{ id: string; type: string; description: string; probabilite: string; impact: string; process_id: string } | null>(null);
+
   const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
   const canDelete = role === "admin" || role === "rmq";
   const canEditActions = role === "admin" || role === "rmq" || role === "responsable_processus";
@@ -55,6 +59,35 @@ export default function Risques() {
     if (error) { toast.error(error.message); return; }
     toast.success("Élément ajouté");
     setDialogOpen(false);
+    fetchData();
+  };
+
+  const handleEdit = (r: Risk) => {
+    setEditRisk({
+      id: r.id,
+      type: r.type,
+      description: r.description,
+      probabilite: String(r.probabilite ?? 3),
+      impact: String(r.impact ?? 3),
+      process_id: r.process_id,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editRisk) return;
+    if (!editRisk.description || !editRisk.process_id) { toast.error("Description et processus requis"); return; }
+    const { error } = await supabase.from("risks_opportunities").update({
+      type: editRisk.type as any,
+      description: editRisk.description,
+      probabilite: Number(editRisk.probabilite),
+      impact: Number(editRisk.impact),
+      process_id: editRisk.process_id,
+    }).eq("id", editRisk.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Élément modifié");
+    setEditDialogOpen(false);
+    setEditRisk(null);
     fetchData();
   };
 
@@ -154,6 +187,11 @@ export default function Risques() {
                     <div className="flex items-center gap-3">
                       <span className={`text-lg font-bold ${criticityColor(r.criticite)}`}>{r.criticite ?? "-"}</span>
                       <Badge variant={r.type === "risque" ? "destructive" : "secondary"}>{r.type}</Badge>
+                      {canCreate && (
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); handleEdit(r); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                       {canDelete && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -189,6 +227,40 @@ export default function Risques() {
           })}
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditRisk(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier le risque / opportunité</DialogTitle></DialogHeader>
+          {editRisk && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={editRisk.type} onValueChange={(v) => setEditRisk({ ...editRisk, type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="risque">Risque</SelectItem>
+                    <SelectItem value="opportunite">Opportunité</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Description</Label><Textarea value={editRisk.description} onChange={(e) => setEditRisk({ ...editRisk, description: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Processus</Label>
+                <Select value={editRisk.process_id} onValueChange={(v) => setEditRisk({ ...editRisk, process_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                  <SelectContent>{processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Probabilité (1-5)</Label><Input type="number" min="1" max="5" value={editRisk.probabilite} onChange={(e) => setEditRisk({ ...editRisk, probabilite: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Gravité (1-4)</Label><Input type="number" min="1" max="4" value={editRisk.impact} onChange={(e) => setEditRisk({ ...editRisk, impact: e.target.value })} /></div>
+              </div>
+              <Button onClick={handleUpdate} className="w-full">Enregistrer</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
