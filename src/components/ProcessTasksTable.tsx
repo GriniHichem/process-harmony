@@ -218,7 +218,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         })
         .eq("id", editingTask.id);
       if (error) { toast.error(error.message); return; }
-      toast.success("Tâche modifiée");
+      toast.success("Activité modifiée");
     } else {
       const code = branchParent ? getNextBranchCode(branchParent) : getNextRootCode();
       const ordre = getMaxOrdre();
@@ -235,7 +235,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         sorties: sortiesStr,
       });
       if (error) { toast.error(error.message); return; }
-      toast.success("Tâche ajoutée");
+      toast.success("Activité ajoutée");
     }
     setDialogOpen(false);
     fetchTasks();
@@ -246,7 +246,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
     for (const t of toDelete) {
       await supabase.from("process_tasks").delete().eq("id", t.id);
     }
-    toast.success("Tâche supprimée");
+    toast.success("Activité supprimée");
     fetchTasks();
   };
 
@@ -273,16 +273,16 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Tâches du processus</h3>
+        <h3 className="text-lg font-semibold">Activités du processus</h3>
         {canEdit && (
           <Button size="sm" onClick={() => openAddDialog()}>
-            <Plus className="mr-1 h-4 w-4" /> Ajouter une tâche
+            <Plus className="mr-1 h-4 w-4" /> Ajouter une activité
           </Button>
         )}
       </div>
 
       {tasks.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">Aucune tâche définie pour ce processus.</p>
+        <p className="text-sm text-muted-foreground text-center py-8">Aucune activité définie pour ce processus.</p>
       ) : (
         <div className="rounded-md border overflow-x-auto">
           <Table>
@@ -358,7 +358,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingTask ? "Modifier la tâche" : branchParent ? `Ajouter une branche à ${branchParent.code}` : "Nouvelle tâche"}
+              {editingTask ? "Modifier l'activité" : branchParent ? `Ajouter une branche à ${branchParent.code}` : "Nouvelle activité"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
