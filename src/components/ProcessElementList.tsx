@@ -24,7 +24,7 @@ interface ProcessElementListProps {
   customAdder?: React.ReactNode;
 }
 
-export function ProcessElementList({ title, elements, canEdit, canDelete, multiline, onAdd, onUpdate, onRemove }: ProcessElementListProps) {
+export function ProcessElementList({ title, elements, canEdit, canDelete, multiline, onAdd, onUpdate, onRemove, customAdder }: ProcessElementListProps) {
   const [adding, setAdding] = useState(false);
   const [newDesc, setNewDesc] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
