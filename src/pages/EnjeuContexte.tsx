@@ -10,7 +10,7 @@ export default function EnjeuContexte() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Enjeux du contexte</h1>
-        <p className="text-muted-foreground">Identification et suivi des enjeux internes et externes (ISO 9001)</p>
+        <p className="text-muted-foreground">Identification et suivi des enjeux internes et externes</p>
       </div>
       <ContextIssuesManager canEdit={canEdit} canDelete={canDelete} />
     </div>
