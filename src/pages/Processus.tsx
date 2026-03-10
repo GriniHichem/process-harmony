@@ -202,6 +202,25 @@ export default function Processus() {
                   </div>
                   <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
                   <Eye className="h-4 w-4 text-muted-foreground" />
+                  {canDelete && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer ce processus ?</AlertDialogTitle>
+                          <AlertDialogDescription>Cette action supprimera le processus « {p.nom} » et tous ses objets associés (indicateurs, risques, documents, etc.).</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(p.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardContent>
             </Card>
