@@ -176,8 +176,11 @@ export default function Risques() {
                     </div>
                   </div>
                   {isExpanded && (
-                    <div className="mt-4 border-t pt-4">
+                    <div className="mt-4 border-t pt-4 space-y-6">
                       <RiskMoyensActions riskId={r.id} canEdit={canEditActions} />
+                      <div className="border-t pt-4">
+                        <RiskIncidents riskId={r.id} canEdit={canEditActions} />
+                      </div>
                     </div>
                   )}
                 </CardContent>
