@@ -1,106 +1,93 @@
 
 
-# Plan d'implémentation — Application de gestion ISO 9001
+# Tableau des tâches processus (BPMN tabulaire)
 
-## Phase 1 : Fondations
+## Concept
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+Remplacer la logique BPMN visuelle par un **tableau structuré de tâches** pour chaque processus. Chaque tâche porte une codification intelligente qui encode la logique de flux (séquentiel, conditionnel, parallèle).
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+## Système de codification
 
-## Phase 2 : Modules principaux
+```text
+Code        Signification                    Type de flux
+──────────────────────────────────────────────────────────
+1           Tâche 1 (séquentielle)           Séquentiel
+2           Tâche 2 (point de décision)      Conditionnel (XOR)
+2.a1        → branche SI (condition vraie)   
+2.a2        → branche SINON                  
+3           Tâche 3 (séquentielle)           Séquentiel
+4           Tâche 4 (parallèle)             Parallèle (AND)
+4.p1        → sous-tâche parallèle 1         
+4.p2        → sous-tâche parallèle 2         
+5           Tâche 5 (inclusif)              Inclusif (OR)
+5.o1        → option 1 (au moins une)        
+5.o2        → option 2                       
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+Préfixes branches :
+  .a = alternative (SI/SINON - XOR)
+  .p = parallèle (toutes obligatoires - AND)
+  .o = optionnel inclusif (au moins une - OR)
+```
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+## Modele de donnees
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+**Nouvelle table `process_tasks`** :
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | uuid PK | |
+| process_id | uuid FK | Processus parent |
+| code | text | Codification (ex: "2.a1") |
+| description | text | Description de la tache |
+| type_flux | enum | `sequentiel`, `conditionnel`, `parallele`, `inclusif` |
+| condition | text | Condition (pour branches SI/SINON) |
+| parent_code | text | Code parent (ex: "2" pour "2.a1"), null si racine |
+| responsable_id | uuid | Acteur responsable (ref acteurs) |
+| ordre | integer | Ordre d'affichage |
+| entrees | text | Donnees d'entree |
+| sorties | text | Donnees de sortie |
+| documents | text[] | Refs documents associes |
+| created_at, updated_at | timestamptz | |
 
-## Phase 3 : Modules qualité
+**Enum `task_flow_type`** : `sequentiel`, `conditionnel`, `parallele`, `inclusif`
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+## Interface utilisateur
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+Un nouvel onglet **"Taches"** dans la page ProcessDetail, affichant un tableau :
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+```text
+┌──────┬───────────────────┬──────┬──────────┬──────────┬──────────┬──────────────┐
+│ Code │ Description       │ Type │ Entrées  │ Sorties  │ Resp.    │ Documents    │
+├──────┼───────────────────┼──────┼──────────┼──────────┼──────────┼──────────────┤
+│ 1    │ Réception demande │ →    │ Demande  │ Fiche    │ Agent    │ F-001        │
+│ 2    │ Analyse demande   │ ◇    │ Fiche    │          │ Resp.    │              │
+│ 2.a1 │  ↳ SI conforme    │  →   │          │ Accord   │ Resp.    │ F-002        │
+│ 2.a2 │  ↳ SINON rejet    │  →   │          │ Rejet    │ Resp.    │              │
+│ 3    │ Exécution         │ ═    │ Accord   │ Livrable │ Equipe   │              │
+│ 3.p1 │  ↳ Préparation    │  →   │          │          │ Tech.    │              │
+│ 3.p2 │  ↳ Contrôle       │  →   │          │ PV       │ Qualité  │              │
+└──────┴───────────────────┴──────┴──────────┴──────────┴──────────┴──────────────┘
 
-## Phase 4 : Modules audit & amélioration
+Légende :  → Séquentiel  ◇ Conditionnel (XOR)  ═ Parallèle (AND)  ≈ Inclusif (OR)
+```
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+- Les sous-taches (branches) sont indentees visuellement
+- Icones distinctes par type de flux
+- Formulaire d'ajout avec choix du type et generation automatique du code
+- Ajout de branches via bouton "Ajouter branche" sur les taches conditionnelles/paralleles
+- Selection du responsable depuis la liste des acteurs
+- Champs entrees/sorties en texte libre
+- Association de documents existants via multi-select
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
+## Implementation
 
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
+1. **Migration DB** : creer l'enum `task_flow_type` et la table `process_tasks` avec RLS (memes regles que `process_elements`)
+2. **Composant `ProcessTasksTable`** : tableau interactif avec CRUD, codification auto, indentation des branches
+3. **Integration dans `ProcessDetail.tsx`** : nouvel onglet Tabs entre infos generales et elements existants
 
-## Phase 5 : Tableaux de bord & Reporting
+## Securite RLS
 
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
-
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
-
-## Contrôle d'accès (transversal)
-
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
+- SELECT : tous les authentifies
+- INSERT/UPDATE : rmq, responsable_processus, consultant, admin
+- DELETE : rmq, admin
 
