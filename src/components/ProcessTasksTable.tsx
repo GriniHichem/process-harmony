@@ -282,7 +282,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
       </div>
 
       {tasks.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">Aucune tâche définie pour ce processus.</p>
+        <p className="text-sm text-muted-foreground text-center py-8">Aucune activité définie pour ce processus.</p>
       ) : (
         <div className="rounded-md border overflow-x-auto">
           <Table>
