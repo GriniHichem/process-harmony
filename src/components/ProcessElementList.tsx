@@ -21,6 +21,7 @@ interface ProcessElementListProps {
   onAdd: (description: string) => Promise<void>;
   onUpdate: (id: string, code: string, description: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
+  customAdder?: React.ReactNode;
 }
 
 export function ProcessElementList({ title, elements, canEdit, canDelete, multiline, onAdd, onUpdate, onRemove }: ProcessElementListProps) {
