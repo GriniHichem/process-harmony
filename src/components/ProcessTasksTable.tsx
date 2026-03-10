@@ -7,10 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit, GitBranch } from "lucide-react";
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
+type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
 interface ProcessTask {
   id: string;
@@ -25,6 +27,14 @@ interface ProcessTask {
   entrees: string | null;
   sorties: string | null;
   documents: string[] | null;
+}
+
+interface ProcessElement {
+  id: string;
+  code: string;
+  description: string;
+  type: ElementType;
+  ordre: number;
 }
 
 interface Acteur {
@@ -57,6 +67,8 @@ interface Props {
   processId: string;
   canEdit: boolean;
   canDelete: boolean;
+  processElements: ProcessElement[];
+  onAddElement: (type: ElementType, description: string) => Promise<void>;
 }
 
 const emptyForm = {
@@ -64,11 +76,11 @@ const emptyForm = {
   type_flux: "sequentiel" as TaskFlowType,
   condition: "",
   responsable_id: "",
-  entrees: "",
-  sorties: "",
+  selectedEntrees: [] as string[],
+  selectedSorties: [] as string[],
 };
 
-export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
+export function ProcessTasksTable({ processId, canEdit, canDelete, processElements, onAddElement }: Props) {
   const [tasks, setTasks] = useState<ProcessTask[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +88,11 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
   const [editingTask, setEditingTask] = useState<ProcessTask | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [branchParent, setBranchParent] = useState<ProcessTask | null>(null);
+  const [newEntreeDesc, setNewEntreeDesc] = useState("");
+  const [newSortieDesc, setNewSortieDesc] = useState("");
+
+  const entreesElements = processElements.filter(e => e.type === "donnee_entree");
+  const sortiesElements = processElements.filter(e => e.type === "donnee_sortie");
 
   const fetchTasks = useCallback(async () => {
     const { data } = await supabase
@@ -96,6 +113,14 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
     fetchTasks();
     fetchActeurs();
   }, [fetchTasks, fetchActeurs]);
+
+  // Parse comma-separated codes to array
+  const parseCodes = (value: string | null): string[] => {
+    if (!value) return [];
+    return value.split(",").map(s => s.trim()).filter(Boolean);
+  };
+
+  const codesToString = (codes: string[]): string => codes.join(", ");
 
   const getNextRootCode = (): string => {
     const rootTasks = tasks.filter((t) => !t.parent_code);
@@ -128,7 +153,9 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
   const openAddDialog = (parent?: ProcessTask) => {
     setEditingTask(null);
     setBranchParent(parent || null);
-    setForm({ ...emptyForm, type_flux: parent ? "sequentiel" : "sequentiel" });
+    setForm({ ...emptyForm });
+    setNewEntreeDesc("");
+    setNewSortieDesc("");
     setDialogOpen(true);
   };
 
@@ -140,10 +167,27 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
       type_flux: task.type_flux,
       condition: task.condition || "",
       responsable_id: task.responsable_id || "",
-      entrees: task.entrees || "",
-      sorties: task.sorties || "",
+      selectedEntrees: parseCodes(task.entrees),
+      selectedSorties: parseCodes(task.sorties),
     });
+    setNewEntreeDesc("");
+    setNewSortieDesc("");
     setDialogOpen(true);
+  };
+
+  const toggleCode = (list: string[], code: string): string[] => {
+    return list.includes(code) ? list.filter(c => c !== code) : [...list, code];
+  };
+
+  const handleQuickAddElement = async (type: "donnee_entree" | "donnee_sortie", description: string) => {
+    if (!description.trim()) return;
+    await onAddElement(type, description.trim());
+    // After onAddElement, the parent refetches elements and passes updated processElements
+    if (type === "donnee_entree") {
+      setNewEntreeDesc("");
+    } else {
+      setNewSortieDesc("");
+    }
   };
 
   const handleSave = async () => {
@@ -151,6 +195,9 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
       toast.error("La description est requise");
       return;
     }
+
+    const entreesStr = codesToString(form.selectedEntrees) || null;
+    const sortiesStr = codesToString(form.selectedSorties) || null;
 
     if (editingTask) {
       const { error } = await supabase
@@ -160,8 +207,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
           type_flux: form.type_flux as TaskFlowType,
           condition: form.condition || null,
           responsable_id: form.responsable_id || null,
-          entrees: form.entrees || null,
-          sorties: form.sorties || null,
+          entrees: entreesStr,
+          sorties: sortiesStr,
         })
         .eq("id", editingTask.id);
       if (error) { toast.error(error.message); return; }
@@ -178,8 +225,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
         parent_code: branchParent?.code || null,
         responsable_id: form.responsable_id || null,
         ordre,
-        entrees: form.entrees || null,
-        sorties: form.sorties || null,
+        entrees: entreesStr,
+        sorties: sortiesStr,
       });
       if (error) { toast.error(error.message); return; }
       toast.success("Tâche ajoutée");
@@ -189,7 +236,6 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
   };
 
   const handleDelete = async (taskId: string, code: string) => {
-    // Delete task and its branches
     const toDelete = tasks.filter((t) => t.id === taskId || t.parent_code === code);
     for (const t of toDelete) {
       await supabase.from("process_tasks").delete().eq("id", t.id);
@@ -202,6 +248,16 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
     if (!id) return "—";
     const a = acteurs.find((a) => a.id === id);
     return a ? `${a.prenom} ${a.nom}`.trim() : "—";
+  };
+
+  const resolveElementDescriptions = (codesStr: string | null): string => {
+    if (!codesStr) return "—";
+    const codes = parseCodes(codesStr);
+    if (codes.length === 0) return "—";
+    return codes.map(code => {
+      const el = processElements.find(e => e.code === code);
+      return el ? el.description : code;
+    }).join(", ");
   };
 
   const isSubTask = (task: ProcessTask) => !!task.parent_code;
@@ -253,8 +309,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
                   <TableCell className="text-center text-lg" title={FLOW_LABELS[task.type_flux]}>
                     {FLOW_ICONS[task.type_flux]}
                   </TableCell>
-                  <TableCell className="text-sm">{task.entrees || "—"}</TableCell>
-                  <TableCell className="text-sm">{task.sorties || "—"}</TableCell>
+                  <TableCell className="text-sm">{resolveElementDescriptions(task.entrees)}</TableCell>
+                  <TableCell className="text-sm">{resolveElementDescriptions(task.sorties)}</TableCell>
                   <TableCell className="text-sm">{acteurName(task.responsable_id)}</TableCell>
                   {(canEdit || canDelete) && (
                     <TableCell>
@@ -293,7 +349,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingTask ? "Modifier la tâche" : branchParent ? `Ajouter une branche à ${branchParent.code}` : "Nouvelle tâche"}
@@ -326,14 +382,73 @@ export function ProcessTasksTable({ processId, canEdit, canDelete }: Props) {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Entrées</Label>
-                <Input value={form.entrees} onChange={(e) => setForm({ ...form, entrees: e.target.value })} />
+            {/* Entrées - checkboxes from process elements */}
+            <div className="space-y-2">
+              <Label>Entrées (données d'entrée)</Label>
+              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                {entreesElements.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Aucune donnée d'entrée définie dans les éléments.</p>
+                )}
+                {entreesElements.map(el => (
+                  <div key={el.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`entree-${el.id}`}
+                      checked={form.selectedEntrees.includes(el.code)}
+                      onCheckedChange={() => setForm({ ...form, selectedEntrees: toggleCode(form.selectedEntrees, el.code) })}
+                    />
+                    <label htmlFor={`entree-${el.id}`} className="text-sm cursor-pointer">
+                      <span className="font-mono text-xs text-primary mr-1">{el.code}</span>
+                      {el.description}
+                    </label>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 pt-1 border-t">
+                  <Input
+                    value={newEntreeDesc}
+                    onChange={(e) => setNewEntreeDesc(e.target.value)}
+                    placeholder="Nouvelle donnée d'entrée..."
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddElement("donnee_entree", newEntreeDesc); } }}
+                  />
+                  <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => handleQuickAddElement("donnee_entree", newEntreeDesc)}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Sorties</Label>
-                <Input value={form.sorties} onChange={(e) => setForm({ ...form, sorties: e.target.value })} />
+            </div>
+
+            {/* Sorties - checkboxes from process elements */}
+            <div className="space-y-2">
+              <Label>Sorties (données de sortie)</Label>
+              <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                {sortiesElements.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Aucune donnée de sortie définie dans les éléments.</p>
+                )}
+                {sortiesElements.map(el => (
+                  <div key={el.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`sortie-${el.id}`}
+                      checked={form.selectedSorties.includes(el.code)}
+                      onCheckedChange={() => setForm({ ...form, selectedSorties: toggleCode(form.selectedSorties, el.code) })}
+                    />
+                    <label htmlFor={`sortie-${el.id}`} className="text-sm cursor-pointer">
+                      <span className="font-mono text-xs text-primary mr-1">{el.code}</span>
+                      {el.description}
+                    </label>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 pt-1 border-t">
+                  <Input
+                    value={newSortieDesc}
+                    onChange={(e) => setNewSortieDesc(e.target.value)}
+                    placeholder="Nouvelle donnée de sortie..."
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleQuickAddElement("donnee_sortie", newSortieDesc); } }}
+                  />
+                  <Button type="button" size="sm" variant="outline" className="h-8" onClick={() => handleQuickAddElement("donnee_sortie", newSortieDesc)}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             </div>
 
