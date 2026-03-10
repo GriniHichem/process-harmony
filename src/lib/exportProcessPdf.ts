@@ -211,7 +211,14 @@ function buildHtml(data: ProcessData): string {
   @page { size: A4; margin: 15mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #1a1a2e; line-height: 1.5; padding: 20px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1565c0; padding-bottom: 12px; margin-bottom: 20px; }
+  .company-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; margin-bottom: 6px; background: linear-gradient(135deg, #0d47a1, #1565c0); border-radius: 8px; color: #fff; }
+  .company-header .company-logo { display: flex; align-items: center; gap: 12px; }
+  .company-header .company-logo .logo-circle { width: 48px; height: 48px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #0d47a1; }
+  .company-header .company-info h2 { font-size: 16px; font-weight: 700; margin: 0; }
+  .company-header .company-info p { font-size: 10px; opacity: 0.85; margin: 0; }
+  .company-header .doc-ref { text-align: right; font-size: 10px; }
+  .company-header .doc-ref strong { font-size: 12px; display: block; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1565c0; padding-bottom: 12px; margin-bottom: 20px; margin-top: 12px; }
   .header-left h1 { font-size: 20px; color: #1565c0; margin-bottom: 2px; }
   .header-left .code { font-family: monospace; font-size: 14px; color: #555; }
   .header-right { text-align: right; font-size: 11px; color: #666; }
@@ -231,6 +238,13 @@ function buildHtml(data: ProcessData): string {
   .mono { font-family: monospace; font-size: 10px; }
   .label-cell { font-weight: 600; width: 140px; background: #fafafa; }
   .empty { font-style: italic; color: #999; font-size: 11px; }
+  .signatures { margin-top: 40px; page-break-inside: avoid; }
+  .signatures h2 { font-size: 14px; color: #1565c0; border-bottom: 1.5px solid #e0e0e0; padding-bottom: 4px; margin-bottom: 12px; }
+  .sig-table { width: 100%; border-collapse: collapse; }
+  .sig-table th { background: #f0f4f8; font-weight: 600; color: #333; border: 1px solid #ccc; padding: 8px 10px; text-align: center; font-size: 11px; width: 33.33%; }
+  .sig-table td { border: 1px solid #ccc; padding: 8px 10px; text-align: center; vertical-align: top; height: 80px; font-size: 10px; color: #888; }
+  .sig-table .sig-name { font-size: 10px; color: #666; margin-bottom: 4px; }
+  .sig-table .sig-date { font-size: 9px; color: #999; }
   .footer { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 10px; color: #999; text-align: center; }
   @media print { body { padding: 0; } .no-print { display: none; } }
 </style>
@@ -240,6 +254,22 @@ function buildHtml(data: ProcessData): string {
     <button onclick="window.print()" style="padding:8px 24px;font-size:14px;background:#1565c0;color:#fff;border:none;border-radius:6px;cursor:pointer">
       📄 Imprimer / Exporter PDF
     </button>
+  </div>
+
+  <div class="company-header">
+    <div class="company-logo">
+      <div class="logo-circle">CM</div>
+      <div class="company-info">
+        <h2>Conserverie du Maghreb</h2>
+        <p>Système de Management de la Qualité – ISO 9001</p>
+      </div>
+    </div>
+    <div class="doc-ref">
+      <strong>FICHE PROCESSUS</strong>
+      Réf : ${escapeHtml(p.code)}<br>
+      Version : ${p.version_courante}<br>
+      Date : ${now}
+    </div>
   </div>
 
   <div class="header">
@@ -292,8 +322,43 @@ function buildHtml(data: ProcessData): string {
     ${risksSection()}
   </div>
 
+  <div class="signatures">
+    <h2>Approbation</h2>
+    <table class="sig-table">
+      <thead>
+        <tr>
+          <th>Pilote Processus</th>
+          <th>Responsable Management Qualité</th>
+          <th>Direction Générale</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="sig-name">Nom : ${escapeHtml(responsableName)}</div>
+            <div class="sig-date">Date : __ / __ / ____</div>
+            <br><br>
+            <em>Signature</em>
+          </td>
+          <td>
+            <div class="sig-name">Nom : _______________</div>
+            <div class="sig-date">Date : __ / __ / ____</div>
+            <br><br>
+            <em>Signature</em>
+          </td>
+          <td>
+            <div class="sig-name">Nom : _______________</div>
+            <div class="sig-date">Date : __ / __ / ____</div>
+            <br><br>
+            <em>Signature</em>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <div class="footer">
-    Fiche processus ${escapeHtml(p.code)} – ${escapeHtml(p.nom)} – Générée le ${now}
+    Conserverie du Maghreb – Fiche processus ${escapeHtml(p.code)} – ${escapeHtml(p.nom)} – Générée le ${now}
   </div>
 </body>
 </html>`;
