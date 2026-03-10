@@ -24,6 +24,8 @@ export default function Dashboard() {
     overdueActions: 0,
     totalRisks: 0,
     totalIndicators: 0,
+    incidentsOuverts: 0,
+    incidentsCritiques: 0,
   });
   const [loading, setLoading] = useState(true);
 
