@@ -259,6 +259,38 @@ export default function ProcessDetail() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="documents">
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Documents associés</CardTitle></CardHeader>
+            <CardContent>
+              {processDocuments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Aucun document associé à ce processus. Associez des documents depuis la page Gestion documentaire.</p>
+              ) : (
+                <div className="space-y-2">
+                  {processDocuments.map((doc: any) => {
+                    const typeLabels: Record<string, string> = {
+                      procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
+                      enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve",
+                    };
+                    return (
+                      <div key={doc.id} className="flex items-center justify-between p-3 rounded-md border">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-4 w-4 text-primary" />
+                          <div>
+                            <p className="font-medium text-sm">{doc.titre}</p>
+                            <p className="text-xs text-muted-foreground">{typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version}</p>
+                          </div>
+                        </div>
+                        {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
