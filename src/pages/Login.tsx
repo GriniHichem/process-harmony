@@ -122,22 +122,10 @@ export default function Login() {
               {loading ? "Chargement..." : mode === "login" ? "Se connecter" : mode === "signup" ? "Créer le compte" : "Envoyer le lien"}
             </Button>
 
-            <div className="flex flex-col gap-1">
-              {mode === "login" && (
-                <>
-                  <Button type="button" variant="link" className="w-full" onClick={() => setMode("signup")}>
-                    Créer un compte
-                  </Button>
-                  <Button type="button" variant="link" className="w-full" onClick={() => setMode("reset")}>
-                    Mot de passe oublié ?
-                  </Button>
-                </>
-              )}
-              {mode !== "login" && (
-                <Button type="button" variant="link" className="w-full" onClick={() => setMode("login")}>
-                  Retour à la connexion
-                </Button>
-              )}
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">
+                Mot de passe oublié ? Contactez l'administrateur du système.
+              </p>
             </div>
           </form>
         </CardContent>
