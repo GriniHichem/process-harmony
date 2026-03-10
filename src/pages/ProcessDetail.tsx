@@ -196,7 +196,7 @@ export default function ProcessDetail() {
                 <Select value={process.type_processus} onValueChange={(v) => updateField("type_processus", v)} disabled={!canEdit}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pilotage">Pilotage</SelectItem>
+                    <SelectItem value="pilotage">Management</SelectItem>
                     <SelectItem value="realisation">Réalisation</SelectItem>
                     <SelectItem value="support">Support</SelectItem>
                   </SelectContent>

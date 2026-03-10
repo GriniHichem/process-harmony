@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 type Process = { id: string; code: string; nom: string; type_processus: string; statut: string };
 
 const columnConfig = [
-  { type: "pilotage", label: "Processus de pilotage", color: "bg-primary/10 border-primary/30" },
+  { type: "pilotage", label: "Processus de management", color: "bg-primary/10 border-primary/30" },
   { type: "realisation", label: "Processus de réalisation", color: "bg-accent/10 border-accent/30" },
   { type: "support", label: "Processus support", color: "bg-secondary border-secondary" },
 ];

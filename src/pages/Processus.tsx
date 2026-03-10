@@ -170,7 +170,7 @@ export default function Processus() {
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les types</SelectItem>
-            <SelectItem value="pilotage">Pilotage</SelectItem>
+            <SelectItem value="pilotage">Management</SelectItem>
             <SelectItem value="realisation">Réalisation</SelectItem>
             <SelectItem value="support">Support</SelectItem>
           </SelectContent>

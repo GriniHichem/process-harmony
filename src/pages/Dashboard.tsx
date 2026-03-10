@@ -72,7 +72,7 @@ export default function Dashboard() {
   }
 
   const cards = [
-    { label: "Processus", value: stats.totalProcesses, icon: Network, desc: `P:${stats.processesByType.pilotage} R:${stats.processesByType.realisation} S:${stats.processesByType.support}`, color: "text-primary" },
+    { label: "Processus", value: stats.totalProcesses, icon: Network, desc: `M:${stats.processesByType.pilotage} R:${stats.processesByType.realisation} S:${stats.processesByType.support}`, color: "text-primary" },
     { label: "Audits en cours", value: stats.openAudits, icon: ClipboardCheck, desc: "Planifiés ou en cours", color: "text-accent" },
     { label: "NC ouvertes", value: stats.openNC, icon: XCircle, desc: "Non-conformités ouvertes", color: "text-destructive" },
     { label: "Actions en retard", value: stats.overdueActions, icon: Zap, desc: "Échéance dépassée", color: "text-warning" },
