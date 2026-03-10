@@ -320,13 +320,24 @@ export default function Indicateurs() {
         )}
       </div>
 
+      <div className="flex items-center gap-3">
+        <Label className="text-sm whitespace-nowrap">Filtrer par processus</Label>
+        <Select value={filterProcessId} onValueChange={setFilterProcessId}>
+          <SelectTrigger className="w-[250px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les processus</SelectItem>
+            {processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-      ) : indicators.length === 0 ? (
+      ) : indicators.filter((ind) => filterProcessId === "all" || ind.process_id === filterProcessId).length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun indicateur défini</CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {indicators.map((ind) => (
+          {indicators.filter((ind) => filterProcessId === "all" || ind.process_id === filterProcessId).map((ind) => (
             <Card key={ind.id} className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow" onClick={() => setSelectedIndicator(ind)}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">

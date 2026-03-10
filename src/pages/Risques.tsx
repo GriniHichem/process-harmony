@@ -101,13 +101,24 @@ export default function Risques() {
         )}
       </div>
 
+      <div className="flex items-center gap-3">
+        <Label className="text-sm whitespace-nowrap">Filtrer par processus</Label>
+        <Select value={filterProcessId} onValueChange={setFilterProcessId}>
+          <SelectTrigger className="w-[250px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les processus</SelectItem>
+            {processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-      ) : risks.length === 0 ? (
+      ) : risks.filter((r) => filterProcessId === "all" || r.process_id === filterProcessId).length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun risque ou opportunité identifié</CardContent></Card>
       ) : (
         <div className="grid gap-3">
-          {risks.map((r) => (
+          {risks.filter((r) => filterProcessId === "all" || r.process_id === filterProcessId).map((r) => (
             <Card key={r.id}>
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-3">
