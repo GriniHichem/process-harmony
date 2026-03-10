@@ -86,6 +86,16 @@ export default function Indicateurs() {
     fetchData();
   };
 
+  const handleDeleteIndicator = async (id: string) => {
+    // Delete values first, then the indicator
+    await supabase.from("indicator_values").delete().eq("indicator_id", id);
+    const { error } = await supabase.from("indicators").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Indicateur supprimé");
+    setSelectedIndicator(null);
+    fetchData();
+  };
+
   const handleAddValue = async () => {
     if (!selectedIndicator || !newValue.valeur) { toast.error("Valeur requise"); return; }
     const { error } = await supabase.from("indicator_values").insert({
