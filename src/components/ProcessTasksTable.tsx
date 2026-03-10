@@ -244,12 +244,19 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
     fetchTasks();
   };
 
-  const handleDelete = async (taskId: string, code: string) => {
-    const toDelete = tasks.filter((t) => t.id === taskId || t.parent_code === code);
+  const handleDeleteClick = (taskId: string, code: string) => {
+    setPendingDelete({ id: taskId, code });
+    setAdminDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDelete) return;
+    const toDelete = tasks.filter((t) => t.id === pendingDelete.id || t.parent_code === pendingDelete.code);
     for (const t of toDelete) {
       await supabase.from("process_tasks").delete().eq("id", t.id);
     }
     toast.success("Activité supprimée");
+    setPendingDelete(null);
     fetchTasks();
   };
 
