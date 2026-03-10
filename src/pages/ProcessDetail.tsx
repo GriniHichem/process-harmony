@@ -251,7 +251,27 @@ export default function ProcessDetail() {
                               <span>{doc.titre}</span>
                               <span className="text-xs text-muted-foreground">({typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version})</span>
                             </div>
-                            {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                            <div className="flex items-center gap-2">
+                              {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
+                              {doc.chemin_fichier && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={async () => {
+                                    const { data } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 60);
+                                    if (data?.signedUrl) {
+                                      window.open(data.signedUrl, "_blank");
+                                    } else {
+                                      toast.error("Impossible de télécharger le fichier");
+                                    }
+                                  }}
+                                  title="Télécharger"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
