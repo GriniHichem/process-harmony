@@ -33,7 +33,7 @@ export default function Utilisateurs() {
   useEffect(() => { fetchUsers(); }, []);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
-    if (role !== "rmq") return;
+    if (role !== "rmq" && role !== "admin") return;
     const { data: existing } = await supabase.from("user_roles").select("id").eq("user_id", userId).single();
     let error;
     if (existing) {
