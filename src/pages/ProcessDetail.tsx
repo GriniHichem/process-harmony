@@ -52,6 +52,7 @@ export default function ProcessDetail() {
   const [saving, setSaving] = useState(false);
   const [elements, setElements] = useState<ProcessElement[]>([]);
   const [users, setUsers] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
+  const [processDocuments, setProcessDocuments] = useState<any[]>([]);
 
   const fetchElements = useCallback(async () => {
     if (!id) return;
