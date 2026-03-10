@@ -539,6 +539,55 @@ export type Database = {
           },
         ]
       }
+      process_interactions: {
+        Row: {
+          created_at: string
+          direction: string
+          element_id: string
+          id: string
+          source_process_id: string
+          target_process_id: string
+        }
+        Insert: {
+          created_at?: string
+          direction: string
+          element_id: string
+          id?: string
+          source_process_id: string
+          target_process_id: string
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          element_id?: string
+          id?: string
+          source_process_id?: string
+          target_process_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_interactions_element_id_fkey"
+            columns: ["element_id"]
+            isOneToOne: false
+            referencedRelation: "process_elements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_interactions_source_process_id_fkey"
+            columns: ["source_process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_interactions_target_process_id_fkey"
+            columns: ["target_process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_tasks: {
         Row: {
           code: string
