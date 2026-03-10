@@ -218,7 +218,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         })
         .eq("id", editingTask.id);
       if (error) { toast.error(error.message); return; }
-      toast.success("Tâche modifiée");
+      toast.success("Activité modifiée");
     } else {
       const code = branchParent ? getNextBranchCode(branchParent) : getNextRootCode();
       const ordre = getMaxOrdre();
