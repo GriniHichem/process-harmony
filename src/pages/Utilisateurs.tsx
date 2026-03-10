@@ -10,6 +10,7 @@ import { Users, Shield } from "lucide-react";
 type UserWithRole = { id: string; nom: string; prenom: string; email: string; fonction: string; actif: boolean; role: string | null };
 
 const roleLabels: Record<string, string> = {
+  admin: "Admin",
   rmq: "RMQ",
   responsable_processus: "Resp. processus",
   consultant: "Consultant",
