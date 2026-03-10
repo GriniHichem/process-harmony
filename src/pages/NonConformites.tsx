@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Plus, XCircle, Pencil, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plus, XCircle, Pencil, ChevronRight, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 type NC = {
