@@ -95,7 +95,11 @@ export default function Processus() {
   };
 
   const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
-  const canDelete = hasRole("admin") || hasRole("rmq");
+  const canDeleteProcess = (p: Process) => {
+    if (hasRole("admin")) return true;
+    if (hasRole("rmq") && p.statut !== "valide") return true;
+    return false;
+  };
 
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
