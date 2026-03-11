@@ -86,6 +86,13 @@ export default function Utilisateurs() {
     else { toast.success(currentActive ? "Compte désactivé" : "Compte activé"); fetchUsers(); }
   };
 
+  const handleAssignActeur = async (userId: string, acteurId: string | null) => {
+    const { error } = await supabase.from("profiles").update({ acteur_id: acteurId }).eq("id", userId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Acteur assigné");
+    fetchUsers();
+  };
+
   const handleCreateUser = async () => {
     if (!newUser.email || !newUser.password) { toast.error("Email et mot de passe requis"); return; }
     setCreating(true);
