@@ -326,7 +326,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
         ) : (
           <div className="space-y-2">
             {actions.map((a) => (
-              <ItemCard key={a.id} description={a.description} statut={a.statut} responsable={getActeurLabel(a.responsable)} datePrevue={a.date_prevue} deadline={a.deadline} canEdit={canEdit} onEdit={() => openEditAction(a)} onDelete={() => handleDeleteAction(a.id)} />
+              <ItemCard key={a.id} itemId={a.id} elementType="risk_action" description={a.description} statut={a.statut} responsable={getActeurLabel(a.responsable)} responsableActeurId={a.responsable} datePrevue={a.date_prevue} deadline={a.deadline} canEdit={canEdit} onEdit={() => openEditAction(a)} onDelete={() => handleDeleteAction(a.id)} />
             ))}
           </div>
         )}
