@@ -134,8 +134,9 @@ export default function Processus() {
     fetchProcesses();
   };
 
-  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const canCreate = hasPermission("processus", "can_edit");
   const canDeleteProcess = (p: Process) => {
+    if (!hasPermission("processus", "can_delete")) return false;
     if (hasRole("admin")) return true;
     if (hasRole("rmq") && p.statut !== "valide") return true;
     return false;
