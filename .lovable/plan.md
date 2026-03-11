@@ -1,106 +1,52 @@
 
 
-# Plan d'implémentation — Application de gestion ISO 9001
+# Module "Évaluation des processus potentiels"
 
-## Phase 1 : Fondations
+## Vue d'ensemble
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+Ajouter une page simple `/evaluation-processus` permettant d'évaluer si une activité doit devenir un processus, avec une matrice de 5 critères, un score automatique, et deux actions (ajouter aux processus ou ignorer).
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+## 1. Base de données
 
-## Phase 2 : Modules principaux
+Nouvelle table `process_evaluations` :
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+| Colonne | Type |
+|---|---|
+| id | uuid PK |
+| nom | text NOT NULL |
+| description | text DEFAULT '' |
+| score_objectifs | integer DEFAULT 2 |
+| score_ca | integer DEFAULT 2 |
+| score_satisfaction | integer DEFAULT 2 |
+| score_perennite | integer DEFAULT 2 |
+| score_risques | integer DEFAULT 2 |
+| score_total | integer DEFAULT 10 |
+| resultat | text DEFAULT 'activite' |
+| statut | text DEFAULT 'en_attente' (en_attente, processus_cree, activite) |
+| process_id | uuid nullable (FK si converti en processus) |
+| created_at, updated_at | timestamptz |
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+RLS : SELECT tous authenticated, INSERT/UPDATE/DELETE admin+rmq.
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+## 2. Nouvelle page `src/pages/EvaluationProcessus.tsx`
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+- Champs nom + description en haut
+- Table avec 5 critères, chacun avec un Select (++/+/-/--)
+- Score total calculé automatiquement
+- Badge resultat : >= 15 = "Processus", < 15 = "Activité"
+- Bouton "Ajouter aux processus" : insère dans `processes` et met a jour `statut` + `process_id`
+- Bouton "Ignorer" : sauvegarde avec statut `activite`
+- Liste des évaluations existantes en bas
 
-## Phase 3 : Modules qualité
+## 3. Intégration
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+- Route `/evaluation-processus` dans `App.tsx` (admin, rmq, responsable_processus, consultant)
+- Lien dans la sidebar sous "Processus" avec icone `ClipboardList`
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+## Fichiers impactés
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
-
-## Phase 4 : Modules audit & amélioration
-
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
-
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
-
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
-
-## Phase 5 : Tableaux de bord & Reporting
-
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
-
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
-
-## Contrôle d'accès (transversal)
-
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
+1. Migration SQL : table + RLS + trigger updated_at
+2. `src/pages/EvaluationProcessus.tsx` (nouveau)
+3. `src/App.tsx` : nouvelle route
+4. `src/components/AppSidebar.tsx` : nouveau lien sidebar
 
