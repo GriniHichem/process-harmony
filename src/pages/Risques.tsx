@@ -18,7 +18,7 @@ import { RiskIncidents } from "@/components/RiskIncidents";
 type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
 
 export default function Risques() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [processes, setProcesses] = useState<{id: string; nom: string}[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,14 +34,25 @@ export default function Risques() {
   const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
   const canDelete = hasRole("admin") || hasRole("rmq");
   const canEditActions = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const fetchData = async () => {
-    const [rRes, pRes] = await Promise.all([
-      supabase.from("risks_opportunities").select("*").order("criticite", { ascending: false }),
-      supabase.from("processes").select("id, nom").order("nom"),
-    ]);
+    let processQuery = supabase.from("processes").select("id, nom").order("nom");
+    if (isOnlyResponsable && user) {
+      processQuery = processQuery.eq("responsable_id", user.id);
+    }
+    const pRes = await processQuery;
+    const myProcesses = pRes.data ?? [];
+    setProcesses(myProcesses);
+
+    let riskQuery = supabase.from("risks_opportunities").select("*").order("criticite", { ascending: false });
+    if (isOnlyResponsable && myProcesses.length > 0) {
+      riskQuery = riskQuery.in("process_id", myProcesses.map(p => p.id));
+    } else if (isOnlyResponsable) {
+      riskQuery = riskQuery.in("process_id", ["__none__"]);
+    }
+    const rRes = await riskQuery;
     setRisks((rRes.data ?? []) as Risk[]);
-    setProcesses(pRes.data ?? []);
     setLoading(false);
   };
 

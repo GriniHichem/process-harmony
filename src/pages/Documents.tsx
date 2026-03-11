@@ -29,7 +29,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function Documents() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -40,9 +40,18 @@ export default function Documents() {
 
   const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
   const canDelete = hasRole("admin") || hasRole("rmq");
-
+  const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const fetchDocs = async () => {
+    // Fetch processes (filtered for responsable_processus)
+    let procQuery = supabase.from("processes").select("id, nom").order("nom");
+    if (isOnlyResponsable && user) {
+      procQuery = procQuery.eq("responsable_id", user.id);
+    }
+    const { data: procData } = await procQuery;
+    setProcesses(procData ?? []);
+    const myProcessIds = (procData ?? []).map(p => p.id);
+
     // Fetch documents
     const { data: docsData } = await supabase
       .from("documents")
@@ -60,7 +69,7 @@ export default function Documents() {
       dpMap.set(dp.document_id, list);
     });
 
-    const enriched: Doc[] = (docsData ?? []).map((d: any) => ({
+    let enriched: Doc[] = (docsData ?? []).map((d: any) => ({
       id: d.id,
       titre: d.titre,
       type_document: d.type_document,
@@ -71,13 +80,17 @@ export default function Documents() {
       process_ids: dpMap.get(d.id) || [],
     }));
 
+    // Filter documents for responsable_processus: only docs linked to their processes
+    if (isOnlyResponsable) {
+      enriched = enriched.filter(d => d.process_ids.some(pid => myProcessIds.includes(pid)));
+    }
+
     setDocs(enriched);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchDocs();
-    supabase.from("processes").select("id, nom").order("nom").then(({ data }) => setProcesses(data ?? []));
   }, []);
 
   const handleUpload = async () => {

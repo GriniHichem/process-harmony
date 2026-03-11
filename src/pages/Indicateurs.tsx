@@ -42,14 +42,25 @@ export default function Indicateurs() {
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
   const canDelete = hasRole("admin") || hasRole("rmq");
+  const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const fetchData = async () => {
-    const [indRes, procRes] = await Promise.all([
-      supabase.from("indicators").select("*").order("nom"),
-      supabase.from("processes").select("id, nom").order("nom"),
-    ]);
+    let procQuery = supabase.from("processes").select("id, nom").order("nom");
+    if (isOnlyResponsable && user) {
+      procQuery = procQuery.eq("responsable_id", user.id);
+    }
+    const procRes = await procQuery;
+    const myProcesses = procRes.data ?? [];
+    setProcesses(myProcesses);
+
+    let indQuery = supabase.from("indicators").select("*").order("nom");
+    if (isOnlyResponsable && myProcesses.length > 0) {
+      indQuery = indQuery.in("process_id", myProcesses.map(p => p.id));
+    } else if (isOnlyResponsable) {
+      indQuery = indQuery.in("process_id", ["__none__"]);
+    }
+    const indRes = await indQuery;
     setIndicators((indRes.data ?? []) as Indicator[]);
-    setProcesses(procRes.data ?? []);
     setLoading(false);
   };
 
