@@ -168,7 +168,7 @@ function buildHtml(data: ProcessData): string {
     process: p, elements, tasks, interactions, targetProcesses, documents,
     indicators, indicatorValues, indicatorActions, indicatorMoyens,
     risks, riskActions, riskMoyens, responsableName,
-    contextIssues, contextIssueActions, acteurs,
+    contextIssues, contextIssueActions, acteurs, bpmnData,
   } = data;
 
   const typeLabels: Record<string, string> = { pilotage: "Management", realisation: "Réalisation", support: "Support" };
