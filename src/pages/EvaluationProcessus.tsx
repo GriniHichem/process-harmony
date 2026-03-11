@@ -82,10 +82,10 @@ export default function EvaluationProcessus() {
       // If converting to process, first create the process
       let processId: string | null = null;
       if (statut === "processus_cree") {
-        const code = "EVAL-" + Date.now().toString(36).toUpperCase();
+        if (!processCode.trim()) throw new Error("Le code du processus est requis");
         const { data: proc, error: procErr } = await supabase
           .from("processes")
-          .insert({ nom: nom.trim(), code, description: description.trim(), type_processus: "support" as const })
+          .insert({ nom: nom.trim(), code: processCode.trim(), description: description.trim(), type_processus: processType })
           .select("id")
           .single();
         if (procErr) throw procErr;
