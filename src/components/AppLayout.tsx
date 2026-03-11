@@ -12,7 +12,13 @@ import logo from "@/assets/logo.jpg";
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, hasRole } = useAuth();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [accessible, setAccessible] = useState(() => localStorage.getItem("qprocess-accessible") === "true");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("theme-accessible", accessible);
+    localStorage.setItem("qprocess-accessible", String(accessible));
+  }, [accessible]);
 
   const showLogs = hasRole("admin") || hasRole("rmq");
 
