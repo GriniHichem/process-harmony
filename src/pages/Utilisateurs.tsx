@@ -13,10 +13,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Users, Plus, KeyRound } from "lucide-react";
 
 type ActeurRef = { id: string; fonction: string | null };
+type CustomRoleRef = { id: string; nom: string };
 
 type UserWithRoles = {
   id: string; nom: string; prenom: string; email: string; fonction: string; actif: boolean;
   roles: string[];
+  customRoleIds: string[];
   acteur_id: string | null;
 };
 
@@ -33,6 +35,7 @@ export default function Utilisateurs() {
   const { hasRole, hasPermission } = useAuth();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [acteursList, setActeursList] = useState<ActeurRef[]>([]);
+  const [customRolesList, setCustomRolesList] = useState<CustomRoleRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", nom: "", prenom: "", fonction: "" });
@@ -43,15 +46,35 @@ export default function Utilisateurs() {
   const [resetting, setResetting] = useState(false);
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("*").order("nom");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const [profilesRes, rolesRes, customRolesRes, userCustomRolesRes] = await Promise.all([
+      supabase.from("profiles").select("*").order("nom"),
+      supabase.from("user_roles").select("user_id, role"),
+      supabase.from("custom_roles").select("id, nom").order("nom"),
+      supabase.from("user_custom_roles").select("user_id, custom_role_id"),
+    ]);
+
     const roleMap = new Map<string, string[]>();
-    (roles ?? []).forEach((r) => {
+    (rolesRes.data ?? []).forEach((r) => {
       const list = roleMap.get(r.user_id) || [];
       list.push(r.role);
       roleMap.set(r.user_id, list);
     });
-    setUsers((profiles ?? []).map((p) => ({ ...p, roles: roleMap.get(p.id) ?? [] })) as UserWithRoles[]);
+
+    const customRoleMap = new Map<string, string[]>();
+    (userCustomRolesRes.data ?? []).forEach((ucr) => {
+      const list = customRoleMap.get(ucr.user_id) || [];
+      list.push(ucr.custom_role_id);
+      customRoleMap.set(ucr.user_id, list);
+    });
+
+    setCustomRolesList((customRolesRes.data ?? []) as CustomRoleRef[]);
+    setUsers(
+      (profilesRes.data ?? []).map((p) => ({
+        ...p,
+        roles: roleMap.get(p.id) ?? [],
+        customRoleIds: customRoleMap.get(p.id) ?? [],
+      })) as UserWithRoles[]
+    );
     setLoading(false);
   };
 
@@ -66,16 +89,28 @@ export default function Utilisateurs() {
     if (!hasRole("admin")) return;
     const has = currentRoles.includes(roleKey);
     if (has) {
-      // Remove role
       const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", roleKey as any);
       if (error) { toast.error(error.message); return; }
     } else {
-      // Max 2 roles
       if (currentRoles.length >= 2) { toast.error("Maximum 2 rôles par utilisateur"); return; }
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: roleKey as any });
       if (error) { toast.error(error.message); return; }
     }
     toast.success("Rôles mis à jour");
+    fetchUsers();
+  };
+
+  const handleToggleCustomRole = async (userId: string, customRoleId: string, currentCustomRoleIds: string[]) => {
+    if (!hasRole("admin")) return;
+    const has = currentCustomRoleIds.includes(customRoleId);
+    if (has) {
+      const { error } = await supabase.from("user_custom_roles").delete().eq("user_id", userId).eq("custom_role_id", customRoleId);
+      if (error) { toast.error(error.message); return; }
+    } else {
+      const { error } = await supabase.from("user_custom_roles").insert({ user_id: userId, custom_role_id: customRoleId });
+      if (error) { toast.error(error.message); return; }
+    }
+    toast.success("Rôle personnalisé mis à jour");
     fetchUsers();
   };
 
@@ -189,17 +224,41 @@ export default function Utilisateurs() {
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  {allRoles.map((r) => (
-                    <label key={r.key} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                      <Checkbox
-                        checked={u.roles.includes(r.key)}
-                        onCheckedChange={() => handleToggleRole(u.id, r.key, u.roles)}
-                      />
-                      {r.label}
-                    </label>
-                  ))}
+
+                {/* Standard roles */}
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Rôles système</p>
+                  <div className="flex flex-wrap gap-3">
+                    {allRoles.map((r) => (
+                      <label key={r.key} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={u.roles.includes(r.key)}
+                          onCheckedChange={() => handleToggleRole(u.id, r.key, u.roles)}
+                        />
+                        {r.label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Custom roles */}
+                {customRolesList.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Rôles personnalisés</p>
+                    <div className="flex flex-wrap gap-3">
+                      {customRolesList.map((cr) => (
+                        <label key={cr.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={u.customRoleIds.includes(cr.id)}
+                            onCheckedChange={() => handleToggleCustomRole(u.id, cr.id, u.customRoleIds)}
+                          />
+                          {cr.nom}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">Acteur :</Label>
                   <Select value={u.acteur_id ?? "none"} onValueChange={(v) => handleAssignActeur(u.id, v === "none" ? null : v)}>
