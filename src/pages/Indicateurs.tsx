@@ -40,9 +40,12 @@ export default function Indicateurs() {
   const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType, moyens: "" });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
-  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
+  const canCreate = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus"));
   const canDelete = hasRole("admin") || hasRole("rmq");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
+  const [acteurProcessIds, setActeurProcessIds] = useState<string[]>([]);
+  const [acteurIndicatorIds, setActeurIndicatorIds] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     let procQuery = supabase.from("processes").select("id, nom").order("nom");
