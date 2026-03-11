@@ -1,8 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-
-type AppRole = "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
+import {
+  type AppModule,
+  type PermissionLevel,
+  type ModulePermissions,
+  type AppRole,
+  getEffectivePermission,
+} from "@/lib/defaultPermissions";
 
 interface Profile {
   id: string;
@@ -22,6 +27,7 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   hasRole: (role: AppRole) => boolean;
+  hasPermission: (module: AppModule, level: PermissionLevel) => boolean;
   signOut: () => Promise<void>;
 }
 
@@ -33,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   loading: true,
   hasRole: () => false,
+  hasPermission: () => false,
   signOut: async () => {},
 });
 
@@ -44,18 +51,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [permOverrides, setPermOverrides] = useState<Record<string, ModulePermissions>>({});
 
   const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
 
+  const hasPermission = useCallback(
+    (module: AppModule, level: PermissionLevel): boolean => {
+      if (roles.length === 0) return false;
+      return getEffectivePermission(roles, module, level, permOverrides);
+    },
+    [roles, permOverrides]
+  );
+
   const fetchUserData = async (userId: string) => {
     try {
-      const [profileRes, rolesRes] = await Promise.all([
+      const [profileRes, rolesRes, permRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
+        supabase.from("role_permissions").select("*"),
       ]);
       if (profileRes.data) setProfile(profileRes.data as Profile);
       if (rolesRes.data) {
         setRoles(rolesRes.data.map((r) => r.role as AppRole));
+      }
+      if (permRes.data) {
+        const overrides: Record<string, ModulePermissions> = {};
+        for (const row of permRes.data) {
+          overrides[`${row.role}:${row.module}`] = {
+            can_read: row.can_read,
+            can_read_detail: row.can_read_detail,
+            can_edit: row.can_edit,
+            can_delete: row.can_delete,
+          };
+        }
+        setPermOverrides(overrides);
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
@@ -72,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setRoles([]);
+          setPermOverrides({});
         }
         setLoading(false);
       }
@@ -95,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setPermOverrides({});
   };
 
   // Backward compat: role = first role (priority: admin > rmq > others)
@@ -102,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const role = priorityOrder.find((r) => roles.includes(r)) ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, role, loading, hasRole, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, role, loading, hasRole, hasPermission, signOut }}>
       {children}
     </AuthContext.Provider>
   );
