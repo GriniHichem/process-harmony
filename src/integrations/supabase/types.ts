@@ -1376,6 +1376,76 @@ export type Database = {
         }
         Relationships: []
       }
+      review_decisions: {
+        Row: {
+          created_at: string
+          description: string
+          echeance: string | null
+          id: string
+          input_item_id: string | null
+          ordre: number
+          responsable_id: string | null
+          review_id: string
+          source_entity_id: string | null
+          source_entity_type: string | null
+          statut: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          echeance?: string | null
+          id?: string
+          input_item_id?: string | null
+          ordre?: number
+          responsable_id?: string | null
+          review_id: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          statut?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          echeance?: string | null
+          id?: string
+          input_item_id?: string | null
+          ordre?: number
+          responsable_id?: string | null
+          review_id?: string
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          statut?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_decisions_input_item_id_fkey"
+            columns: ["input_item_id"]
+            isOneToOne: false
+            referencedRelation: "review_input_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_decisions_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_decisions_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "management_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_input_items: {
         Row: {
           commentaire: string
