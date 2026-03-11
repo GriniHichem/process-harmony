@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
-  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon
+  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";

@@ -69,6 +69,7 @@ const App = () => (
             <Route path="/journal" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq"]}><Journal /></RoleGuard></ProtectedPage>} />
             {/* Administration - admin uniquement */}
             <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin"]}><Utilisateurs /></RoleGuard></ProtectedPage>} />
+            <Route path="/groupes-acteurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq"]}><GroupesActeurs /></RoleGuard></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
