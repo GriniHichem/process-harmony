@@ -12,10 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, FileText, Target } from "lucide-react";
+import { Plus, Edit, Trash2, FileText, Target, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import RichTextEditor from "@/components/RichTextEditor";
 
 const statutPolicyColors: Record<string, string> = {
@@ -207,52 +206,61 @@ export default function PolitiqueQualite() {
         </TabsContent>
       </Tabs>
 
-      {/* Policy Dialog */}
-      <Dialog open={policyDialog} onOpenChange={setPolicyDialog}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingPolicy ? "Modifier" : "Nouvelle"} politique qualité</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Titre</Label><Input value={policyForm.titre} onChange={e => setPolicyForm(f => ({ ...f, titre: e.target.value }))} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><Label>Version</Label><Input type="number" value={policyForm.version} onChange={e => setPolicyForm(f => ({ ...f, version: parseInt(e.target.value) || 1 }))} /></div>
-                <div><Label>Statut</Label>
-                  <Select value={policyForm.statut} onValueChange={v => setPolicyForm(f => ({ ...f, statut: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="brouillon">Brouillon</SelectItem>
-                      <SelectItem value="valide">Validé</SelectItem>
-                      <SelectItem value="archive">Archivé</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* Policy Dialog - Fullscreen */}
+      {policyDialog && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-muted/30">
+            <h2 className="text-lg font-semibold">{editingPolicy ? "Modifier" : "Nouvelle"} politique qualité</h2>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">Version</Label>
+                <Input type="number" className="w-20 h-8" value={policyForm.version} onChange={e => setPolicyForm(f => ({ ...f, version: parseInt(e.target.value) || 1 }))} />
               </div>
-            </div>
-            <div>
-              <Label>Contenu de la politique</Label>
-              <RichTextEditor
-                value={policyForm.contenu}
-                onChange={v => setPolicyForm(f => ({ ...f, contenu: v }))}
-                placeholder="Engagement de la direction, orientations stratégiques..."
-                minHeight="150px"
-              />
-            </div>
-            <div>
-              <Label>Objectifs stratégiques</Label>
-              <RichTextEditor
-                value={policyForm.objectifs}
-                onChange={v => setPolicyForm(f => ({ ...f, objectifs: v }))}
-                placeholder="Objectifs globaux de la politique qualité..."
-                minHeight="120px"
-              />
+              <Select value={policyForm.statut} onValueChange={v => setPolicyForm(f => ({ ...f, statut: v }))}>
+                <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="brouillon">Brouillon</SelectItem>
+                  <SelectItem value="valide">Validé</SelectItem>
+                  <SelectItem value="archive">Archivé</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input placeholder="Titre de la politique" className="w-64 h-8" value={policyForm.titre} onChange={e => setPolicyForm(f => ({ ...f, titre: e.target.value }))} />
+              <Button size="sm" variant="outline" onClick={() => setPolicyDialog(false)}>Annuler</Button>
+              <Button size="sm" onClick={() => savePolicyMut.mutate({ ...policyForm, id: editingPolicy?.id })} disabled={savePolicyMut.isPending}>Enregistrer</Button>
+              <Button size="sm" variant="ghost" onClick={() => setPolicyDialog(false)}><X className="h-4 w-4" /></Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPolicyDialog(false)}>Annuler</Button>
-            <Button onClick={() => savePolicyMut.mutate({ ...policyForm, id: editingPolicy?.id })} disabled={savePolicyMut.isPending}>Enregistrer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+          <div className="flex-1 overflow-hidden grid grid-cols-2 gap-0 divide-x divide-border">
+            <div className="flex flex-col overflow-hidden">
+              <div className="px-4 py-2 bg-muted/20 border-b border-border">
+                <Label className="text-sm font-medium">Contenu de la politique</Label>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <RichTextEditor
+                  value={policyForm.contenu}
+                  onChange={v => setPolicyForm(f => ({ ...f, contenu: v }))}
+                  placeholder="Engagement de la direction, orientations stratégiques..."
+                  a4
+                />
+              </div>
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <div className="px-4 py-2 bg-muted/20 border-b border-border">
+                <Label className="text-sm font-medium">Objectifs stratégiques</Label>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <RichTextEditor
+                  value={policyForm.objectifs}
+                  onChange={v => setPolicyForm(f => ({ ...f, objectifs: v }))}
+                  placeholder="Objectifs globaux de la politique qualité..."
+                  a4
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Objective Dialog */}
       <Dialog open={objDialog} onOpenChange={setObjDialog}>
