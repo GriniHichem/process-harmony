@@ -257,7 +257,7 @@ export default function ProcessDetail() {
               </div>
               <div className="space-y-2">
                 <Label>Statut</Label>
-                <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={!canChangeStatus}>
+                <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={!canChangeStatusEffective}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="brouillon">Brouillon</SelectItem>
