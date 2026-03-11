@@ -292,9 +292,12 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
               {moyens.map((m) => (
                  <ItemCard
                   key={m.id}
+                  itemId={m.id}
+                  elementType="indicator_moyen"
                   description={m.description}
                   statut={m.statut}
                   responsable={getActeurLabel(m.responsable)}
+                  responsableActeurId={m.responsable}
                   datePrevue={m.date_prevue}
                   deadline={m.deadline}
                   budget={m.budget}
