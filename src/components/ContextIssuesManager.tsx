@@ -344,7 +344,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
                             {(actions[issue.id] ?? []).map(action => (
                               <TableRow key={action.id}>
                                 <TableCell className="text-sm">{action.description}</TableCell>
-                                <TableCell className="text-sm">{action.responsable || "—"}</TableCell>
+                                <TableCell className="text-sm">{getActeurLabel(action.responsable) || "—"}</TableCell>
                                 <TableCell className="text-sm">{action.date_revue || "—"}</TableCell>
                                 <TableCell><Badge variant="outline" className="text-xs">{statutLabels[action.statut] ?? action.statut}</Badge></TableCell>
                                 {(canEdit || canDelete) && (
