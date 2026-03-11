@@ -28,7 +28,8 @@ export default function Bpmn() {
   const [zoom, setZoom] = useState(1);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [history, setHistory] = useState<BpmnData[]>([]);
-
+  const [generating, setGenerating] = useState(false);
+  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
 
   useEffect(() => {
