@@ -499,8 +499,10 @@ export default function Indicateurs() {
         <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun indicateur défini</CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {indicators.filter((ind) => filterProcessId === "all" || ind.process_id === filterProcessId).map((ind) => (
-            <Card key={ind.id} className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow" onClick={() => setSelectedIndicator(ind)}>
+          {indicators.filter((ind) => filterProcessId === "all" || ind.process_id === filterProcessId).map((ind) => {
+            const acteurCanAccessDetail = !isOnlyActeur || acteurIndicatorIds.has(ind.id);
+            return (
+            <Card key={ind.id} className={`${acteurCanAccessDetail ? "cursor-pointer hover:ring-2 hover:ring-primary/30" : "opacity-80"} transition-shadow`} onClick={() => { if (acteurCanAccessDetail) setSelectedIndicator(ind); else if (isOnlyActeur) toast.info("Vous n'êtes responsable d'aucune action/moyen sur cet indicateur"); }}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" />
@@ -516,7 +518,11 @@ export default function Indicateurs() {
                   <p>Fréquence : {ind.frequence}</p>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-primary font-medium">Cliquer pour voir l'historique →</p>
+                  {acteurCanAccessDetail ? (
+                    <p className="text-xs text-primary font-medium">Cliquer pour voir l'historique →</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Accès détails restreint</p>
+                  )}
                   {canDelete && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
