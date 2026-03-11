@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ActeurSelect } from "@/components/ActeurSelect";
+import { ElementNotes } from "@/components/ElementNotes";
 
 interface RiskAction {
   id: string;
