@@ -303,7 +303,7 @@ export default function Audits() {
                     <div><Label className="text-muted-foreground text-xs">Date début</Label><p className="font-medium">{detailAudit.date_audit ?? "—"}</p></div>
                     <div><Label className="text-muted-foreground text-xs">Date fin</Label><p className="font-medium">{detailAudit.date_fin ?? "—"}</p></div>
                     <div><Label className="text-muted-foreground text-xs">Fréquence</Label><p className="font-medium">{detailAudit.frequence ?? "—"}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Auditeur</Label><p className="font-medium">{detailAudit.auditeur_id ? acteurs.find(a => a.id === detailAudit.auditeur_id)?.nom ?? "—" : "—"}</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Auditeur</Label><p className="font-medium">{detailAudit.auditeur_id ? acteurs.find(a => a.id === detailAudit.auditeur_id)?.fonction ?? "—" : "—"}</p></div>
                   </div>
                   {detailAudit.perimetre && <div><Label className="text-muted-foreground text-xs">Périmètre</Label><p className="text-sm">{detailAudit.perimetre}</p></div>}
                   {detailAudit.responsabilites && <div><Label className="text-muted-foreground text-xs">Responsabilités</Label><p className="text-sm whitespace-pre-wrap">{detailAudit.responsabilites}</p></div>}
