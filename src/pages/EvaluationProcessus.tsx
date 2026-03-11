@@ -47,6 +47,11 @@ export default function EvaluationProcessus() {
     score_risques: 2,
   });
 
+  // Dialog for process creation with custom code
+  const [processDialogOpen, setProcessDialogOpen] = useState(false);
+  const [processCode, setProcessCode] = useState("");
+  const [processType, setProcessType] = useState<"pilotage" | "realisation" | "support">("support");
+
   const scoreTotal = useMemo(() => Object.values(scores).reduce((a, b) => a + b, 0), [scores]);
   const resultat = scoreTotal >= 16 ? "processus" : scoreTotal >= 12 ? "zone_orange" : "activite";
 
