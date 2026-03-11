@@ -9,8 +9,6 @@ import { toast } from "sonner";
 
 interface Acteur {
   id: string;
-  nom: string;
-  prenom: string;
   fonction: string | null;
   organisation: string | null;
   type_acteur: "interne" | "externe";
