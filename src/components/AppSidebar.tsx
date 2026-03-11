@@ -81,7 +81,7 @@ export function AppSidebar() {
 
   // Acteur only sees Indicateurs, Risques, Enjeux (not Documents, Incidents)
   const acteurQualityItems = qualityItems.filter(i => ["/indicateurs", "/risques", "/enjeux-contexte"].includes(i.url));
-  const showAdminMenu = hasRole("admin");
+  const showAdminMenu = hasRole("admin") || hasRole("rmq");
 
   return (
     <Sidebar collapsible="icon">
