@@ -1,106 +1,70 @@
 
 
-# Plan d'implémentation — Application de gestion ISO 9001
+# Éléments d'entrée structurés pour la Revue de Direction
 
-## Phase 1 : Fondations
+## Concept
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+Transformer le champ "Éléments d'entrée" d'un simple éditeur de texte en une **liste structurée d'items**, où chaque item peut être :
+- Un **point libre** (texte saisi manuellement)
+- Un **lien vers un objet existant** de l'application (processus, indicateur, risque, audit, NC, action, document, incident, enjeu, fournisseur, satisfaction client, compétence)
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+Chaque élément peut aussi avoir des **sous-éléments** (enfants), permettant une structure parent/fils.
 
-## Phase 2 : Modules principaux
+## Schema de données
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+Nouvelle table `review_input_items` :
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+| Colonne | Type | Description |
+|---|---|---|
+| id | uuid PK | |
+| review_id | uuid FK → management_reviews | Revue parente |
+| parent_id | uuid FK → review_input_items (nullable) | Pour la hiérarchie parent/fils |
+| ordre | integer | Tri |
+| type | text | "libre", "processus", "indicateur", "risque", "audit", "nc", "action", "document", "incident", "enjeu", "fournisseur", "satisfaction", "competence" |
+| label | text | Texte affiché / titre libre |
+| entity_id | uuid (nullable) | ID de l'objet lié si type != "libre" |
+| commentaire | text | Notes additionnelles |
+| created_at, updated_at | timestamptz | |
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+RLS : SELECT pour tous authenticated, INSERT/UPDATE pour admin+rmq, DELETE pour admin.
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+## Composant `ReviewInputItems`
 
-## Phase 3 : Modules qualité
+Un nouveau composant qui affiche la liste des éléments d'entrée avec :
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+1. **Liste hiérarchique** : items parents avec indentation pour les enfants
+2. **Ajout d'un point libre** : champ texte simple
+3. **Ajout d'un lien vers une entité** : sélecteur de type d'entité → puis recherche/sélection de l'objet spécifique
+4. **Affichage enrichi** : badge coloré par type, nom de l'entité liée, icone, lien cliquable
+5. **Sous-éléments** : bouton "Ajouter un sous-élément" sur chaque item parent
+6. **Drag ou boutons ordre** : réorganiser les items
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+### Entités linkables
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+| Type | Source table | Label affiché |
+|---|---|---|
+| processus | processes | code + nom |
+| indicateur | indicators | nom |
+| risque | risks_opportunities | description |
+| audit | audits | reference |
+| nc | nonconformities | reference |
+| action | actions | description |
+| document | documents | titre |
+| incident | riskIncidents | description |
+| enjeu | context_issues | intitule |
+| fournisseur | suppliers | nom |
+| satisfaction | satisfaction_surveys | titre |
+| competence | competences | competence |
 
-## Phase 4 : Modules audit & amélioration
+## Modifications dans RevueDirection.tsx
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+- Remplacer la section "Éléments d'entrée" (actuellement RichTextEditor) par le composant `ReviewInputItems`
+- Le champ `elements_entree` de la table `management_reviews` reste pour le texte libre résumé, mais les items structurés sont dans la nouvelle table
+- Dans la vue consultation, afficher les items liés avec badges et navigation
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
+## Fichiers impactés
 
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
-
-## Phase 5 : Tableaux de bord & Reporting
-
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
-
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
-
-## Contrôle d'accès (transversal)
-
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
+1. **Migration SQL** : créer `review_input_items` + RLS
+2. **Nouveau composant** : `src/components/ReviewInputItems.tsx` — gestion CRUD des items avec sélecteur d'entités
+3. **Modifier** : `src/pages/RevueDirection.tsx` — intégrer le composant dans la section "Éléments d'entrée" et dans la vue consultation
 
