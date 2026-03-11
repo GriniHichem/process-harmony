@@ -69,13 +69,37 @@ export default function Indicateurs() {
     } else if (isOnlyResponsable && user) {
       procQuery = procQuery.eq("responsable_id", user.id);
     }
-    if (isOnlyResponsable && myProcesses.length > 0) {
+    const procRes = await procQuery;
+    const myProcesses = procRes.data ?? [];
+    setProcesses(myProcesses);
+
+    let indQuery = supabase.from("indicators").select("*").order("nom");
+    if ((isOnlyResponsable || isOnlyActeur) && myProcesses.length > 0) {
       indQuery = indQuery.in("process_id", myProcesses.map(p => p.id));
-    } else if (isOnlyResponsable) {
+    } else if (isOnlyResponsable || isOnlyActeur) {
       indQuery = indQuery.in("process_id", ["__none__"]);
     }
     const indRes = await indQuery;
-    setIndicators((indRes.data ?? []) as Indicator[]);
+    const allIndicators = (indRes.data ?? []) as Indicator[];
+    setIndicators(allIndicators);
+
+    // For acteur: find which indicators have actions/moyens where they are responsible
+    if (isOnlyActeur && user) {
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id, nom, prenom").eq("id", user.id).single();
+      const acteurName = profileData ? `${profileData.prenom} ${profileData.nom}`.trim() : "";
+      const indicatorIds = allIndicators.map(i => i.id);
+      if (indicatorIds.length > 0 && acteurName) {
+        const [actionsRes, moyensRes] = await Promise.all([
+          supabase.from("indicator_actions").select("indicator_id").in("indicator_id", indicatorIds).ilike("responsable", `%${acteurName}%`),
+          supabase.from("indicator_moyens" as any).select("indicator_id").in("indicator_id", indicatorIds).ilike("responsable", `%${acteurName}%`),
+        ]);
+        const ids = new Set<string>();
+        (actionsRes.data ?? []).forEach((a: any) => ids.add(a.indicator_id));
+        (moyensRes.data ?? []).forEach((m: any) => ids.add(m.indicator_id));
+        setActeurIndicatorIds(ids);
+      }
+    }
+
     setLoading(false);
   };
 
