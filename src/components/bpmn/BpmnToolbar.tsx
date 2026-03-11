@@ -29,7 +29,9 @@ interface BpmnToolbarProps {
   onFitView: () => void;
   onSave: () => void;
   onUndo: () => void;
+  onGenerate?: () => void;
   saving: boolean;
+  generating?: boolean;
   canEdit: boolean;
 }
 
