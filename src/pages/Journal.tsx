@@ -4,8 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
-import { ScrollText, Search, Plus, Pencil, Trash2, Filter } from "lucide-react";
+import { ScrollText, Search, Plus, Pencil, Trash2, Filter, CalendarIcon, X } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 type LogEntry = {
   id: string;
@@ -68,6 +74,9 @@ export default function Journal() {
   const [entityFilter, setEntityFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
 
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+
   const canView = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("auditeur") || hasRole("acteur");
 
   useEffect(() => {
@@ -98,6 +107,16 @@ export default function Journal() {
   const filtered = logs.filter((log) => {
     if (entityFilter !== "all" && log.entity_type !== entityFilter) return false;
     if (actionFilter !== "all" && log.action !== actionFilter) return false;
+    if (dateFrom) {
+      const logDate = new Date(log.created_at);
+      if (logDate < dateFrom) return false;
+    }
+    if (dateTo) {
+      const endOfDay = new Date(dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      const logDate = new Date(log.created_at);
+      if (logDate > endOfDay) return false;
+    }
     if (search) {
       const name = getEntityName(log).toLowerCase();
       const userName = profiles[log.user_id ?? ""]
@@ -144,6 +163,33 @@ export default function Journal() {
             <SelectItem value="delete">Suppression</SelectItem>
           </SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Date début"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} locale={fr} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dateTo ? format(dateTo, "dd/MM/yyyy") : "Date fin"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={fr} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
+        {(dateFrom || dateTo) && (
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }} title="Effacer les dates">
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground">{filtered.length} entrée{filtered.length !== 1 ? "s" : ""}</p>
