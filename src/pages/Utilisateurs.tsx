@@ -220,14 +220,19 @@ export default function Utilisateurs() {
                       <p className="text-xs text-muted-foreground">{u.email} {u.fonction ? `• ${u.fonction}` : ""}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Réinitialiser mot de passe" onClick={() => setResetUserId(u.id)}>
-                      <KeyRound className="h-4 w-4" />
-                    </Button>
-                    <Badge className="cursor-pointer" variant={u.actif ? "default" : "destructive"} onClick={() => toggleActive(u.id, u.actif)}>
-                      {u.actif ? "Actif" : "Inactif"}
-                    </Badge>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Réinitialiser mot de passe" onClick={() => setResetUserId(u.id)}>
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                      <Badge className="cursor-pointer" variant={u.actif ? "default" : "destructive"} onClick={() => toggleActive(u.id, u.actif)}>
+                        {u.actif ? "Actif" : "Inactif"}
+                      </Badge>
+                    </div>
+                  )}
+                  {!canEdit && (
+                    <Badge variant={u.actif ? "default" : "destructive"}>{u.actif ? "Actif" : "Inactif"}</Badge>
+                  )}
                 </div>
 
                 {/* Standard roles */}
