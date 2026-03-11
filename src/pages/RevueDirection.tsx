@@ -27,7 +27,6 @@ const statutLabels: Record<string, string> = { planifiee: "Planifiée", realisee
 const emptyForm = { reference: "", date_revue: "", participants: "", elements_entree: "", decisions: "", actions_decidees: "", statut: "planifiee", compte_rendu: "", prochaine_revue: "" };
 
 const RICH_FIELDS = [
-  { key: "elements_entree", label: "Éléments d'entrée", placeholder: "État des actions, performance des processus, résultats d'audit..." },
   { key: "decisions", label: "Décisions", placeholder: "Décisions prises lors de la revue..." },
   { key: "actions_decidees", label: "Actions décidées", placeholder: "Actions à mettre en œuvre..." },
   { key: "compte_rendu", label: "Compte rendu", placeholder: "Compte rendu détaillé de la revue..." },
@@ -35,6 +34,7 @@ const RICH_FIELDS = [
 
 const ALL_SECTIONS = [
   { key: "participants", label: "Participants", isRich: false },
+  { key: "elements_entree", label: "Éléments d'entrée", isRich: false },
   ...RICH_FIELDS.map(f => ({ ...f, isRich: true })),
 ] as const;
 
