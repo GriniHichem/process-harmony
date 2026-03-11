@@ -40,13 +40,33 @@ export default function Indicateurs() {
   const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType, moyens: "" });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
-  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
+  const canCreate = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus"));
   const canDelete = hasRole("admin") || hasRole("rmq");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
+  const [acteurProcessIds, setActeurProcessIds] = useState<string[]>([]);
+  const [acteurIndicatorIds, setActeurIndicatorIds] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     let procQuery = supabase.from("processes").select("id, nom").order("nom");
-    if (isOnlyResponsable && user) {
+    
+    if (isOnlyActeur && user) {
+      // Acteur: only processes where they have tasks
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
+      const acteurId = profileData?.acteur_id;
+      if (acteurId) {
+        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId);
+        const processIds = [...new Set((taskData ?? []).map(t => t.process_id))];
+        setActeurProcessIds(processIds);
+        if (processIds.length > 0) {
+          procQuery = procQuery.in("id", processIds);
+        } else {
+          setProcesses([]); setIndicators([]); setLoading(false); return;
+        }
+      } else {
+        setProcesses([]); setIndicators([]); setLoading(false); return;
+      }
+    } else if (isOnlyResponsable && user) {
       procQuery = procQuery.eq("responsable_id", user.id);
     }
     const procRes = await procQuery;
@@ -54,13 +74,32 @@ export default function Indicateurs() {
     setProcesses(myProcesses);
 
     let indQuery = supabase.from("indicators").select("*").order("nom");
-    if (isOnlyResponsable && myProcesses.length > 0) {
+    if ((isOnlyResponsable || isOnlyActeur) && myProcesses.length > 0) {
       indQuery = indQuery.in("process_id", myProcesses.map(p => p.id));
-    } else if (isOnlyResponsable) {
+    } else if (isOnlyResponsable || isOnlyActeur) {
       indQuery = indQuery.in("process_id", ["__none__"]);
     }
     const indRes = await indQuery;
-    setIndicators((indRes.data ?? []) as Indicator[]);
+    const allIndicators = (indRes.data ?? []) as Indicator[];
+    setIndicators(allIndicators);
+
+    // For acteur: find which indicators have actions/moyens where they are responsible
+    if (isOnlyActeur && user) {
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id, nom, prenom").eq("id", user.id).single();
+      const acteurName = profileData ? `${profileData.prenom} ${profileData.nom}`.trim() : "";
+      const indicatorIds = allIndicators.map(i => i.id);
+      if (indicatorIds.length > 0 && acteurName) {
+        const [actionsRes, moyensRes] = await Promise.all([
+          supabase.from("indicator_actions").select("indicator_id").in("indicator_id", indicatorIds).ilike("responsable", `%${acteurName}%`),
+          supabase.from("indicator_moyens" as any).select("indicator_id").in("indicator_id", indicatorIds).ilike("responsable", `%${acteurName}%`),
+        ]);
+        const ids = new Set<string>();
+        (actionsRes.data ?? []).forEach((a: any) => ids.add(a.indicator_id));
+        (moyensRes.data ?? []).forEach((m: any) => ids.add(m.indicator_id));
+        setActeurIndicatorIds(ids);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -460,8 +499,10 @@ export default function Indicateurs() {
         <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun indicateur défini</CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {indicators.filter((ind) => filterProcessId === "all" || ind.process_id === filterProcessId).map((ind) => (
-            <Card key={ind.id} className="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow" onClick={() => setSelectedIndicator(ind)}>
+          {indicators.filter((ind) => filterProcessId === "all" || ind.process_id === filterProcessId).map((ind) => {
+            const acteurCanAccessDetail = !isOnlyActeur || acteurIndicatorIds.has(ind.id);
+            return (
+            <Card key={ind.id} className={`${acteurCanAccessDetail ? "cursor-pointer hover:ring-2 hover:ring-primary/30" : "opacity-80"} transition-shadow`} onClick={() => { if (acteurCanAccessDetail) setSelectedIndicator(ind); else if (isOnlyActeur) toast.info("Vous n'êtes responsable d'aucune action/moyen sur cet indicateur"); }}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" />
@@ -477,7 +518,11 @@ export default function Indicateurs() {
                   <p>Fréquence : {ind.frequence}</p>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-xs text-primary font-medium">Cliquer pour voir l'historique →</p>
+                  {acteurCanAccessDetail ? (
+                    <p className="text-xs text-primary font-medium">Cliquer pour voir l'historique →</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Accès détails restreint</p>
+                  )}
                   {canDelete && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -500,7 +545,8 @@ export default function Indicateurs() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

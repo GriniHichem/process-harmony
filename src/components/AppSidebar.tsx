@@ -74,8 +74,12 @@ export function AppSidebar() {
   const { profile, roles, hasRole, signOut } = useAuth();
 
   const showProcessMenu = true; // All roles can see processus menu
-  const showQualityMenu = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const isActeurOnly = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
+  const showQualityMenu = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant") || hasRole("acteur");
   const showAuditMenu = hasRole("admin") || hasRole("rmq") || hasRole("auditeur");
+
+  // Acteur only sees Indicateurs, Risques, Enjeux (not Documents, Incidents)
+  const acteurQualityItems = qualityItems.filter(i => ["/indicateurs", "/risques", "/enjeux-contexte"].includes(i.url));
   const showAdminMenu = hasRole("admin");
 
   return (
@@ -97,7 +101,7 @@ export function AppSidebar() {
       <SidebarContent>
         <NavGroup label="Principal" items={mainItems} collapsed={collapsed} />
         {showProcessMenu && <NavGroup label="Processus" items={processItems} collapsed={collapsed} />}
-        {showQualityMenu && <NavGroup label="Manager processus" items={qualityItems} collapsed={collapsed} />}
+        {showQualityMenu && <NavGroup label="Manager processus" items={isActeurOnly ? acteurQualityItems : qualityItems} collapsed={collapsed} />}
         {showAuditMenu && <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />}
         {showAdminMenu && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
       </SidebarContent>

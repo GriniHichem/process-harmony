@@ -47,6 +47,8 @@ interface Props {
   canDelete: boolean;
   userId?: string;
   isOnlyResponsable?: boolean;
+  /** If set, only show enjeux linked to these process IDs */
+  filterProcessIds?: string[];
 }
 
 const impactColors: Record<string, string> = {
@@ -84,7 +86,7 @@ type FormType = {
 const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false, domaine: "strategique", process_ids: [] };
 const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
 
-export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable }: Props) {
+export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds }: Props) {
   const [issues, setIssues] = useState<ContextIssue[]>([]);
   const [issueProcesses, setIssueProcesses] = useState<Record<string, string[]>>({});
   const [actions, setActions] = useState<Record<string, ContextIssueAction[]>>({});
@@ -113,6 +115,15 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
       const issueIds = links.map((l: any) => l.context_issue_id);
       const { data } = await supabase.from("context_issues").select("*").in("id", issueIds).order("reference");
       issuesData = (data as ContextIssue[]) ?? [];
+    } else if (filterProcessIds && filterProcessIds.length > 0) {
+      // Filter enjeux by linked processes (for acteur role)
+      const { data: links } = await supabase.from("context_issue_processes").select("context_issue_id").in("process_id", filterProcessIds);
+      if (!links || links.length === 0) { setIssues([]); setActions({}); setLoading(false); return; }
+      const issueIds = [...new Set(links.map((l: any) => l.context_issue_id))];
+      const { data } = await supabase.from("context_issues").select("*").in("id", issueIds).order("reference");
+      issuesData = (data as ContextIssue[]) ?? [];
+    } else if (filterProcessIds && filterProcessIds.length === 0) {
+      setIssues([]); setActions({}); setLoading(false); return;
     } else {
       const { data } = await supabase.from("context_issues").select("*").order("reference");
       issuesData = (data as ContextIssue[]) ?? [];

@@ -31,14 +31,30 @@ export default function Risques() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editRisk, setEditRisk] = useState<{ id: string; type: string; description: string; probabilite: string; impact: string; process_id: string } | null>(null);
 
-  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
+  const canCreate = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant"));
   const canDelete = hasRole("admin") || hasRole("rmq");
-  const canEditActions = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const canEditActions = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus"));
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const fetchData = async () => {
     let processQuery = supabase.from("processes").select("id, nom").order("nom");
-    if (isOnlyResponsable && user) {
+    if (isOnlyActeur && user) {
+      // Acteur: only processes where they have tasks
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
+      const acteurId = profileData?.acteur_id;
+      if (acteurId) {
+        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId);
+        const processIds = [...new Set((taskData ?? []).map(t => t.process_id))];
+        if (processIds.length > 0) {
+          processQuery = processQuery.in("id", processIds);
+        } else {
+          setProcesses([]); setRisks([]); setLoading(false); return;
+        }
+      } else {
+        setProcesses([]); setRisks([]); setLoading(false); return;
+      }
+    } else if (isOnlyResponsable && user) {
       processQuery = processQuery.eq("responsable_id", user.id);
     }
     const pRes = await processQuery;
