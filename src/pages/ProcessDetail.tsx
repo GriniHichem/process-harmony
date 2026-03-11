@@ -222,6 +222,11 @@ export default function ProcessDetail() {
         <Button variant="outline" onClick={() => exportProcessPdf(id!)}>
           <FileDown className="mr-2 h-4 w-4" /> Exporter PDF
         </Button>
+        {canCreateNewVersion && (
+          <Button variant="secondary" onClick={handleCreateNewVersion} disabled={creatingVersion}>
+            <CopyPlus className="mr-2 h-4 w-4" />{creatingVersion ? "Création..." : "Nouvelle version"}
+          </Button>
+        )}
         {effectiveCanEdit && (
           <Button onClick={handleSave} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? "..." : "Enregistrer"}</Button>
         )}
