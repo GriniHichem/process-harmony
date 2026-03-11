@@ -70,6 +70,8 @@ export default function EvaluationProcessus() {
   const resetForm = () => {
     setNom("");
     setDescription("");
+    setProcessCode("");
+    setProcessType("support");
     setScores({ score_objectifs: 2, score_ca: 2, score_satisfaction: 2, score_perennite: 2, score_risques: 2 });
   };
 
