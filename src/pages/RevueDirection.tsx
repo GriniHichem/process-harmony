@@ -173,10 +173,10 @@ export default function RevueDirection() {
                   <ReviewInputItemsView reviewId={viewing.id} />
                 </div>
               </div>
-              {/* Décisions structurées */}
+              {/* Décisions (texte riche) */}
               <div>
                 <Label className="text-xs text-muted-foreground">Décisions</Label>
-                <div className="mt-1"><ReviewDecisionsView reviewId={viewing.id} filterType="decision" /></div>
+                <div className="prose prose-sm max-w-none text-sm mt-1" dangerouslySetInnerHTML={{ __html: viewing.decisions || "—" }} />
               </div>
               {/* Actions décidées structurées */}
               <div>
