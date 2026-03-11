@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
 import ParticipantSelector, { formatParticipantsDisplay, parseParticipants } from "@/components/ParticipantSelector";
 import { ReviewInputItemsEditor, ReviewInputItemsView } from "@/components/ReviewInputItems";
+import { ReviewDecisionsEditor, ReviewDecisionsView } from "@/components/ReviewDecisions";
 
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -27,15 +28,15 @@ const statutLabels: Record<string, string> = { planifiee: "Planifiée", realisee
 const emptyForm = { reference: "", date_revue: "", participants: "", elements_entree: "", decisions: "", actions_decidees: "", statut: "planifiee", compte_rendu: "", prochaine_revue: "" };
 
 const RICH_FIELDS = [
-  { key: "decisions", label: "Décisions", placeholder: "Décisions prises lors de la revue..." },
-  { key: "actions_decidees", label: "Actions décidées", placeholder: "Actions à mettre en œuvre..." },
   { key: "compte_rendu", label: "Compte rendu", placeholder: "Compte rendu détaillé de la revue..." },
 ] as const;
 
 const ALL_SECTIONS = [
-  { key: "participants", label: "Participants", isRich: false },
-  { key: "elements_entree", label: "Éléments d'entrée", isRich: false },
-  ...RICH_FIELDS.map(f => ({ ...f, isRich: true })),
+  { key: "participants", label: "Participants" },
+  { key: "elements_entree", label: "Éléments d'entrée" },
+  { key: "decisions", label: "Décisions" },
+  { key: "actions_decidees", label: "Actions décidées" },
+  { key: "compte_rendu", label: "Compte rendu" },
 ] as const;
 
 export default function RevueDirection() {
@@ -171,6 +172,17 @@ export default function RevueDirection() {
                   <ReviewInputItemsView reviewId={viewing.id} />
                 </div>
               </div>
+              {/* Décisions structurées */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Décisions</Label>
+                <div className="mt-1"><ReviewDecisionsView reviewId={viewing.id} filterType="decision" /></div>
+              </div>
+              {/* Actions décidées structurées */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Actions décidées</Label>
+                <div className="mt-1"><ReviewDecisionsView reviewId={viewing.id} filterType="action" /></div>
+              </div>
+              {/* Compte rendu */}
               {RICH_FIELDS.map(f => (
                 <div key={f.key}>
                   <Label className="text-xs text-muted-foreground">{f.label}</Label>
@@ -256,7 +268,29 @@ export default function RevueDirection() {
                 </div>
               </div>
 
-              {/* Rich text sections */}
+              {/* Décisions section */}
+              <div className={`p-6 ${activeField === "decisions" ? "" : "hidden"}`}>
+                <div className="max-w-3xl mx-auto">
+                  <h3 className="text-lg font-semibold mb-2">Décisions</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Décisions prises lors de la revue. Vous pouvez les lier aux éléments d'entrée.
+                  </p>
+                  <ReviewDecisionsEditor reviewId={editing?.id} canEdit={canEdit} filterType="decision" />
+                </div>
+              </div>
+
+              {/* Actions décidées section */}
+              <div className={`p-6 ${activeField === "actions_decidees" ? "" : "hidden"}`}>
+                <div className="max-w-3xl mx-auto">
+                  <h3 className="text-lg font-semibold mb-2">Actions décidées</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Actions à mettre en œuvre. Importez des actions existantes depuis les risques, indicateurs ou enjeux liés.
+                  </p>
+                  <ReviewDecisionsEditor reviewId={editing?.id} canEdit={canEdit} filterType="action" />
+                </div>
+              </div>
+
+              {/* Rich text sections (compte rendu only) */}
               {RICH_FIELDS.map(f => (
                 <div key={f.key} className={`h-full ${activeField === f.key ? "" : "hidden"}`}>
                   <RichTextEditor
