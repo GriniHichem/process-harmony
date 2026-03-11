@@ -27,15 +27,13 @@ export interface DocumentInput {
   titre: string;
 }
 
-// ─── Layout constants ───────────────────────────────────────────────
+// ─── Layout constants (tuned for clean presentation) ────────────────
 
-const H_SPACING = 220;
-const V_SPACING = 130;
-const BASE_Y = 280;
-const ANNOTATION_OFFSET_Y = -100;
-const DATA_OBJ_OFFSET_Y = 100;
-const DATA_STORE_OFFSET_Y_TOP = -110;
-const DATA_STORE_OFFSET_Y_BOT = 110;
+const H_SPACING = 260;
+const V_SPACING = 150;
+const BASE_Y = 320;
+const ARTIFACT_GAP_Y = 80;
+const DOC_GAP_X = 20;
 
 // ─── Internal state (reset each call) ───────────────────────────────
 
@@ -64,6 +62,19 @@ function parseCodes(raw: string | null): string[] {
   return raw.split(",").map(s => s.trim()).filter(Boolean);
 }
 
+/** Center a node's Y so its visual center is at `centerY` */
+function centerNodeY(type: BpmnNodeType, centerY: number): number {
+  const h = NODE_DEFAULTS[type].height;
+  return centerY - h / 2;
+}
+
+/** Count total leaf branches for vertical space estimation */
+function countLeaves(code: string, branchMap: Map<string, TaskInput[]>): number {
+  const children = branchMap.get(code);
+  if (!children || children.length === 0) return 1;
+  return children.reduce((sum, c) => sum + countLeaves(c.code, branchMap), 0);
+}
+
 // ─── Core generation ────────────────────────────────────────────────
 
 export function generateBpmnFromTasks(
@@ -77,16 +88,16 @@ export function generateBpmnFromTasks(
   const nodes: BpmnNode[] = [];
   const edges: BpmnEdge[] = [];
 
-  // Empty process → minimal diagram
+  // Empty process
   if (tasks.length === 0) {
-    const s = mkNode("start", "Début", 60, BASE_Y);
-    const e = mkNode("end", "Fin", 300, BASE_Y);
+    const s = mkNode("start", "Début", 80, BASE_Y);
+    const e = mkNode("end", "Fin", 340, BASE_Y);
     nodes.push(s, e);
     edges.push(mkEdge(s.id, e.id));
     return { nodes, edges };
   }
 
-  // Lookups
+  // Build lookups
   const elByCode = new Map<string, ElementInput>();
   for (const el of elements) elByCode.set(el.code, el);
 
@@ -105,27 +116,25 @@ export function generateBpmnFromTasks(
     }
   }
 
-  // Detect nested branches: branches that themselves have child branches
-  const hasNestedBranches = (code: string): boolean => {
-    const children = branchMap.get(code);
-    if (!children) return false;
-    return children.some(c => branchMap.has(c.code));
-  };
-
-  let curX = 60;
+  let curX = 80;
 
   // ── Start event ──
-  const startNode = mkNode("start", "Début", curX, BASE_Y);
+  const startNode = mkNode("start", "Début", curX, centerNodeY("start", BASE_Y));
   nodes.push(startNode);
-  curX += H_SPACING * 0.7;
+  curX += H_SPACING * 0.6;
 
-  // Add process-level inputs as data stores at the top
+  // Process-level inputs (data stores at top-left)
   const inputElements = elements.filter(e => e.type === "donnee_entree");
   if (inputElements.length > 0) {
-    const label = inputElements.map(e => e.description).join("\n");
-    const ds = mkNode("data-store", label.length > 30 ? label.slice(0, 30) + "…" : label, curX - 80, BASE_Y + DATA_STORE_OFFSET_Y_TOP);
-    nodes.push(ds);
-    edges.push(mkEdge(ds.id, startNode.id, undefined, "data"));
+    for (let i = 0; i < inputElements.length; i++) {
+      const label = inputElements[i].description;
+      const ds = mkNode("data-store",
+        label.length > 28 ? label.slice(0, 28) + "…" : label,
+        40 + i * 60, BASE_Y - ARTIFACT_GAP_Y - 60
+      );
+      nodes.push(ds);
+      edges.push(mkEdge(ds.id, startNode.id, undefined, "data"));
+    }
   }
 
   let lastId = startNode.id;
@@ -136,37 +145,37 @@ export function generateBpmnFromTasks(
     const branches = branchMap.get(task.code);
 
     if (branches && branches.length > 0) {
-      // ── Gateway pattern ──
       const result = buildGatewayGroup(task, branches, curX, BASE_Y, nodes, edges, elByCode, docById, branchMap);
       edges.push(mkEdge(lastId, result.entryId));
       lastId = result.exitId;
       curX = result.nextX;
     } else {
-      // ── Sequential task ──
-      const taskNode = mkNode("task", task.description, curX, BASE_Y);
+      const taskNode = mkNode("task", task.description, curX, centerNodeY("task", BASE_Y));
       nodes.push(taskNode);
       edges.push(mkEdge(lastId, taskNode.id));
-
-      // Attach data artifacts
       attachDataArtifacts(task, taskNode, curX, BASE_Y, nodes, edges, elByCode, docById);
-
       lastId = taskNode.id;
       curX += H_SPACING;
     }
   }
 
   // ── End event ──
-  const endNode = mkNode("end", "Fin", curX, BASE_Y);
+  const endNode = mkNode("end", "Fin", curX, centerNodeY("end", BASE_Y));
   nodes.push(endNode);
   edges.push(mkEdge(lastId, endNode.id));
 
-  // Add process-level outputs as data stores
+  // Process-level outputs (data stores at bottom-right)
   const outputElements = elements.filter(e => e.type === "donnee_sortie");
   if (outputElements.length > 0) {
-    const label = outputElements.map(e => e.description).join("\n");
-    const ds = mkNode("data-store", label.length > 30 ? label.slice(0, 30) + "…" : label, curX - 80, BASE_Y + DATA_STORE_OFFSET_Y_BOT);
-    nodes.push(ds);
-    edges.push(mkEdge(endNode.id, ds.id, undefined, "data"));
+    for (let i = 0; i < outputElements.length; i++) {
+      const label = outputElements[i].description;
+      const ds = mkNode("data-store",
+        label.length > 28 ? label.slice(0, 28) + "…" : label,
+        curX - 60 + i * 60, BASE_Y + ARTIFACT_GAP_Y + 40
+      );
+      nodes.push(ds);
+      edges.push(mkEdge(endNode.id, ds.id, undefined, "data"));
+    }
   }
 
   return { nodes, edges };
@@ -194,44 +203,60 @@ function buildGatewayGroup(
   const fluxType = branches[0].type_flux;
   const gwType = gwTypeFor(fluxType);
 
-  // Split gateway — label is the parent task description (the decision question)
-  const splitGw = mkNode(gwType, parentTask.description || "", startX, centerY);
+  // Split gateway — centered vertically
+  const splitGw = mkNode(gwType, parentTask.description || "", startX, centerNodeY(gwType, centerY));
   nodes.push(splitGw);
 
-  let branchX = startX + H_SPACING;
+  const branchX = startX + H_SPACING;
   const branchCount = branches.length;
-  const totalHeight = (branchCount - 1) * V_SPACING;
-  const topY = centerY - totalHeight / 2;
+
+  // Compute adaptive vertical spacing based on leaf count
+  const leafCounts = branches.map(b => countLeaves(b.code, branchMap));
+  const totalLeaves = leafCounts.reduce((a, b) => a + b, 0);
+  const totalHeight = Math.max((totalLeaves - 1) * V_SPACING, (branchCount - 1) * V_SPACING);
+
+  // Distribute branches based on their leaf weight
+  const branchCenters: number[] = [];
+  let accY = centerY - totalHeight / 2;
+  for (let i = 0; i < branchCount; i++) {
+    const span = (leafCounts[i] / totalLeaves) * totalHeight;
+    branchCenters.push(accY + span / 2);
+    accY += span;
+  }
+
+  // Fallback: if only equal leaves, use even distribution
+  if (totalLeaves === branchCount) {
+    for (let i = 0; i < branchCount; i++) {
+      branchCenters[i] = centerY - totalHeight / 2 + i * V_SPACING;
+    }
+  }
 
   const branchEndIds: string[] = [];
   let maxBranchEndX = branchX;
 
   for (let i = 0; i < branches.length; i++) {
     const branch = branches[i];
-    const branchY = topY + i * V_SPACING;
+    const branchY = branchCenters[i];
     const childBranches = branchMap.get(branch.code);
 
     if (childBranches && childBranches.length > 0) {
-      // Nested gateway inside this branch
       const nested = buildGatewayGroup(branch, childBranches, branchX, branchY, nodes, edges, elByCode, docById, branchMap);
       edges.push(mkEdge(splitGw.id, nested.entryId, branch.condition || undefined));
       branchEndIds.push(nested.exitId);
       maxBranchEndX = Math.max(maxBranchEndX, nested.nextX);
     } else {
-      // Simple task branch
-      const branchNode = mkNode("task", branch.description, branchX, branchY);
+      const branchNode = mkNode("task", branch.description, branchX, centerNodeY("task", branchY));
       nodes.push(branchNode);
       edges.push(mkEdge(splitGw.id, branchNode.id, branch.condition || undefined));
       branchEndIds.push(branchNode.id);
-
       attachDataArtifacts(branch, branchNode, branchX, branchY, nodes, edges, elByCode, docById);
       maxBranchEndX = Math.max(maxBranchEndX, branchX + H_SPACING);
     }
   }
 
-  // Merge gateway
+  // Merge gateway — aligned with the split, at the furthest X
   const mergeX = maxBranchEndX;
-  const mergeGw = mkNode(gwType, "", mergeX, centerY);
+  const mergeGw = mkNode(gwType, "", mergeX, centerNodeY(gwType, centerY));
   nodes.push(mergeGw);
 
   for (const bid of branchEndIds) {
@@ -251,7 +276,7 @@ function attachDataArtifacts(
   task: TaskInput,
   taskNode: BpmnNode,
   x: number,
-  y: number,
+  centerY: number,
   nodes: BpmnNode[],
   edges: BpmnEdge[],
   elByCode: Map<string, ElementInput>,
@@ -261,41 +286,48 @@ function attachDataArtifacts(
   const exitCodes = parseCodes(task.sorties);
   const docIds = task.documents?.filter(Boolean) ?? [];
 
-  // ── Input data (data-store, placed above-left) ──
+  const taskW = taskNode.width ?? NODE_DEFAULTS["task"].width;
+
+  // ── Input data (data-store, above, centered over task) ──
   if (entryCodes.length > 0) {
     const labels = entryCodes.map(c => elByCode.get(c)?.description || c);
+    const totalW = labels.length * 55;
+    const startXPos = x + (taskW - totalW) / 2;
     for (let i = 0; i < labels.length; i++) {
       const ds = mkNode("data-store",
-        labels[i].length > 25 ? labels[i].slice(0, 25) + "…" : labels[i],
-        x - 50 + i * 55, y + ANNOTATION_OFFSET_Y
+        labels[i].length > 22 ? labels[i].slice(0, 22) + "…" : labels[i],
+        startXPos + i * 55, centerY - ARTIFACT_GAP_Y - 20
       );
       nodes.push(ds);
       edges.push(mkEdge(ds.id, taskNode.id, undefined, "data"));
     }
   }
 
-  // ── Output data (data-store, placed below-left) ──
+  // ── Output data (data-store, below, centered over task) ──
   if (exitCodes.length > 0) {
     const labels = exitCodes.map(c => elByCode.get(c)?.description || c);
+    const totalW = labels.length * 55;
+    const startXPos = x + (taskW - totalW) / 2;
     for (let i = 0; i < labels.length; i++) {
       const ds = mkNode("data-store",
-        labels[i].length > 25 ? labels[i].slice(0, 25) + "…" : labels[i],
-        x - 50 + i * 55, y + DATA_OBJ_OFFSET_Y
+        labels[i].length > 22 ? labels[i].slice(0, 22) + "…" : labels[i],
+        startXPos + i * 55, centerY + ARTIFACT_GAP_Y + 10
       );
       nodes.push(ds);
       edges.push(mkEdge(taskNode.id, ds.id, undefined, "data"));
     }
   }
 
-  // ── Documents (data-object, placed below-right) ──
+  // ── Documents (data-object, stacked to the right of the task) ──
   if (docIds.length > 0) {
-    const startXDoc = x + (taskNode.width ?? 140) + 10;
+    const docX = x + taskW + DOC_GAP_X;
+    const docStartY = centerY - (docIds.length * 55) / 2 + 10;
     for (let i = 0; i < docIds.length; i++) {
       const doc = docById.get(docIds[i]);
       const label = doc?.titre || "Document";
       const docNode = mkNode("data-object",
-        label.length > 20 ? label.slice(0, 20) + "…" : label,
-        startXDoc, y - 30 + i * 55
+        label.length > 18 ? label.slice(0, 18) + "…" : label,
+        docX, docStartY + i * 55
       );
       nodes.push(docNode);
       edges.push(mkEdge(taskNode.id, docNode.id, undefined, "association"));
