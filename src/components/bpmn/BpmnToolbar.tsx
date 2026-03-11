@@ -75,6 +75,12 @@ export default function BpmnToolbar({
         <Separator orientation="vertical" className="h-8 mx-1" />
 
         <ToolBtn icon={<Undo2 className="h-4 w-4" />} label="Annuler" onClick={onUndo} />
+        {onGenerate && (
+          <Button size="sm" variant="outline" onClick={onGenerate} disabled={generating} className="ml-1">
+            <Wand2 className="h-4 w-4 mr-1" />
+            {generating ? "Génération..." : "Générer"}
+          </Button>
+        )}
         <Button size="sm" onClick={onSave} disabled={saving} className="ml-1">
           <Save className="h-4 w-4 mr-1" />
           {saving ? "..." : "Sauvegarder"}
