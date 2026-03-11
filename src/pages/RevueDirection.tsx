@@ -172,6 +172,17 @@ export default function RevueDirection() {
                   <ReviewInputItemsView reviewId={viewing.id} />
                 </div>
               </div>
+              {/* Décisions structurées */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Décisions</Label>
+                <div className="mt-1"><ReviewDecisionsView reviewId={viewing.id} filterType="decision" /></div>
+              </div>
+              {/* Actions décidées structurées */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Actions décidées</Label>
+                <div className="mt-1"><ReviewDecisionsView reviewId={viewing.id} filterType="action" /></div>
+              </div>
+              {/* Compte rendu */}
               {RICH_FIELDS.map(f => (
                 <div key={f.key}>
                   <Label className="text-xs text-muted-foreground">{f.label}</Label>
