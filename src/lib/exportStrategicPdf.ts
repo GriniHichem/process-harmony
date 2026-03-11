@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { parseParticipants } from "@/components/ParticipantSelector";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 function esc(str: string | null | undefined): string {
   if (!str) return "";
