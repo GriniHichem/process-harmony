@@ -134,6 +134,7 @@ function ItemCard({ itemId, elementType, description, statut, responsable, respo
             </AlertDialog>
           </div>
         )}
+        <ElementNotes elementType={elementType} elementId={itemId} responsableActeurId={responsableActeurId} />
       </CardContent>
     </Card>
   );
