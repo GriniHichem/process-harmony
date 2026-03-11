@@ -233,13 +233,48 @@ export default function EvaluationProcessus() {
                   Ignorer / garder comme activité
                 </Button>
                 <Button
-                  onClick={() => saveMutation.mutate("processus_cree")}
+                  onClick={() => setProcessDialogOpen(true)}
                   disabled={saveMutation.isPending || !nom.trim()}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter à la liste des processus
                 </Button>
               </div>
+
+              {/* Dialog for process code & type */}
+              <Dialog open={processDialogOpen} onOpenChange={setProcessDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Créer le processus « {nom} »</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Code du processus *</Label>
+                      <Input value={processCode} onChange={(e) => setProcessCode(e.target.value)} placeholder="Ex: PRO-001, PM-01, PS-03..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Type de processus</Label>
+                      <Select value={processType} onValueChange={(v: any) => setProcessType(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pilotage">Management</SelectItem>
+                          <SelectItem value="realisation">Réalisation</SelectItem>
+                          <SelectItem value="support">Support</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setProcessDialogOpen(false)}>Annuler</Button>
+                    <Button
+                      onClick={() => { setProcessDialogOpen(false); saveMutation.mutate("processus_cree"); }}
+                      disabled={!processCode.trim()}
+                    >
+                      Créer le processus
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </TabsContent>
