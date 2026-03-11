@@ -115,7 +115,21 @@ export default function Indicateurs() {
     setLoadingValues(false);
   }, []);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => { fetchData(); }, []);
+
+  // Deep-link: auto-select indicator from URL
+  useEffect(() => {
+    const indicatorId = searchParams.get("indicator");
+    if (indicatorId && indicators.length > 0 && !selectedIndicator) {
+      const found = indicators.find(i => i.id === indicatorId);
+      if (found) {
+        setSelectedIndicator(found);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [indicators, searchParams]);
 
   useEffect(() => {
     if (selectedIndicator) fetchValues(selectedIndicator.id);

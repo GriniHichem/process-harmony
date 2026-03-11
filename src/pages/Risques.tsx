@@ -93,7 +93,20 @@ export default function Risques() {
     setLoading(false);
   };
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => { fetchData(); }, []);
+
+  // Deep-link: auto-expand risk from URL
+  useEffect(() => {
+    const riskId = searchParams.get("risk");
+    if (riskId && risks.length > 0 && !expandedId) {
+      if (risks.find(r => r.id === riskId)) {
+        setExpandedId(riskId);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [risks, searchParams]);
 
   const handleCreate = async () => {
     if (!newRisk.description || !newRisk.process_id) { toast.error("Description et processus requis"); return; }
