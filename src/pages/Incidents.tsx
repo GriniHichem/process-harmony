@@ -37,7 +37,7 @@ const STATUT_CARD_COLORS: Record<string, string> = {
 };
 
 export default function Incidents() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [risks, setRisks] = useState<{ id: string; description: string; type: string }[]>([]);
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
