@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, ListPlus } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurSelect } from "@/components/ActeurSelect";
 
 interface ContextIssue {
   id: string;
