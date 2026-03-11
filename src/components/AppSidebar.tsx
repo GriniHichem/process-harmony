@@ -22,6 +22,7 @@ const processItems = [
   { title: "Processus", url: "/processus", icon: Network },
   { title: "Cartographie", url: "/cartographie", icon: Map },
   { title: "BPMN", url: "/bpmn", icon: Settings },
+  { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList },
 ];
 
 const qualityItems = [
