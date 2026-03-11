@@ -112,6 +112,7 @@ export function AppSidebar() {
         <NavGroup label="Principal" items={mainItems} collapsed={collapsed} />
         {showProcessMenu && <NavGroup label="Processus" items={processItems} collapsed={collapsed} />}
         {showQualityMenu && <NavGroup label="Manager processus" items={isActeurOnly ? acteurQualityItems : qualityItems} collapsed={collapsed} />}
+        <NavGroup label="Pilotage SMQ" items={pilotageSMQItems} collapsed={collapsed} />
         {showAuditMenu && <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />}
         {showAdminMenu && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
       </SidebarContent>

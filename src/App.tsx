@@ -66,6 +66,12 @@ const App = () => (
             <Route path="/risques" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><Risques /></RoleGuard></ProtectedPage>} />
             <Route path="/incidents" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Incidents /></RoleGuard></ProtectedPage>} />
             <Route path="/enjeux-contexte" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><EnjeuContexte /></RoleGuard></ProtectedPage>} />
+            {/* Pilotage SMQ - visible par tous, édition admin/rmq */}
+            <Route path="/politique-qualite" element={<ProtectedPage><PolitiqueQualite /></ProtectedPage>} />
+            <Route path="/revue-direction" element={<ProtectedPage><RevueDirection /></ProtectedPage>} />
+            <Route path="/competences" element={<ProtectedPage><CompetencesPage /></ProtectedPage>} />
+            <Route path="/satisfaction-client" element={<ProtectedPage><SatisfactionClient /></ProtectedPage>} />
+            <Route path="/fournisseurs" element={<ProtectedPage><Fournisseurs /></ProtectedPage>} />
             {/* Audit & Amélioration - admin, rmq, auditeur */}
             <Route path="/dashboard-audit" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><DashboardAuditNC /></RoleGuard></ProtectedPage>} />
             <Route path="/audits" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><Audits /></RoleGuard></ProtectedPage>} />
