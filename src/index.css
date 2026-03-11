@@ -142,18 +142,51 @@
     --sidebar-border: 220 25% 18%;
     --sidebar-ring: 215 85% 50%;
 
-    font-size: 17px;
+    font-size: 17.5px;
+    line-height: 1.6;
   }
 
-  .theme-accessible h1 { font-size: 1.85rem; }
-  .theme-accessible h2 { font-size: 1.55rem; }
-  .theme-accessible h3 { font-size: 1.3rem; }
-  .theme-accessible p, .theme-accessible span, .theme-accessible td, .theme-accessible th, .theme-accessible label, .theme-accessible li {
-    letter-spacing: 0.01em;
+  .theme-accessible h1 { font-size: 2rem; font-weight: 700; }
+  .theme-accessible h2 { font-size: 1.65rem; font-weight: 700; }
+  .theme-accessible h3 { font-size: 1.35rem; font-weight: 600; }
+  .theme-accessible h4 { font-size: 1.15rem; font-weight: 600; }
+
+  .theme-accessible p,
+  .theme-accessible span,
+  .theme-accessible td,
+  .theme-accessible th,
+  .theme-accessible label,
+  .theme-accessible li,
+  .theme-accessible a,
+  .theme-accessible button,
+  .theme-accessible input,
+  .theme-accessible select,
+  .theme-accessible textarea,
+  .theme-accessible div {
+    letter-spacing: 0.015em;
   }
-  .theme-accessible .text-xs { font-size: 0.8rem; }
-  .theme-accessible .text-sm { font-size: 0.925rem; }
-  .theme-accessible .text-muted-foreground { color: hsl(215 20% 30%); }
+
+  /* Force minimum sizes on small text classes */
+  .theme-accessible .text-\[10px\] { font-size: 0.75rem !important; }
+  .theme-accessible .text-\[11px\] { font-size: 0.8rem !important; }
+  .theme-accessible .text-xs { font-size: 0.85rem !important; line-height: 1.5; }
+  .theme-accessible .text-sm { font-size: 0.975rem !important; line-height: 1.55; }
+  .theme-accessible .text-base { font-size: 1.075rem !important; }
+  .theme-accessible .text-lg { font-size: 1.2rem !important; }
+
+  /* Badge text */
+  .theme-accessible [class*="rounded-full"][class*="px-"] { font-size: 0.825rem !important; }
+
+  /* Muted text with stronger contrast */
+  .theme-accessible .text-muted-foreground { color: hsl(215 25% 25%) !important; }
+
+  /* Table cells minimum readable size */
+  .theme-accessible table { font-size: 0.95rem; }
+  .theme-accessible th { font-weight: 700; }
+
+  /* Tooltip & popover text */
+  .theme-accessible [role="tooltip"],
+  .theme-accessible [data-radix-popper-content-wrapper] { font-size: 0.9rem !important; }
 }
 
 @layer base {
