@@ -117,6 +117,20 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     }
   }
 
+  // Fetch BPMN diagram if inclure_bpmn_pdf is true
+  let bpmnData: BpmnData | null = null;
+  if ((process as any)?.inclure_bpmn_pdf) {
+    const { data: bpmnDiagrams } = await supabase
+      .from("bpmn_diagrams")
+      .select("donnees")
+      .eq("process_id", processId)
+      .order("version", { ascending: false })
+      .limit(1);
+    if (bpmnDiagrams && bpmnDiagrams.length > 0 && bpmnDiagrams[0].donnees) {
+      bpmnData = bpmnDiagrams[0].donnees as unknown as BpmnData;
+    }
+  }
+
   const resp = profiles?.find((p: any) => p.id === process?.responsable_id);
   const responsableName = resp ? `${resp.prenom} ${resp.nom}`.trim() || resp.email : "Non assigné";
 
@@ -138,6 +152,7 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     contextIssues,
     contextIssueActions,
     acteurs: acteurs ?? [],
+    bpmnData,
   };
 }
 
