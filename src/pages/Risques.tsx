@@ -36,6 +36,7 @@ export default function Risques() {
   const canDelete = hasRole("admin") || hasRole("rmq");
   const canEditActions = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus"));
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
+  const [acteurRiskIds, setActeurRiskIds] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     let processQuery = supabase.from("processes").select("id, nom").order("nom");
