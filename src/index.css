@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -17,6 +17,7 @@
 
     --primary: 215 80% 42%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 215 90% 58%;
 
     --secondary: 210 30% 93%;
     --secondary-foreground: 220 30% 20%;
@@ -40,7 +41,7 @@
     --input: 214 20% 88%;
     --ring: 215 80% 42%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
     --sidebar-background: 220 30% 14%;
     --sidebar-foreground: 210 20% 85%;
@@ -50,6 +51,17 @@
     --sidebar-accent-foreground: 210 20% 92%;
     --sidebar-border: 220 20% 22%;
     --sidebar-ring: 215 80% 55%;
+
+    /* Extended palette */
+    --info: 210 85% 55%;
+    --info-foreground: 0 0% 100%;
+
+    /* Glass & elevation */
+    --glass: 0 0% 100% / 0.7;
+    --shadow-sm: 0 1px 3px 0 hsl(220 30% 12% / 0.04), 0 1px 2px -1px hsl(220 30% 12% / 0.04);
+    --shadow-md: 0 4px 6px -1px hsl(220 30% 12% / 0.06), 0 2px 4px -2px hsl(220 30% 12% / 0.04);
+    --shadow-lg: 0 10px 25px -5px hsl(220 30% 12% / 0.08), 0 8px 10px -6px hsl(220 30% 12% / 0.04);
+    --shadow-glow: 0 0 20px -4px hsl(215 80% 42% / 0.25);
   }
 
   .dark {
@@ -64,6 +76,7 @@
 
     --primary: 215 80% 55%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 215 90% 65%;
 
     --secondary: 220 20% 18%;
     --secondary-foreground: 210 20% 85%;
@@ -95,6 +108,15 @@
     --sidebar-accent-foreground: 210 20% 90%;
     --sidebar-border: 220 20% 15%;
     --sidebar-ring: 215 80% 55%;
+
+    --info: 210 85% 60%;
+    --info-foreground: 0 0% 100%;
+
+    --glass: 220 25% 11% / 0.7;
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 10px 25px -5px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 20px -4px hsl(215 80% 55% / 0.3);
   }
 
   /* Accessibility theme: high contrast + larger text */
@@ -166,7 +188,6 @@
     letter-spacing: 0.015em;
   }
 
-  /* Force minimum sizes on small text classes */
   .theme-accessible .text-\[10px\] { font-size: 0.75rem !important; }
   .theme-accessible .text-\[11px\] { font-size: 0.8rem !important; }
   .theme-accessible .text-xs { font-size: 0.85rem !important; line-height: 1.5; }
@@ -174,17 +195,10 @@
   .theme-accessible .text-base { font-size: 1.075rem !important; }
   .theme-accessible .text-lg { font-size: 1.2rem !important; }
 
-  /* Badge text */
   .theme-accessible [class*="rounded-full"][class*="px-"] { font-size: 0.825rem !important; }
-
-  /* Muted text with stronger contrast */
   .theme-accessible .text-muted-foreground { color: hsl(215 25% 25%) !important; }
-
-  /* Table cells minimum readable size */
   .theme-accessible table { font-size: 0.95rem; }
   .theme-accessible th { font-weight: 700; }
-
-  /* Tooltip & popover text */
   .theme-accessible [role="tooltip"],
   .theme-accessible [data-radix-popper-content-wrapper] { font-size: 0.9rem !important; }
 }
@@ -195,12 +209,89 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
     font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
     font-weight: 600;
+  }
+}
+
+@layer utilities {
+  /* Glass morphism card */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/60 rounded-xl;
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Elevated card with subtle shadow */
+  .card-elevated {
+    @apply bg-card border border-border/50 rounded-xl;
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .card-elevated:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  /* Status dot with pulse */
+  .status-dot {
+    @apply h-2 w-2 rounded-full;
+  }
+  .status-dot-active {
+    @apply status-dot bg-success;
+    box-shadow: 0 0 6px hsl(var(--success) / 0.5);
+  }
+  .status-dot-warning {
+    @apply status-dot bg-warning;
+    box-shadow: 0 0 6px hsl(var(--warning) / 0.5);
+  }
+  .status-dot-danger {
+    @apply status-dot bg-destructive;
+    box-shadow: 0 0 6px hsl(var(--destructive) / 0.5);
+  }
+
+  /* Section header with accent bar */
+  .section-header {
+    @apply relative pl-3 font-semibold text-foreground;
+  }
+  .section-header::before {
+    content: '';
+    @apply absolute left-0 top-0.5 bottom-0.5 w-1 rounded-full bg-primary;
+  }
+
+  /* Stat card - for KPI displays */
+  .stat-card {
+    @apply bg-card border border-border/50 rounded-xl p-4 relative overflow-hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat-card::after {
+    content: '';
+    @apply absolute top-0 right-0 w-20 h-20 rounded-full opacity-5;
+    background: radial-gradient(circle, hsl(var(--primary)), transparent);
+    transform: translate(30%, -30%);
+  }
+
+  /* Tab indicator animation */
+  .tab-premium [data-state="active"] {
+    @apply relative;
+    box-shadow: 0 1px 3px hsl(var(--primary) / 0.15);
+  }
+
+  /* Smooth page transitions */
+  .page-enter {
+    animation: pageEnter 0.3s ease-out;
+  }
+  @keyframes pageEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }

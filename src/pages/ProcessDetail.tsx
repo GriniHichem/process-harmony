@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText, Download, Eye, Maximize2, Minimize2, FileDown, CopyPlus } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download, Eye, Maximize2, Minimize2, FileDown, CopyPlus, Layers, ListChecks, Archive, Settings2, Users, Target, ArrowRightLeft, Package } from "lucide-react";
 import { exportProcessPdf } from "@/lib/exportProcessPdf";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,14 +28,14 @@ interface ProcessElement {
   id: string; code: string; description: string; type: ElementType; ordre: number; process_id: string;
 }
 
-const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string }[] = [
-  { type: "finalite", title: "Finalité", prefix: "F" },
-  { type: "donnee_entree", title: "Données d'entrée", prefix: "DE" },
-  { type: "donnee_sortie", title: "Données de sortie", prefix: "DS" },
-  { type: "activite", title: "Activités principales", prefix: "AP" },
-  { type: "interaction", title: "Interactions", prefix: "I" },
-  { type: "partie_prenante", title: "Parties prenantes", prefix: "PP" },
-  { type: "ressource", title: "Ressources", prefix: "R" },
+const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string; icon: React.ReactNode }[] = [
+  { type: "finalite", title: "Finalité", prefix: "F", icon: <Target className="h-4 w-4" /> },
+  { type: "donnee_entree", title: "Données d'entrée", prefix: "DE", icon: <ArrowRightLeft className="h-4 w-4" /> },
+  { type: "donnee_sortie", title: "Données de sortie", prefix: "DS", icon: <ArrowRightLeft className="h-4 w-4" /> },
+  { type: "activite", title: "Activités principales", prefix: "AP", icon: <Settings2 className="h-4 w-4" /> },
+  { type: "interaction", title: "Interactions", prefix: "I", icon: <ArrowRightLeft className="h-4 w-4" /> },
+  { type: "partie_prenante", title: "Parties prenantes", prefix: "PP", icon: <Users className="h-4 w-4" /> },
+  { type: "ressource", title: "Ressources", prefix: "R", icon: <Package className="h-4 w-4" /> },
 ];
 
 const generateNextCode = (prefix: string, existingElements: ProcessElement[]): string => {
@@ -44,6 +44,19 @@ const generateNextCode = (prefix: string, existingElements: ProcessElement[]): s
     return match ? Math.max(max, parseInt(match[1], 10)) : max;
   }, 0);
   return `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  brouillon: "bg-muted text-muted-foreground border-muted",
+  en_validation: "bg-warning/10 text-warning border-warning/30",
+  valide: "bg-success/10 text-success border-success/30",
+  archive: "bg-secondary text-secondary-foreground border-secondary",
+};
+
+const TYPE_STYLES: Record<string, { label: string; color: string }> = {
+  pilotage: { label: "Management", color: "bg-primary/10 text-primary" },
+  realisation: { label: "Réalisation", color: "bg-accent/10 text-accent" },
+  support: { label: "Support", color: "bg-warning/10 text-warning" },
 };
 
 export default function ProcessDetail() {
@@ -91,20 +104,13 @@ export default function ProcessDetail() {
   const canEdit = hasPermission("processus", "can_edit") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
   const isArchived = process?.statut === "archive";
   const isLockedStatus = process?.statut === "valide" || process?.statut === "en_validation";
-  // Archived = completely frozen for everyone (no edit, no delete, no status change)
   const canDelete = !isArchived && hasPermission("processus", "can_delete") && !isLockedStatus;
   const canChangeStatus = !isArchived && (hasRole("admin") || hasRole("rmq"));
   const canChangeResponsable = !isArchived && (hasRole("admin") || hasRole("rmq"));
-
-  // Block edit on validated/archived for all non-admin roles; archived blocks everyone
   const isLockedForNonAdmin = !hasRole("admin") && (process?.statut === "valide" || isArchived);
   const effectiveCanEdit = canEdit && !isArchived && !isLockedForNonAdmin;
-
-  // RMQ: cannot change state of validated process
   const isRmqOnly = hasRole("rmq") && !hasRole("admin");
   const canChangeStatusEffective = canChangeStatus && !(isRmqOnly && (process?.statut === "valide"));
-
-  // RMQ can create new version of a validated process
   const canCreateNewVersion = hasRole("rmq") && process?.statut === "valide";
 
   const [creatingVersion, setCreatingVersion] = useState(false);
@@ -119,59 +125,34 @@ export default function ProcessDetail() {
       const newVersion = parseFloat((major + (minor + 1) / 100).toFixed(2));
       const newCode = `${process.code}-v${newVersion}`;
 
-      // Duplicate the process
       const { data: newProc, error } = await supabase.from("processes").insert({
-        code: newCode,
-        nom: process.nom,
-        description: process.description,
-        type_processus: process.type_processus,
-        finalite: process.finalite,
-        responsable_id: process.responsable_id,
-        donnees_entree: process.donnees_entree,
-        donnees_sortie: process.donnees_sortie,
-        activites: process.activites,
-        interactions: process.interactions,
-        parties_prenantes: process.parties_prenantes,
-        ressources: process.ressources,
-        statut: "brouillon" as const,
-        version_courante: newVersion,
+        code: newCode, nom: process.nom, description: process.description,
+        type_processus: process.type_processus, finalite: process.finalite,
+        responsable_id: process.responsable_id, donnees_entree: process.donnees_entree,
+        donnees_sortie: process.donnees_sortie, activites: process.activites,
+        interactions: process.interactions, parties_prenantes: process.parties_prenantes,
+        ressources: process.ressources, statut: "brouillon" as const, version_courante: newVersion,
       }).select("id").single();
 
       if (error || !newProc) { toast.error(error?.message || "Erreur"); setCreatingVersion(false); return; }
 
-      // Duplicate elements
-      const elemsToInsert = elements.map(({ id: _id, process_id: _pid, ...rest }) => ({
-        ...rest,
-        process_id: newProc.id,
-      }));
-      if (elemsToInsert.length > 0) {
-        await supabase.from("process_elements").insert(elemsToInsert);
-      }
+      const elemsToInsert = elements.map(({ id: _id, process_id: _pid, ...rest }) => ({ ...rest, process_id: newProc.id }));
+      if (elemsToInsert.length > 0) await supabase.from("process_elements").insert(elemsToInsert);
 
-      // Duplicate tasks
       const { data: tasksData } = await supabase.from("process_tasks").select("*").eq("process_id", id);
       if (tasksData && tasksData.length > 0) {
-        const tasksToInsert = tasksData.map(({ id: _id, process_id: _pid, created_at: _ca, updated_at: _ua, ...rest }) => ({
-          ...rest,
-          process_id: newProc.id,
-        }));
+        const tasksToInsert = tasksData.map(({ id: _id, process_id: _pid, created_at: _ca, updated_at: _ua, ...rest }) => ({ ...rest, process_id: newProc.id }));
         await supabase.from("process_tasks").insert(tasksToInsert);
       }
 
-      // Duplicate document links
       const { data: docLinks } = await supabase.from("document_processes").select("*").eq("process_id", id);
       if (docLinks && docLinks.length > 0) {
-        const docLinksToInsert = docLinks.map(({ id: _id, created_at: _ca, ...rest }) => ({
-          ...rest,
-          process_id: newProc.id,
-        }));
+        const docLinksToInsert = docLinks.map(({ id: _id, created_at: _ca, ...rest }) => ({ ...rest, process_id: newProc.id }));
         await supabase.from("document_processes").insert(docLinksToInsert);
       }
 
-      // Duplicate interactions
       const { data: interSource } = await supabase.from("process_interactions").select("*").eq("source_process_id", id);
       if (interSource && interSource.length > 0) {
-        // Need to map old element IDs to new element IDs
         const { data: newElems } = await supabase.from("process_elements").select("*").eq("process_id", newProc.id);
         const oldElems = elements;
         const elemIdMap = new Map<string, string>();
@@ -184,24 +165,15 @@ export default function ProcessDetail() {
         const interToInsert = interSource
           .filter(i => elemIdMap.has(i.element_id))
           .map(({ id: _id, created_at: _ca, ...rest }) => ({
-            ...rest,
-            source_process_id: newProc.id,
+            ...rest, source_process_id: newProc.id,
             element_id: elemIdMap.get(rest.element_id) || rest.element_id,
           }));
-        if (interToInsert.length > 0) {
-          await supabase.from("process_interactions").insert(interToInsert);
-        }
+        if (interToInsert.length > 0) await supabase.from("process_interactions").insert(interToInsert);
       }
 
-      // Archive original
       await supabase.from("processes").update({ statut: "archive" as const }).eq("id", id);
-
-      // Save version snapshot
       await supabase.from("process_versions").insert({
-        process_id: id,
-        version: currentVersion,
-        donnees: process as any,
-        modifie_par: user?.id ?? null,
+        process_id: id, version: currentVersion, donnees: process as any, modifie_par: user?.id ?? null,
       });
 
       toast.success(`Nouvelle version v${newVersion} créée`);
@@ -217,8 +189,7 @@ export default function ProcessDetail() {
     setSaving(true);
     const { error } = await supabase.from("processes").update({
       nom: process.nom, description: process.description,
-      type_processus: process.type_processus,
-      statut: process.statut,
+      type_processus: process.type_processus, statut: process.statut,
       responsable_id: process.responsable_id || null,
     }).eq("id", id);
     if (error) toast.error(error.message);
@@ -252,92 +223,151 @@ export default function ProcessDetail() {
     fetchElements();
   };
 
-  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
-  if (!process) return <div className="text-center py-12 text-muted-foreground">Processus non trouvé</div>;
+  const responsableName = users.find(u => u.id === process?.responsable_id);
+
+  if (loading) return (
+    <div className="flex justify-center items-center py-24">
+      <div className="flex flex-col items-center gap-3">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Chargement du processus…</p>
+      </div>
+    </div>
+  );
+  if (!process) return (
+    <div className="text-center py-24">
+      <Layers className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
+      <p className="text-muted-foreground">Processus non trouvé</p>
+      <Button variant="ghost" className="mt-3" onClick={() => navigate("/processus")}>Retour à la liste</Button>
+    </div>
+  );
+
+  const typeInfo = TYPE_STYLES[process.type_processus] || { label: process.type_processus, color: "bg-muted text-muted-foreground" };
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/processus")}><ArrowLeft className="h-4 w-4" /></Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-sm text-primary font-medium">{process.code}</span>
-            <Badge>{process.statut.replace("_", " ")}</Badge>
-            <span className="text-xs text-muted-foreground">v{process.version_courante}</span>
-          </div>
-          <h1 className="text-2xl font-bold mt-1">{process.nom}</h1>
-        </div>
-        <Button variant="outline" onClick={() => exportProcessPdf(id!)}>
-          <FileDown className="mr-2 h-4 w-4" /> Exporter PDF
-        </Button>
-        {canCreateNewVersion && (
-          <Button variant="secondary" onClick={handleCreateNewVersion} disabled={creatingVersion}>
-            <CopyPlus className="mr-2 h-4 w-4" />{creatingVersion ? "Création..." : "Nouvelle version"}
+    <div className="space-y-6 max-w-5xl animate-fade-in">
+      {/* ─── Premium Header ─── */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/5 via-card to-accent/5 border border-border/50 p-6" style={{ boxShadow: 'var(--shadow-md)' }}>
+        <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-primary/5 -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-accent/5 translate-y-1/2 -translate-x-1/4" />
+        <div className="relative flex items-start gap-4">
+          <Button variant="ghost" size="icon" className="shrink-0 mt-1 hover:bg-primary/10" onClick={() => navigate("/processus")}>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-        )}
-        {effectiveCanEdit && (
-          <Button onClick={handleSave} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? "..." : "Enregistrer"}</Button>
-        )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="font-mono text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{process.code}</span>
+              <Badge className={cn("text-xs border", STATUS_STYLES[process.statut] || "")}>
+                {process.statut.replace("_", " ")}
+              </Badge>
+              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-md", typeInfo.color)}>{typeInfo.label}</span>
+              <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-md">v{process.version_courante}</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{process.nom}</h1>
+            {responsableName && (
+              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                {`${responsableName.prenom} ${responsableName.nom}`.trim()}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => exportProcessPdf(id!)} className="gap-1.5">
+              <FileDown className="h-3.5 w-3.5" /> PDF
+            </Button>
+            {canCreateNewVersion && (
+              <Button variant="secondary" size="sm" onClick={handleCreateNewVersion} disabled={creatingVersion} className="gap-1.5">
+                <CopyPlus className="h-3.5 w-3.5" />{creatingVersion ? "Création..." : "Nouvelle version"}
+              </Button>
+            )}
+            {effectiveCanEdit && (
+              <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
+                <Save className="h-3.5 w-3.5" />{saving ? "..." : "Enregistrer"}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
+      {/* ─── Tabs ─── */}
       <Tabs defaultValue="general" className="w-full">
-        <TabsList>
-          <TabsTrigger value="general">Informations générales</TabsTrigger>
-          <TabsTrigger value="elements">Éléments</TabsTrigger>
-          <TabsTrigger value="tasks">Activités</TabsTrigger>
-          {process.statut === "archive" && <TabsTrigger value="archive">Objets liés</TabsTrigger>}
+        <TabsList className="bg-card border border-border/50 p-1 h-auto gap-1" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <TabsTrigger value="general" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg text-sm px-4 py-2 transition-all">
+            <Settings2 className="h-3.5 w-3.5" /> Général
+          </TabsTrigger>
+          <TabsTrigger value="elements" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg text-sm px-4 py-2 transition-all">
+            <Layers className="h-3.5 w-3.5" /> Éléments
+            <span className="ml-1 text-[10px] bg-current/10 rounded-full px-1.5 opacity-60">{elements.length}</span>
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg text-sm px-4 py-2 transition-all">
+            <ListChecks className="h-3.5 w-3.5" /> Activités
+          </TabsTrigger>
+          {process.statut === "archive" && (
+            <TabsTrigger value="archive" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm rounded-lg text-sm px-4 py-2 transition-all">
+              <Archive className="h-3.5 w-3.5" /> Objets liés
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        <TabsContent value="general">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Informations générales</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2"><Label>Intitulé</Label><Input value={process.nom} onChange={(e) => updateField("nom", e.target.value)} disabled={!effectiveCanEdit} /></div>
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select value={process.type_processus} onValueChange={(v) => updateField("type_processus", v)} disabled={!effectiveCanEdit}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pilotage">Management</SelectItem>
-                    <SelectItem value="realisation">Réalisation</SelectItem>
-                    <SelectItem value="support">Support</SelectItem>
-                  </SelectContent>
-                </Select>
+        <TabsContent value="general" className="mt-4 animate-fade-in">
+          <Card className="card-elevated border-border/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="section-header text-base">Informations générales</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Intitulé</Label>
+                  <Input value={process.nom} onChange={(e) => updateField("nom", e.target.value)} disabled={!effectiveCanEdit} className="h-10" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</Label>
+                  <Select value={process.type_processus} onValueChange={(v) => updateField("type_processus", v)} disabled={!effectiveCanEdit}>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pilotage">Management</SelectItem>
+                      <SelectItem value="realisation">Réalisation</SelectItem>
+                      <SelectItem value="support">Support</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Statut</Label>
+                  <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={!canChangeStatusEffective}>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="brouillon">Brouillon</SelectItem>
+                      <SelectItem value="en_validation">En validation</SelectItem>
+                      <SelectItem value="valide">Validé</SelectItem>
+                      <SelectItem value="archive">Archivé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Responsable</Label>
+                  <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={!canChangeResponsable}>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Non assigné" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Non assigné</SelectItem>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{`${u.prenom} ${u.nom}`.trim() || u.email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Statut</Label>
-                <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={!canChangeStatusEffective}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="brouillon">Brouillon</SelectItem>
-                    <SelectItem value="en_validation">En validation</SelectItem>
-                    <SelectItem value="valide">Validé</SelectItem>
-                    <SelectItem value="archive">Archivé</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Description</Label>
+                <Textarea value={process.description ?? ""} onChange={(e) => updateField("description", e.target.value)} disabled={!effectiveCanEdit} rows={3} className="resize-none" />
               </div>
-              <div className="space-y-2">
-                <Label>Responsable</Label>
-                <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={!canChangeResponsable}>
-                  <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Non assigné</SelectItem>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{`${u.prenom} ${u.nom}`.trim() || u.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label>Description</Label><Textarea value={process.description ?? ""} onChange={(e) => updateField("description", e.target.value)} disabled={!effectiveCanEdit} rows={3} /></div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="elements">
+        <TabsContent value="elements" className="mt-4 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {ELEMENT_SECTIONS.map(({ type, title, prefix }) => (
-              <Card key={type}>
-                <CardContent className="pt-6">
+            {ELEMENT_SECTIONS.map(({ type, title, prefix, icon }) => (
+              <Card key={type} className="card-elevated border-border/50 group">
+                <CardContent className="pt-5">
                   {type === "interaction" ? (
                     <ProcessInteractionManager processId={id!} processElements={elements} canEdit={effectiveCanEdit} canDelete={canDelete} onRefreshElements={fetchElements} />
                   ) : (
@@ -357,14 +387,14 @@ export default function ProcessDetail() {
                       />
                       {type === "ressource" && processDocuments.length > 0 && (
                         <div className="mt-4 space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> Documents associés</h4>
+                          <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Documents associés</h4>
                           {processDocuments.map((doc: any) => {
                             const typeLabels: Record<string, string> = { procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire", enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve" };
                             return (
-                              <div key={doc.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                              <div key={doc.id} className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 text-sm transition-colors hover:bg-muted/50">
                                 <div className="flex items-center gap-2">
                                   <FileText className="h-4 w-4 text-primary" />
-                                  <span>{doc.titre}</span>
+                                  <span className="font-medium">{doc.titre}</span>
                                   <span className="text-xs text-muted-foreground">({typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version})</span>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -402,8 +432,8 @@ export default function ProcessDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="tasks">
-          <Card>
+        <TabsContent value="tasks" className="mt-4 animate-fade-in">
+          <Card className="card-elevated border-border/50">
             <CardContent className="pt-6">
               <ProcessTasksTable processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
                 onAddElement={async (type: ElementType, description: string) => {
@@ -415,7 +445,7 @@ export default function ProcessDetail() {
           </Card>
         </TabsContent>
         {process.statut === "archive" && (
-          <TabsContent value="archive">
+          <TabsContent value="archive" className="mt-4 animate-fade-in">
             <ProcessArchivedObjects processId={id!} />
           </TabsContent>
         )}
