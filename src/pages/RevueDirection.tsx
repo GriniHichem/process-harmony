@@ -2,18 +2,18 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -75,7 +75,6 @@ export default function RevueDirection() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Revue de direction</h1>
-          
         </div>
         {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle revue</Button>}
       </div>
@@ -99,7 +98,7 @@ export default function RevueDirection() {
               <TableRow key={r.id}>
                 <TableCell className="font-mono text-xs">{r.reference}</TableCell>
                 <TableCell>{r.date_revue ? format(new Date(r.date_revue), "dd/MM/yyyy") : "—"}</TableCell>
-                <TableCell className="max-w-[200px] truncate">{r.participants}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{r.participants?.replace(/<[^>]*>/g, '') || "—"}</TableCell>
                 <TableCell><Badge className={statutColors[r.statut]}>{statutLabels[r.statut]}</Badge></TableCell>
                 <TableCell>{r.prochaine_revue ? format(new Date(r.prochaine_revue), "dd/MM/yyyy") : "—"}</TableCell>
                 <TableCell>
@@ -127,11 +126,11 @@ export default function RevueDirection() {
                 <div><Label className="text-xs text-muted-foreground">Date</Label><p className="text-sm">{viewing.date_revue ? format(new Date(viewing.date_revue), "dd/MM/yyyy") : "—"}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Statut</Label><Badge className={statutColors[viewing.statut]}>{statutLabels[viewing.statut]}</Badge></div>
               </div>
-              <div><Label className="text-xs text-muted-foreground">Participants</Label><p className="text-sm whitespace-pre-wrap">{viewing.participants || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Éléments d'entrée</Label><p className="text-sm whitespace-pre-wrap">{viewing.elements_entree || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Décisions et actions</Label><p className="text-sm whitespace-pre-wrap">{viewing.decisions || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Actions décidées</Label><p className="text-sm whitespace-pre-wrap">{viewing.actions_decidees || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Compte rendu</Label><p className="text-sm whitespace-pre-wrap">{viewing.compte_rendu || "—"}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Participants</Label><div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: viewing.participants || "—" }} /></div>
+              <div><Label className="text-xs text-muted-foreground">Éléments d'entrée</Label><div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: viewing.elements_entree || "—" }} /></div>
+              <div><Label className="text-xs text-muted-foreground">Décisions et actions</Label><div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: viewing.decisions || "—" }} /></div>
+              <div><Label className="text-xs text-muted-foreground">Actions décidées</Label><div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: viewing.actions_decidees || "—" }} /></div>
+              <div><Label className="text-xs text-muted-foreground">Compte rendu</Label><div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: viewing.compte_rendu || "—" }} /></div>
             </div>
           )}
         </DialogContent>
@@ -139,7 +138,7 @@ export default function RevueDirection() {
 
       {/* Edit Dialog */}
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Modifier" : "Nouvelle"} revue de direction</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
@@ -156,11 +155,26 @@ export default function RevueDirection() {
                 </Select>
               </div>
             </div>
-            <div><Label>Participants</Label><Textarea value={form.participants} onChange={e => setForm(f => ({ ...f, participants: e.target.value }))} placeholder="Noms et fonctions des participants..." /></div>
-            <div><Label>Éléments d'entrée</Label><Textarea rows={5} value={form.elements_entree} onChange={e => setForm(f => ({ ...f, elements_entree: e.target.value }))} placeholder="- État des actions des revues précédentes&#10;- Modifications des enjeux&#10;- Performance des processus&#10;- Non-conformités et actions correctives&#10;- Résultats de surveillance et mesure&#10;- Résultats d'audit&#10;- Satisfaction client&#10;- Adéquation des ressources&#10;- Opportunités d'amélioration" /></div>
-            <div><Label>Décisions</Label><Textarea rows={4} value={form.decisions} onChange={e => setForm(f => ({ ...f, decisions: e.target.value }))} placeholder="Décisions prises lors de la revue..." /></div>
-            <div><Label>Actions décidées</Label><Textarea rows={3} value={form.actions_decidees} onChange={e => setForm(f => ({ ...f, actions_decidees: e.target.value }))} placeholder="Actions à mettre en œuvre..." /></div>
-            <div><Label>Compte rendu</Label><Textarea rows={4} value={form.compte_rendu} onChange={e => setForm(f => ({ ...f, compte_rendu: e.target.value }))} /></div>
+            <div>
+              <Label>Participants</Label>
+              <RichTextEditor value={form.participants} onChange={v => setForm(f => ({ ...f, participants: v }))} placeholder="Noms et fonctions des participants..." minHeight="80px" />
+            </div>
+            <div>
+              <Label>Éléments d'entrée</Label>
+              <RichTextEditor value={form.elements_entree} onChange={v => setForm(f => ({ ...f, elements_entree: v }))} placeholder="État des actions, modifications des enjeux, performance des processus..." minHeight="120px" />
+            </div>
+            <div>
+              <Label>Décisions</Label>
+              <RichTextEditor value={form.decisions} onChange={v => setForm(f => ({ ...f, decisions: v }))} placeholder="Décisions prises lors de la revue..." minHeight="100px" />
+            </div>
+            <div>
+              <Label>Actions décidées</Label>
+              <RichTextEditor value={form.actions_decidees} onChange={v => setForm(f => ({ ...f, actions_decidees: v }))} placeholder="Actions à mettre en œuvre..." minHeight="80px" />
+            </div>
+            <div>
+              <Label>Compte rendu</Label>
+              <RichTextEditor value={form.compte_rendu} onChange={v => setForm(f => ({ ...f, compte_rendu: v }))} placeholder="Compte rendu de la revue..." minHeight="100px" />
+            </div>
             <div><Label>Prochaine revue</Label><Input type="date" value={form.prochaine_revue} onChange={e => setForm(f => ({ ...f, prochaine_revue: e.target.value }))} /></div>
           </div>
           <DialogFooter>

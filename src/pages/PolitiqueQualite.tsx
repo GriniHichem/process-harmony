@@ -16,6 +16,7 @@ import { Plus, Edit, Trash2, FileText, Target } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const statutPolicyColors: Record<string, string> = {
   brouillon: "bg-muted text-muted-foreground",
@@ -35,12 +36,10 @@ export default function PolitiqueQualite() {
   const canEdit = hasRole("admin") || hasRole("rmq");
   const qc = useQueryClient();
 
-  // Policy state
   const [policyDialog, setPolicyDialog] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<any>(null);
   const [policyForm, setPolicyForm] = useState({ titre: "", contenu: "", objectifs: "", statut: "brouillon", version: 1 });
 
-  // Objectives state
   const [objDialog, setObjDialog] = useState(false);
   const [editingObj, setEditingObj] = useState<any>(null);
   const [objForm, setObjForm] = useState({ reference: "", description: "", indicateur: "", cible: "", echeance: "", statut: "en_cours", commentaire: "" });
@@ -58,15 +57,6 @@ export default function PolitiqueQualite() {
     queryKey: ["quality_objectives"],
     queryFn: async () => {
       const { data, error } = await supabase.from("quality_objectives").select("*").order("reference");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: processes = [] } = useQuery({
-    queryKey: ["processes_list"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("processes").select("id, nom, code").order("code");
       if (error) throw error;
       return data;
     },
@@ -121,7 +111,6 @@ export default function PolitiqueQualite() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Politique & Objectifs Qualité</h1>
-        
       </div>
 
       <Tabs defaultValue="politique">
@@ -160,11 +149,11 @@ export default function PolitiqueQualite() {
                   <CardContent className="space-y-4">
                     <div>
                       <Label className="text-xs text-muted-foreground">Contenu de la politique</Label>
-                      <p className="whitespace-pre-wrap text-sm mt-1">{p.contenu || "—"}</p>
+                      <div className="prose prose-sm max-w-none mt-1 text-sm" dangerouslySetInnerHTML={{ __html: p.contenu || "—" }} />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Objectifs stratégiques</Label>
-                      <p className="whitespace-pre-wrap text-sm mt-1">{p.objectifs || "—"}</p>
+                      <div className="prose prose-sm max-w-none mt-1 text-sm" dangerouslySetInnerHTML={{ __html: p.objectifs || "—" }} />
                     </div>
                   </CardContent>
                 </Card>
@@ -220,7 +209,7 @@ export default function PolitiqueQualite() {
 
       {/* Policy Dialog */}
       <Dialog open={policyDialog} onOpenChange={setPolicyDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingPolicy ? "Modifier" : "Nouvelle"} politique qualité</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -239,8 +228,24 @@ export default function PolitiqueQualite() {
                 </div>
               </div>
             </div>
-            <div><Label>Contenu de la politique</Label><Textarea rows={6} value={policyForm.contenu} onChange={e => setPolicyForm(f => ({ ...f, contenu: e.target.value }))} placeholder="Engagement de la direction, orientations stratégiques..." /></div>
-            <div><Label>Objectifs stratégiques</Label><Textarea rows={4} value={policyForm.objectifs} onChange={e => setPolicyForm(f => ({ ...f, objectifs: e.target.value }))} placeholder="Objectifs globaux de la politique qualité..." /></div>
+            <div>
+              <Label>Contenu de la politique</Label>
+              <RichTextEditor
+                value={policyForm.contenu}
+                onChange={v => setPolicyForm(f => ({ ...f, contenu: v }))}
+                placeholder="Engagement de la direction, orientations stratégiques..."
+                minHeight="150px"
+              />
+            </div>
+            <div>
+              <Label>Objectifs stratégiques</Label>
+              <RichTextEditor
+                value={policyForm.objectifs}
+                onChange={v => setPolicyForm(f => ({ ...f, objectifs: v }))}
+                placeholder="Objectifs globaux de la politique qualité..."
+                minHeight="120px"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPolicyDialog(false)}>Annuler</Button>
