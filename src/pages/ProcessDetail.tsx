@@ -409,6 +409,11 @@ export default function ProcessDetail() {
             </CardContent>
           </Card>
         </TabsContent>
+        {process.statut === "archive" && (
+          <TabsContent value="archive">
+            <ProcessArchivedObjects processId={id!} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
