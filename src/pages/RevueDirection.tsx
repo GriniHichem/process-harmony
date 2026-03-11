@@ -28,6 +28,7 @@ const statutLabels: Record<string, string> = { planifiee: "Planifiée", realisee
 const emptyForm = { reference: "", date_revue: "", participants: "", elements_entree: "", decisions: "", actions_decidees: "", statut: "planifiee", compte_rendu: "", prochaine_revue: "" };
 
 const RICH_FIELDS = [
+  { key: "decisions", label: "Décisions", placeholder: "Décisions prises lors de la revue..." },
   { key: "compte_rendu", label: "Compte rendu", placeholder: "Compte rendu détaillé de la revue..." },
 ] as const;
 
