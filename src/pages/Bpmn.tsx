@@ -56,13 +56,13 @@ export default function Bpmn() {
   }, []);
 
   const fetchDiagram = useCallback(async (processId: string) => {
-    const { data } = await supabase
-      .from("bpmn_diagrams")
-      .select("*")
-      .eq("process_id", processId)
-      .order("version", { ascending: false })
-      .limit(1);
+    const [{ data }, { data: processData }] = await Promise.all([
+      supabase.from("bpmn_diagrams").select("*").eq("process_id", processId).order("version", { ascending: false }).limit(1),
+      supabase.from("processes").select("inclure_bpmn_pdf").eq("id", processId).single(),
+    ]);
     
+    setInclureBpmnPdf((processData as any)?.inclure_bpmn_pdf ?? false);
+
     if (data && data.length > 0) {
       const raw = data[0];
       const d: BpmnDiagram = { ...raw, donnees: raw.donnees as unknown as BpmnData | null };
