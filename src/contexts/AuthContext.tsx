@@ -6,6 +6,7 @@ import {
   type PermissionLevel,
   type ModulePermissions,
   type AppRole,
+  type CustomRolePermissions,
   getEffectivePermission,
 } from "@/lib/defaultPermissions";
 
@@ -18,11 +19,18 @@ interface Profile {
   actif: boolean;
 }
 
+export interface CustomRole {
+  id: string;
+  nom: string;
+  description: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   roles: AppRole[];
+  customRoles: CustomRole[];
   /** @deprecated use hasRole() instead */
   role: AppRole | null;
   loading: boolean;
@@ -36,6 +44,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   profile: null,
   roles: [],
+  customRoles: [],
   role: null,
   loading: true,
   hasRole: () => false,
@@ -50,30 +59,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  const [customRoleIds, setCustomRoleIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [permOverrides, setPermOverrides] = useState<Record<string, ModulePermissions>>({});
+  const [customRolePerms, setCustomRolePerms] = useState<CustomRolePermissions>({});
 
   const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
 
   const hasPermission = useCallback(
     (module: AppModule, level: PermissionLevel): boolean => {
-      if (roles.length === 0) return false;
-      return getEffectivePermission(roles, module, level, permOverrides);
+      if (roles.length === 0 && customRoleIds.length === 0) return false;
+      return getEffectivePermission(roles, module, level, permOverrides, customRoleIds, customRolePerms);
     },
-    [roles, permOverrides]
+    [roles, permOverrides, customRoleIds, customRolePerms]
   );
 
   const fetchUserData = async (userId: string) => {
     try {
-      const [profileRes, rolesRes, permRes] = await Promise.all([
+      const [profileRes, rolesRes, permRes, userCustomRolesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("role_permissions").select("*"),
+        supabase.from("user_custom_roles").select("custom_role_id, custom_roles(id, nom, description)").eq("user_id", userId),
       ]);
+
       if (profileRes.data) setProfile(profileRes.data as Profile);
       if (rolesRes.data) {
         setRoles(rolesRes.data.map((r) => r.role as AppRole));
       }
+
+      // Standard role overrides
       if (permRes.data) {
         const overrides: Record<string, ModulePermissions> = {};
         for (const row of permRes.data) {
@@ -85,6 +101,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         }
         setPermOverrides(overrides);
+      }
+
+      // Custom roles
+      if (userCustomRolesRes.data) {
+        const crIds: string[] = [];
+        const crs: CustomRole[] = [];
+        for (const ucr of userCustomRolesRes.data as any[]) {
+          crIds.push(ucr.custom_role_id);
+          if (ucr.custom_roles) {
+            crs.push(ucr.custom_roles as CustomRole);
+          }
+        }
+        setCustomRoleIds(crIds);
+        setCustomRoles(crs);
+
+        // Load custom role permissions
+        if (crIds.length > 0) {
+          const { data: crpData } = await supabase
+            .from("custom_role_permissions")
+            .select("*")
+            .in("custom_role_id", crIds);
+          if (crpData) {
+            const crPerms: CustomRolePermissions = {};
+            for (const row of crpData) {
+              crPerms[`${row.custom_role_id}:${row.module}`] = {
+                can_read: row.can_read,
+                can_read_detail: row.can_read_detail,
+                can_edit: row.can_edit,
+                can_delete: row.can_delete,
+              };
+            }
+            setCustomRolePerms(crPerms);
+          }
+        }
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
@@ -101,7 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setRoles([]);
+          setCustomRoles([]);
+          setCustomRoleIds([]);
           setPermOverrides({});
+          setCustomRolePerms({});
         }
         setLoading(false);
       }
@@ -125,7 +178,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setCustomRoles([]);
+    setCustomRoleIds([]);
     setPermOverrides({});
+    setCustomRolePerms({});
   };
 
   // Backward compat: role = first role (priority: admin > rmq > others)
@@ -133,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const role = priorityOrder.find((r) => roles.includes(r)) ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, role, loading, hasRole, hasPermission, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, customRoles, role, loading, hasRole, hasPermission, signOut }}>
       {children}
     </AuthContext.Provider>
   );
