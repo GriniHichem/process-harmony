@@ -56,10 +56,10 @@ const App = () => (
             <Route path="/bpmn" element={<ProtectedPage><RoleGuard blockedOnlyRoles={["acteur"]}><Bpmn /></RoleGuard></ProtectedPage>} />
             {/* Manager processus - admin, rmq, responsable_processus, consultant */}
             <Route path="/documents" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Documents /></RoleGuard></ProtectedPage>} />
-            <Route path="/indicateurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Indicateurs /></RoleGuard></ProtectedPage>} />
-            <Route path="/risques" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Risques /></RoleGuard></ProtectedPage>} />
+            <Route path="/indicateurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><Indicateurs /></RoleGuard></ProtectedPage>} />
+            <Route path="/risques" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><Risques /></RoleGuard></ProtectedPage>} />
             <Route path="/incidents" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Incidents /></RoleGuard></ProtectedPage>} />
-            <Route path="/enjeux-contexte" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><EnjeuContexte /></RoleGuard></ProtectedPage>} />
+            <Route path="/enjeux-contexte" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><EnjeuContexte /></RoleGuard></ProtectedPage>} />
             {/* Audit & Amélioration - admin, rmq, auditeur */}
             <Route path="/dashboard-audit" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><DashboardAuditNC /></RoleGuard></ProtectedPage>} />
             <Route path="/audits" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><Audits /></RoleGuard></ProtectedPage>} />
