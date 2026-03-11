@@ -227,20 +227,30 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin">, Record<AppMo
 };
 
 /**
+ * Custom role permissions loaded from DB.
+ * Key = custom_role_id:module
+ */
+export type CustomRolePermissions = Record<string, ModulePermissions>;
+
+/**
  * Get effective permission for a set of roles on a module.
  * Admin always returns true.
- * For other roles, DB overrides take precedence; otherwise defaults apply.
+ * For standard roles, DB overrides take precedence; otherwise defaults apply.
+ * Custom roles use their DB permissions directly.
  * Multiple roles: most permissive wins (OR logic).
  */
 export function getEffectivePermission(
   roles: AppRole[],
   module: AppModule,
   level: PermissionLevel,
-  dbOverrides: Record<string, ModulePermissions> // key = "role:module"
+  dbOverrides: Record<string, ModulePermissions>, // key = "role:module"
+  customRoleIds: string[] = [],
+  customRolePerms: CustomRolePermissions = {}
 ): boolean {
   if (roles.includes("admin")) return true;
 
-  return roles.some((role) => {
+  // Check standard roles
+  const standardMatch = roles.some((role) => {
     if (role === "admin") return true;
     const overrideKey = `${role}:${module}`;
     const override = dbOverrides[overrideKey];
@@ -248,5 +258,13 @@ export function getEffectivePermission(
     const defaults = DEFAULT_PERMISSIONS[role as Exclude<AppRole, "admin">];
     if (!defaults) return false;
     return defaults[module]?.[level] ?? false;
+  });
+
+  if (standardMatch) return true;
+
+  // Check custom roles
+  return customRoleIds.some((crId) => {
+    const key = `${crId}:${module}`;
+    return customRolePerms[key]?.[level] ?? false;
   });
 }
