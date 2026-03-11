@@ -360,7 +360,7 @@ export async function exportObjectifsQualitePdf() {
   ${buildFooter("OBJ-QUA", "Objectifs Qualité")}
   </body></html>`;
 
-  openPdf(html, "objectifs-qualite.html");
+  await openPdf(html, "objectifs-qualite.pdf");
 }
 
 // ═══════════════════════════════════════════════════════════════
