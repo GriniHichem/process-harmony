@@ -44,6 +44,7 @@ export default function EnjeuContexte() {
         userId={user?.id}
         isOnlyResponsable={isOnlyResponsable || isOnlyActeur}
         filterProcessIds={acteurProcessIds}
+        acteurId={isOnlyActeur ? acteurId : undefined}
       />
     </div>
   );
