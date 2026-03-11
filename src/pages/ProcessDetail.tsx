@@ -96,6 +96,74 @@ export default function ProcessDetail() {
   const isLockedForResp = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq") && (process?.statut === "valide" || process?.statut === "archive");
   const effectiveCanEdit = canEdit && !isLockedForResp;
 
+  // RMQ: cannot change state of validated process, cannot delete validated process
+  const isRmqOnly = hasRole("rmq") && !hasRole("admin");
+  const canChangeStatusEffective = canChangeStatus && !(isRmqOnly && (process?.statut === "valide"));
+
+  // RMQ can create new version of a validated process
+  const canCreateNewVersion = hasRole("rmq") && process?.statut === "valide";
+
+  const [creatingVersion, setCreatingVersion] = useState(false);
+
+  const handleCreateNewVersion = async () => {
+    if (!process || !id) return;
+    setCreatingVersion(true);
+    try {
+      // Parse current version: e.g. 1.03 → major=1, minor=03 → new = 1.04
+      const currentVersion = process.version_courante;
+      const major = Math.floor(currentVersion);
+      const minor = Math.round((currentVersion - major) * 100);
+      const newVersion = major + (minor + 1) / 100;
+      const newVersionRounded = parseFloat(newVersion.toFixed(2));
+
+      // Duplicate the process
+      const { data: newProc, error } = await supabase.from("processes").insert({
+        code: process.code,
+        nom: process.nom,
+        description: process.description,
+        type_processus: process.type_processus,
+        finalite: process.finalite,
+        responsable_id: process.responsable_id,
+        donnees_entree: process.donnees_entree,
+        donnees_sortie: process.donnees_sortie,
+        activites: process.activites,
+        interactions: process.interactions,
+        parties_prenantes: process.parties_prenantes,
+        ressources: process.ressources,
+        statut: "brouillon" as const,
+        version_courante: newVersionRounded,
+      }).select("id").single();
+
+      if (error || !newProc) { toast.error(error?.message || "Erreur"); setCreatingVersion(false); return; }
+
+      // Duplicate elements
+      const elemsToInsert = elements.map(({ id: _id, process_id: _pid, ...rest }) => ({
+        ...rest,
+        process_id: newProc.id,
+      }));
+      if (elemsToInsert.length > 0) {
+        await supabase.from("process_elements").insert(elemsToInsert);
+      }
+
+      // Archive original
+      await supabase.from("processes").update({ statut: "archive" as const }).eq("id", id);
+
+      // Save version snapshot
+      await supabase.from("process_versions").insert({
+        process_id: id,
+        version: currentVersion,
+        donnees: process as any,
+        modifie_par: user?.id ?? null,
+      });
+
+      toast.success(`Nouvelle version v${newVersionRounded} créée`);
+      navigate(`/processus/${newProc.id}`);
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    }
+    setCreatingVersion(false);
+  };
+
   const handleSave = async () => {
     if (!process) return;
     setSaving(true);
