@@ -244,6 +244,7 @@ export default function Utilisateurs() {
                         <Checkbox
                           checked={u.roles.includes(r.key)}
                           onCheckedChange={() => handleToggleRole(u.id, r.key, u.roles)}
+                          disabled={!canEdit}
                         />
                         {r.label}
                       </label>
