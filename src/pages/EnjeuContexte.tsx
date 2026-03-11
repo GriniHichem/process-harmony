@@ -3,7 +3,8 @@ import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 
 export default function EnjeuContexte() {
   const { hasRole, user } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
+  const canEdit = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant"));
   const canDelete = hasRole("admin") || hasRole("rmq");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
