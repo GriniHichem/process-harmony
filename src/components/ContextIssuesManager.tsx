@@ -38,12 +38,15 @@ interface Process {
   id: string;
   code: string;
   nom: string;
+  responsable_id: string | null;
 }
 
 interface Props {
   processId?: string;
   canEdit: boolean;
   canDelete: boolean;
+  userId?: string;
+  isOnlyResponsable?: boolean;
 }
 
 const impactColors: Record<string, string> = {
@@ -81,7 +84,7 @@ type FormType = {
 const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false, domaine: "strategique", process_ids: [] };
 const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
 
-export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
+export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable }: Props) {
   const [issues, setIssues] = useState<ContextIssue[]>([]);
   const [issueProcesses, setIssueProcesses] = useState<Record<string, string[]>>({});
   const [actions, setActions] = useState<Record<string, ContextIssueAction[]>>({});
@@ -97,7 +100,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
 
   const fetchProcesses = useCallback(async () => {
-    const { data } = await supabase.from("processes").select("id, code, nom").order("code");
+    const { data } = await supabase.from("processes").select("id, code, nom, responsable_id").order("code");
     setProcesses((data ?? []) as Process[]);
   }, []);
 
@@ -405,18 +408,23 @@ export function ContextIssuesManager({ processId, canEdit, canDelete }: Props) {
             <div className="space-y-1">
               <Label>Processus concerné(s)</Label>
               <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
-                {processes.map(p => (
-                  <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
-                    <input
-                      type="checkbox"
-                      checked={form.process_ids.includes(p.id)}
-                      onChange={() => toggleProcessId(p.id)}
-                      className="rounded"
-                    />
-                    <span className="font-mono text-xs text-muted-foreground">{p.code}</span>
-                    <span>{p.nom}</span>
-                  </label>
-                ))}
+                {processes.map(p => {
+                  const isMyProcess = !isOnlyResponsable || (userId && (p as any).responsable_id === userId);
+                  const isAlreadyLinked = form.process_ids.includes(p.id);
+                  return (
+                    <label key={p.id} className={`flex items-center gap-2 text-sm rounded px-1 py-0.5 ${isMyProcess ? "cursor-pointer hover:bg-muted/50" : "opacity-50 cursor-not-allowed"}`}>
+                      <input
+                        type="checkbox"
+                        checked={isAlreadyLinked}
+                        onChange={() => isMyProcess && toggleProcessId(p.id)}
+                        disabled={!isMyProcess}
+                        className="rounded"
+                      />
+                      <span className="font-mono text-xs text-muted-foreground">{p.code}</span>
+                      <span>{p.nom}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           </div>
