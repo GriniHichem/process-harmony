@@ -294,8 +294,46 @@ export default function BpmnCanvas({
               strokeDasharray="4 2" />
             <line x1={node.x} y1={node.y} x2={node.x} y2={node.y + h}
               stroke="hsl(var(--muted-foreground))" strokeWidth={2} />
-            <text x={node.x + 8} y={node.y + h/2 + 4} className="text-[11px] fill-muted-foreground">
-              {node.label.length > 20 ? node.label.slice(0, 20) + "…" : node.label}
+            <text x={node.x + 8} y={node.y + h/2 + 4} className="text-[10px] fill-muted-foreground">
+              {node.label.length > 22 ? node.label.slice(0, 22) + "…" : node.label}
+            </text>
+          </g>
+        );
+
+      case "data-object":
+        return (
+          <g key={node.id} {...commonEvents}>
+            {/* Folded-corner document shape */}
+            <path
+              d={`M${node.x},${node.y} L${node.x + w - 10},${node.y} L${node.x + w},${node.y + 10} L${node.x + w},${node.y + h} L${node.x},${node.y + h} Z`}
+              fill="hsl(45, 93%, 95%)" stroke={selStroke ?? "hsl(45, 93%, 45%)"} strokeWidth={selWidth}
+            />
+            <path
+              d={`M${node.x + w - 10},${node.y} L${node.x + w - 10},${node.y + 10} L${node.x + w},${node.y + 10}`}
+              fill="none" stroke={selStroke ?? "hsl(45, 93%, 45%)"} strokeWidth={1}
+            />
+            <text x={node.x + w/2} y={node.y + h + 14} textAnchor="middle" className="text-[9px] fill-muted-foreground">
+              {node.label.length > 18 ? node.label.slice(0, 18) + "…" : node.label}
+            </text>
+          </g>
+        );
+
+      case "data-store":
+        return (
+          <g key={node.id} {...commonEvents}>
+            {/* Cylinder shape */}
+            <ellipse cx={node.x + w/2} cy={node.y + 8} rx={w/2} ry={8}
+              fill="hsl(210, 30%, 94%)" stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <rect x={node.x} y={node.y + 8} width={w} height={h - 16}
+              fill="hsl(210, 30%, 94%)" stroke="none" />
+            <line x1={node.x} y1={node.y + 8} x2={node.x} y2={node.y + h - 8}
+              stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <line x1={node.x + w} y1={node.y + 8} x2={node.x + w} y2={node.y + h - 8}
+              stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <ellipse cx={node.x + w/2} cy={node.y + h - 8} rx={w/2} ry={8}
+              fill="hsl(210, 30%, 94%)" stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <text x={node.x + w/2} y={node.y + h + 14} textAnchor="middle" className="text-[9px] fill-muted-foreground">
+              {node.label.length > 18 ? node.label.slice(0, 18) + "…" : node.label}
             </text>
           </g>
         );
@@ -309,13 +347,17 @@ export default function BpmnCanvas({
 
     const ports = bestPorts(fromNode, toNode);
     const isAnnotation = fromNode.type === "annotation" || toNode.type === "annotation";
+    const isData = edge.type === "data" || edge.type === "association"
+      || fromNode.type === "data-object" || toNode.type === "data-object"
+      || fromNode.type === "data-store" || toNode.type === "data-store";
+    const isDashed = isAnnotation || isData;
 
     return (
       <g key={edge.id} onClick={() => handleEdgeClick(edge.id)}
         style={{ cursor: mode === "delete" ? "crosshair" : "default" }}>
         <defs>
           <marker id={`ah-${edge.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--foreground) / 0.6)" />
+            <polygon points="0 0, 10 3.5, 0 7" fill={isData ? "hsl(var(--foreground) / 0.3)" : "hsl(var(--foreground) / 0.6)"} />
           </marker>
         </defs>
         {/* Invisible fat line for easier clicking */}
@@ -323,17 +365,17 @@ export default function BpmnCanvas({
           stroke="transparent" strokeWidth={12} />
         <line
           x1={ports.from.x} y1={ports.from.y} x2={ports.to.x} y2={ports.to.y}
-          stroke="hsl(var(--foreground) / 0.4)"
-          strokeWidth={1.5}
-          strokeDasharray={isAnnotation ? "4 3" : "none"}
+          stroke={isData ? "hsl(var(--foreground) / 0.25)" : "hsl(var(--foreground) / 0.4)"}
+          strokeWidth={isDashed ? 1 : 1.5}
+          strokeDasharray={isDashed ? "5 3" : "none"}
           markerEnd={isAnnotation ? undefined : `url(#ah-${edge.id})`}
         />
         {edge.label && (
           <g>
             <rect
-              x={(ports.from.x + ports.to.x) / 2 - 20}
+              x={(ports.from.x + ports.to.x) / 2 - Math.min(edge.label.length * 3.5, 50)}
               y={(ports.from.y + ports.to.y) / 2 - 10}
-              width={40} height={18} rx={4}
+              width={Math.min(edge.label.length * 7, 100)} height={18} rx={4}
               fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={1}
             />
             <text
@@ -342,7 +384,7 @@ export default function BpmnCanvas({
               textAnchor="middle"
               className="text-[10px] fill-muted-foreground"
             >
-              {edge.label}
+              {edge.label.length > 16 ? edge.label.slice(0, 16) + "…" : edge.label}
             </text>
           </g>
         )}
