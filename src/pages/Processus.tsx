@@ -210,7 +210,7 @@ export default function Processus() {
                     </div>
                     <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
                     <Eye className="h-4 w-4 text-muted-foreground" />
-                    {canDelete && (
+                    {canDeleteProcess(p) && (
                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
