@@ -49,14 +49,26 @@ export default function Indicateurs() {
 
   const fetchData = async () => {
     let procQuery = supabase.from("processes").select("id, nom").order("nom");
-    if (isOnlyResponsable && user) {
+    
+    if (isOnlyActeur && user) {
+      // Acteur: only processes where they have tasks
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
+      const acteurId = profileData?.acteur_id;
+      if (acteurId) {
+        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId);
+        const processIds = [...new Set((taskData ?? []).map(t => t.process_id))];
+        setActeurProcessIds(processIds);
+        if (processIds.length > 0) {
+          procQuery = procQuery.in("id", processIds);
+        } else {
+          setProcesses([]); setIndicators([]); setLoading(false); return;
+        }
+      } else {
+        setProcesses([]); setIndicators([]); setLoading(false); return;
+      }
+    } else if (isOnlyResponsable && user) {
       procQuery = procQuery.eq("responsable_id", user.id);
     }
-    const procRes = await procQuery;
-    const myProcesses = procRes.data ?? [];
-    setProcesses(myProcesses);
-
-    let indQuery = supabase.from("indicators").select("*").order("nom");
     if (isOnlyResponsable && myProcesses.length > 0) {
       indQuery = indQuery.in("process_id", myProcesses.map(p => p.id));
     } else if (isOnlyResponsable) {
