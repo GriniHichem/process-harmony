@@ -49,9 +49,9 @@ const App = () => (
             {/* Principal - accessible à tous */}
             <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
             <Route path="/acteurs" element={<ProtectedPage><Acteurs /></ProtectedPage>} />
-            {/* Processus - bloqué pour acteur seul */}
-            <Route path="/processus" element={<ProtectedPage><RoleGuard blockedOnlyRoles={["acteur"]}><Processus /></RoleGuard></ProtectedPage>} />
-            <Route path="/processus/:id" element={<ProtectedPage><RoleGuard blockedOnlyRoles={["acteur"]}><ProcessDetail /></RoleGuard></ProtectedPage>} />
+            {/* Processus - accessible à tous les rôles */}
+            <Route path="/processus" element={<ProtectedPage><Processus /></ProtectedPage>} />
+            <Route path="/processus/:id" element={<ProtectedPage><ProcessDetail /></ProtectedPage>} />
             <Route path="/cartographie" element={<ProtectedPage><RoleGuard blockedOnlyRoles={["acteur"]}><Cartographie /></RoleGuard></ProtectedPage>} />
             <Route path="/bpmn" element={<ProtectedPage><RoleGuard blockedOnlyRoles={["acteur"]}><Bpmn /></RoleGuard></ProtectedPage>} />
             {/* Manager processus - admin, rmq, responsable_processus, consultant */}
