@@ -269,6 +269,8 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
   };
 
   const toggleExpand = (id: string) => {
+    // If acteurId is set, only allow expand for issues where they have actions
+    if (acteurId && !acteurIssueIds.has(id)) return;
     setExpandedIssues(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   };
 
