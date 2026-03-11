@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { Plus, Zap, ChevronDown, ChevronRight, StickyNote, User, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Acteur = { id: string; nom: string; prenom: string };
+type Acteur = { id: string; fonction: string | null };
 type ActionNote = { id: string; action_id: string; contenu: string; avancement: number; date_note: string; created_at: string };
 type Action = { id: string; description: string; type_action: string; statut: string; echeance: string | null; responsable_id: string | null; source_type: string };
 
