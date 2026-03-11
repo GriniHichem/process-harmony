@@ -105,6 +105,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
   const [editingAction, setEditingAction] = useState<ContextIssueAction | null>(null);
   const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+  const [acteurIssueIds, setActeurIssueIds] = useState<Set<string>>(new Set());
 
   const fetchProcesses = useCallback(async () => {
     const { data } = await supabase.from("processes").select("id, code, nom, responsable_id").order("code");
