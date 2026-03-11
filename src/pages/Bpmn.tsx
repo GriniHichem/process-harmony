@@ -32,6 +32,19 @@ export default function Bpmn() {
   const [generating, setGenerating] = useState(false);
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const canvasRef = useRef<BpmnCanvasHandle>(null);
+
+  const handleExport = useCallback(async (format: "png" | "pdf") => {
+    const svg = canvasRef.current?.getSvgElement();
+    if (!svg) { toast.error("Aucun diagramme à exporter"); return; }
+    const processName = processes.find(p => p.id === selectedProcessId)?.nom ?? "bpmn";
+    try {
+      await exportBpmnDiagram(svg, format, `BPMN-${processName}`);
+      toast.success(`Diagramme exporté en ${format.toUpperCase()}`);
+    } catch (err) {
+      toast.error("Erreur lors de l'export");
+    }
+  }, [processes, selectedProcessId]);
 
   useEffect(() => {
     supabase.from("processes").select("id, nom").neq("statut", "archive").order("nom").then(({ data }) => {
