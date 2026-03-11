@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { BpmnNode, BpmnEdge, BpmnNodeType, NODE_DEFAULTS } from "./types";
 
 type ToolMode = "select" | "connect" | "delete";
@@ -16,6 +16,10 @@ interface BpmnCanvasProps {
   onNodeSelect: (id: string | null) => void;
   selectedNodeId: string | null;
   canEdit: boolean;
+}
+
+export interface BpmnCanvasHandle {
+  getSvgElement: () => SVGSVGElement | null;
 }
 
 /* ── Helpers ────────────────────────────────────────────── */
@@ -100,18 +104,22 @@ function orthogonalPath(
 
 /* ── Component ──────────────────────────────────────────── */
 
-export default function BpmnCanvas({
+const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCanvas({
   nodes, edges, mode, zoom,
   onNodesChange, onEdgesChange, onEdgeAdd,
   onNodeDelete, onEdgeDelete, onNodeSelect,
   selectedNodeId, canEdit,
-}: BpmnCanvasProps) {
+}, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
   const [connecting, setConnecting] = useState<{ fromId: string; mouseX: number; mouseY: number } | null>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  useImperativeHandle(ref, () => ({
+    getSvgElement: () => svgRef.current,
+  }));
 
   const getSvgPoint = useCallback((e: React.MouseEvent) => {
     const svg = svgRef.current;
@@ -570,4 +578,6 @@ export default function BpmnCanvas({
       </div>
     </div>
   );
-}
+});
+
+export default BpmnCanvas;

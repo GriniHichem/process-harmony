@@ -10,9 +10,10 @@ import { Plus, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { BpmnNode, BpmnEdge, BpmnData, BpmnDiagram, BpmnNodeType, NODE_DEFAULTS } from "@/components/bpmn/types";
 import BpmnToolbar from "@/components/bpmn/BpmnToolbar";
-import BpmnCanvas from "@/components/bpmn/BpmnCanvas";
+import BpmnCanvas, { BpmnCanvasHandle } from "@/components/bpmn/BpmnCanvas";
 import BpmnPropertiesPanel from "@/components/bpmn/BpmnPropertiesPanel";
 import { generateBpmnFromTasks } from "@/lib/generateBpmnFromTasks";
+import { exportBpmnDiagram } from "@/lib/exportBpmnDiagram";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type ToolMode = "select" | "connect" | "delete";
@@ -31,6 +32,19 @@ export default function Bpmn() {
   const [generating, setGenerating] = useState(false);
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const canvasRef = useRef<BpmnCanvasHandle>(null);
+
+  const handleExport = useCallback(async (format: "png" | "pdf") => {
+    const svg = canvasRef.current?.getSvgElement();
+    if (!svg) { toast.error("Aucun diagramme à exporter"); return; }
+    const processName = processes.find(p => p.id === selectedProcessId)?.nom ?? "bpmn";
+    try {
+      await exportBpmnDiagram(svg, format, `BPMN-${processName}`);
+      toast.success(`Diagramme exporté en ${format.toUpperCase()}`);
+    } catch (err) {
+      toast.error("Erreur lors de l'export");
+    }
+  }, [processes, selectedProcessId]);
 
   useEffect(() => {
     supabase.from("processes").select("id, nom").neq("statut", "archive").order("nom").then(({ data }) => {
@@ -311,6 +325,7 @@ export default function Bpmn() {
             onSave={saveDiagram}
             onUndo={handleUndo}
             onGenerate={handleGenerate}
+            onExport={handleExport}
             saving={saving}
             generating={generating}
             canEdit={canEdit}
@@ -318,6 +333,7 @@ export default function Bpmn() {
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
             <BpmnCanvas
+              ref={canvasRef}
               nodes={nodes}
               edges={edges}
               mode={mode}
