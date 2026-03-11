@@ -19,7 +19,7 @@ import { RiskIncidents } from "@/components/RiskIncidents";
 type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
 
 export default function Risques() {
-  const { hasRole, user } = useAuth();
+  const { hasRole, hasPermission, user } = useAuth();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [processes, setProcesses] = useState<{id: string; nom: string}[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,9 +33,9 @@ export default function Risques() {
   const [editRisk, setEditRisk] = useState<{ id: string; type: string; description: string; probabilite: string; impact: string; process_id: string } | null>(null);
 
   const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
-  const canCreate = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant"));
-  const canDelete = hasRole("admin") || hasRole("rmq");
-  const canEditActions = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus"));
+  const canCreate = hasPermission("risques", "can_edit");
+  const canDelete = hasPermission("risques", "can_delete");
+  const canEditActions = hasPermission("risques", "can_edit");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
   const [acteurRiskIds, setActeurRiskIds] = useState<Set<string>>(new Set());
 

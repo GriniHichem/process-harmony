@@ -36,7 +36,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function Processus() {
-  const { hasRole, user } = useAuth();
+  const { hasRole, hasPermission, user } = useAuth();
   const navigate = useNavigate();
   const [processes, setProcesses] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
