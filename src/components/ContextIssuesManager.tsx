@@ -115,6 +115,15 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
       const issueIds = links.map((l: any) => l.context_issue_id);
       const { data } = await supabase.from("context_issues").select("*").in("id", issueIds).order("reference");
       issuesData = (data as ContextIssue[]) ?? [];
+    } else if (filterProcessIds && filterProcessIds.length > 0) {
+      // Filter enjeux by linked processes (for acteur role)
+      const { data: links } = await supabase.from("context_issue_processes").select("context_issue_id").in("process_id", filterProcessIds);
+      if (!links || links.length === 0) { setIssues([]); setActions({}); setLoading(false); return; }
+      const issueIds = [...new Set(links.map((l: any) => l.context_issue_id))];
+      const { data } = await supabase.from("context_issues").select("*").in("id", issueIds).order("reference");
+      issuesData = (data as ContextIssue[]) ?? [];
+    } else if (filterProcessIds && filterProcessIds.length === 0) {
+      setIssues([]); setActions({}); setLoading(false); return;
     } else {
       const { data } = await supabase.from("context_issues").select("*").order("reference");
       issuesData = (data as ContextIssue[]) ?? [];
