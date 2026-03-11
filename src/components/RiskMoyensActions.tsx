@@ -79,7 +79,7 @@ interface ItemCardProps {
   onDelete: () => void;
 }
 
-function ItemCard({ description, statut, responsable, datePrevue, deadline, budget, typeMoyen, canEdit, onEdit, onDelete }: ItemCardProps) {
+function ItemCard({ itemId, elementType, description, statut, responsable, responsableActeurId, datePrevue, deadline, budget, typeMoyen, canEdit, onEdit, onDelete }: ItemCardProps) {
   const isOverdue = deadline && new Date(deadline) < new Date() && statut !== "realisee";
   const cardStyle = getCardStyle(statut, deadline);
   const badgeVariant = getStatusBadgeVariant(statut, deadline);
