@@ -1,106 +1,124 @@
 
 
-# Plan d'implémentation — Application de gestion ISO 9001
+# Plan — Module de gestion d'accès granulaire
 
-## Phase 1 : Fondations
+## Contexte
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+Actuellement, les permissions sont codées en dur dans chaque page via `hasRole()`. Chaque rôle a des droits fixes (admin = tout, rmq = presque tout, etc.). L'objectif est d'ajouter un système de **permissions fines par module** configurable depuis l'interface d'administration, tout en conservant les droits par défaut des rôles existants comme base non modifiable.
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+## Architecture
 
-## Phase 2 : Modules principaux
+```text
+┌──────────────────────────────────────────┐
+│          role_permissions (table)         │
+│  role | module | read | read_detail |    │
+│        edit | delete                     │
+│  (ex: "auditeur" | "risques" | true |    │
+│   true | false | false)                  │
+└──────────────────────────────────────────┘
+         ↓ chargé au login
+┌──────────────────────────────────────────┐
+│        AuthContext (permissions map)      │
+│  hasPermission(module, level) → boolean  │
+│  Merge: defaults du rôle + overrides DB  │
+└──────────────────────────────────────────┘
+         ↓ utilisé par
+┌──────────────────────────────────────────┐
+│  Chaque page utilise hasPermission()     │
+│  au lieu de hasRole() pour les actions   │
+└──────────────────────────────────────────┘
+```
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+## 1. Base de données
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+Nouvelle table `role_permissions` :
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+| Colonne | Type | Description |
+|---|---|---|
+| id | uuid PK | |
+| role | app_role NOT NULL | Le rôle concerné |
+| module | text NOT NULL | Ex: "processus", "risques", "audits"... |
+| can_read | boolean DEFAULT false | Voir la liste |
+| can_read_detail | boolean DEFAULT false | Voir les détails / expandre |
+| can_edit | boolean DEFAULT false | Créer / modifier |
+| can_delete | boolean DEFAULT false | Supprimer |
+| UNIQUE(role, module) | | Une seule ligne par rôle × module |
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+RLS : SELECT tous authenticated, INSERT/UPDATE/DELETE admin uniquement.
 
-## Phase 3 : Modules qualité
+Les **modules** couverts (17 modules) :
+`processus`, `cartographie`, `bpmn`, `evaluation_processus`, `documents`, `indicateurs`, `risques`, `incidents`, `enjeux_contexte`, `politique_qualite`, `revue_direction`, `competences`, `satisfaction_client`, `fournisseurs`, `audits`, `non_conformites`, `actions`
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+## 2. Permissions par défaut (non modifiables, en code)
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+Définir dans un fichier `src/lib/defaultPermissions.ts` une matrice complète des permissions par défaut de chaque rôle, basée sur le comportement actuel. Ces valeurs sont utilisées comme **base**. Les overrides en DB viennent s'y ajouter ou restreindre.
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+Règle de merge : `admin` a toujours tout (non overridable). Pour les autres rôles, si un override existe en DB il prime, sinon le défaut s'applique.
 
-## Phase 4 : Modules audit & amélioration
+## 3. Modifications AuthContext
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+- Charger `role_permissions` au login (une requête supplémentaire)
+- Nouvelle fonction `hasPermission(module: string, level: "read" | "read_detail" | "edit" | "delete"): boolean`
+- Merge les defaults du rôle avec les overrides DB
+- Admin bypass total (toujours true)
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
+## 4. Page d'administration des permissions
 
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
+Nouvelle page `/admin/permissions` (ou onglet dans Utilisateurs) accessible admin uniquement.
 
-## Phase 5 : Tableaux de bord & Reporting
+UI : Tableau croisé **rôles (colonnes) × modules (lignes)**, chaque cellule contient 4 checkboxes (lecture, détail, modification, suppression). Les cases du rôle `admin` sont grisées et cochées.
 
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
+Les valeurs modifiées sont sauvegardées en upsert dans `role_permissions`.
 
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
+## 5. Adaptation des pages existantes
 
-## Contrôle d'accès (transversal)
+Remplacer progressivement les appels `hasRole()` par `hasPermission()` dans chaque page :
 
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
+| Page | Remplacement |
+|---|---|
+| Processus, ProcessDetail | `hasPermission("processus", "edit/delete")` |
+| Cartographie | `hasPermission("cartographie", "read")` |
+| BPMN | `hasPermission("bpmn", "edit")` |
+| Documents | `hasPermission("documents", "edit/delete")` |
+| Indicateurs | `hasPermission("indicateurs", "edit/delete/read_detail")` |
+| Risques | `hasPermission("risques", "edit/delete/read_detail")` |
+| Incidents | `hasPermission("incidents", "edit")` |
+| Enjeux contexte | `hasPermission("enjeux_contexte", "edit/delete")` |
+| Politique qualité | `hasPermission("politique_qualite", "edit")` |
+| Revue direction | `hasPermission("revue_direction", "edit")` |
+| Compétences | `hasPermission("competences", "edit")` |
+| Satisfaction | `hasPermission("satisfaction_client", "edit")` |
+| Fournisseurs | `hasPermission("fournisseurs", "edit")` |
+| Audits | `hasPermission("audits", "edit/delete")` |
+| Non-conformités | `hasPermission("non_conformites", "edit/delete")` |
+| Actions | `hasPermission("actions", "edit/delete")` |
+| Évaluation processus | `hasPermission("evaluation_processus", "edit")` |
+
+La sidebar et les routes seront aussi adaptées : `hasPermission(module, "read")` contrôle la visibilité du lien et l'accès à la route.
+
+## 6. Étapes d'implémentation (avec tests entre chaque)
+
+1. **Migration DB** : créer `role_permissions` + RLS + seed avec les valeurs par défaut
+2. **`defaultPermissions.ts`** : matrice codée en dur des defaults actuels
+3. **AuthContext** : ajouter `permissions`, `hasPermission()`, charger depuis DB
+4. **Page admin permissions** : UI tableau croisé + sauvegarde
+5. **Test** : vérifier que tout fonctionne identiquement avec les defaults
+6. **Adapter les pages** (par groupes de 3-4 pages, test après chaque groupe) :
+   - Groupe 1 : Processus, Documents, Indicateurs, Risques
+   - Groupe 2 : Audits, NC, Actions, Incidents
+   - Groupe 3 : Politique qualité, Revue direction, Compétences, Satisfaction, Fournisseurs
+   - Groupe 4 : Cartographie, BPMN, Évaluation processus, Enjeux
+7. **Adapter Sidebar + RoleGuard** pour utiliser `hasPermission`
+8. **Test final complet**
+
+## Fichiers impactés
+
+- 1 migration SQL
+- `src/lib/defaultPermissions.ts` (nouveau)
+- `src/contexts/AuthContext.tsx`
+- `src/pages/AdminPermissions.tsx` (nouveau) ou intégré dans Utilisateurs
+- `src/components/AppSidebar.tsx`
+- `src/components/RoleGuard.tsx`
+- `src/App.tsx`
+- 17 pages de modules (remplacement `hasRole` → `hasPermission`)
 
