@@ -40,8 +40,7 @@ interface ProcessElement {
 
 interface Acteur {
   id: string;
-  nom: string;
-  prenom: string;
+  fonction: string | null;
 }
 
 const FLOW_ICONS: Record<TaskFlowType, string> = {
