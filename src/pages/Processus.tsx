@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, Eye, UserCheck, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, UserCheck, Trash2, History } from "lucide-react";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -46,21 +46,22 @@ export default function Processus() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [users, setUsers] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
   const [newProcess, setNewProcess] = useState({ code: "", nom: "", type_processus: "realisation" as const, finalite: "", responsable_id: "" });
+  const [archiveDialogCode, setArchiveDialogCode] = useState<string | null>(null);
+  const [archivedVersions, setArchivedVersions] = useState<Process[]>([]);
+  const [loadingArchives, setLoadingArchives] = useState(false);
 
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
   const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant") && !hasRole("auditeur");
 
   const fetchProcesses = async () => {
     if (isOnlyActeur && user) {
-      // Get the user's acteur_id from profile
       const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
       const acteurId = profileData?.acteur_id;
       if (acteurId) {
-        // Find processes where this acteur is a task responsable
         const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId);
         const processIds = [...new Set((taskData ?? []).map(t => t.process_id))];
         if (processIds.length > 0) {
-          const { data } = await supabase.from("processes").select("*").in("id", processIds).order("code");
+          const { data } = await supabase.from("processes").select("*").in("id", processIds).neq("statut", "archive").order("code");
           setProcesses((data ?? []) as Process[]);
         } else {
           setProcesses([]);
@@ -69,7 +70,7 @@ export default function Processus() {
         setProcesses([]);
       }
     } else {
-      let query = supabase.from("processes").select("*").order("code");
+      let query = supabase.from("processes").select("*").neq("statut", "archive").order("code");
       if (isOnlyResponsable && user) {
         query = query.eq("responsable_id", user.id);
       }
@@ -90,6 +91,26 @@ export default function Processus() {
   };
 
   useEffect(() => { fetchProcesses(); fetchUsers(); }, []);
+
+  const fetchArchivedVersions = async (code: string) => {
+    setLoadingArchives(true);
+    // Get all archived processes whose code starts with the base code
+    const { data } = await supabase.from("processes").select("*").eq("statut", "archive").order("version_courante", { ascending: false });
+    // Filter: match base code (e.g. PRO-002 matches PRO-002 and PRO-002-v2)
+    const baseCode = code.replace(/-v\d+(\.\d+)?$/, "");
+    const filtered = (data ?? []).filter((p: any) => {
+      const pBase = p.code.replace(/-v\d+(\.\d+)?$/, "");
+      return pBase === baseCode;
+    });
+    setArchivedVersions(filtered as Process[]);
+    setLoadingArchives(false);
+  };
+
+  const handleShowArchives = (e: React.MouseEvent, code: string) => {
+    e.stopPropagation();
+    setArchiveDialogCode(code);
+    fetchArchivedVersions(code);
+  };
 
   const filtered = processes.filter((p) => {
     if (typeFilter !== "all" && p.type_processus !== typeFilter) return false;
@@ -199,7 +220,6 @@ export default function Processus() {
             <SelectItem value="brouillon">Brouillon</SelectItem>
             <SelectItem value="en_validation">En validation</SelectItem>
             <SelectItem value="valide">Validé</SelectItem>
-            <SelectItem value="archive">Archivé</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -228,6 +248,9 @@ export default function Processus() {
                       <span>{responsable ? getUserLabel(responsable) : "Non assigné"}</span>
                     </div>
                     <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Versions archivées" onClick={(e) => handleShowArchives(e, p.code)}>
+                      <History className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                     <Eye className="h-4 w-4 text-muted-foreground" />
                     {canDeleteProcess(p) && (
                       <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}>
@@ -241,6 +264,44 @@ export default function Processus() {
           })}
         </div>
       )}
+
+      {/* Archived versions dialog */}
+      <Dialog open={!!archiveDialogCode} onOpenChange={(open) => { if (!open) setArchiveDialogCode(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" /> Versions archivées — {archiveDialogCode}
+            </DialogTitle>
+          </DialogHeader>
+          {loadingArchives ? (
+            <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
+          ) : archivedVersions.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Aucune version archivée</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {archivedVersions.map((av) => {
+                const responsable = users.find(u => u.id === av.responsable_id);
+                return (
+                  <Card key={av.id} className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => { setArchiveDialogCode(null); navigate(`/processus/${av.id}`); }}>
+                    <CardContent className="flex items-center justify-between py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-sm text-primary">{av.code}</span>
+                        <span className="font-medium">{av.nom}</span>
+                        <span className="text-xs text-muted-foreground">v{av.version_courante}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {responsable && <span className="text-xs text-muted-foreground">{getUserLabel(responsable)}</span>}
+                        <Badge className={statusColors.archive}>Archivé</Badge>
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AdminPasswordDialog
         open={adminDialogOpen}
