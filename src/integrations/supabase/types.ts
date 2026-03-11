@@ -367,6 +367,50 @@ export type Database = {
           },
         ]
       }
+      competences: {
+        Row: {
+          acteur_id: string
+          commentaire: string
+          competence: string
+          created_at: string
+          date_evaluation: string
+          id: string
+          niveau: string
+          prochaine_evaluation: string | null
+          updated_at: string
+        }
+        Insert: {
+          acteur_id: string
+          commentaire?: string
+          competence?: string
+          created_at?: string
+          date_evaluation?: string
+          id?: string
+          niveau?: string
+          prochaine_evaluation?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acteur_id?: string
+          commentaire?: string
+          competence?: string
+          created_at?: string
+          date_evaluation?: string
+          id?: string
+          niveau?: string
+          prochaine_evaluation?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competences_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       context_issue_actions: {
         Row: {
           context_issue_id: string
@@ -571,6 +615,59 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formations: {
+        Row: {
+          acteur_id: string
+          commentaire: string
+          created_at: string
+          date_formation: string
+          description: string
+          duree_heures: number
+          efficacite: string
+          formateur: string
+          id: string
+          preuve: string | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          acteur_id: string
+          commentaire?: string
+          created_at?: string
+          date_formation?: string
+          description?: string
+          duree_heures?: number
+          efficacite?: string
+          formateur?: string
+          id?: string
+          preuve?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Update: {
+          acteur_id?: string
+          commentaire?: string
+          created_at?: string
+          date_formation?: string
+          description?: string
+          duree_heures?: number
+          efficacite?: string
+          formateur?: string
+          id?: string
+          preuve?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formations_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
             referencedColumns: ["id"]
           },
         ]
@@ -1186,6 +1283,98 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      quality_objectives: {
+        Row: {
+          cible: string
+          commentaire: string
+          created_at: string
+          description: string
+          echeance: string | null
+          id: string
+          indicateur: string
+          process_id: string | null
+          reference: string
+          responsable_id: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          cible?: string
+          commentaire?: string
+          created_at?: string
+          description?: string
+          echeance?: string | null
+          id?: string
+          indicateur?: string
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          cible?: string
+          commentaire?: string
+          created_at?: string
+          description?: string
+          echeance?: string | null
+          id?: string
+          indicateur?: string
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_objectives_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quality_policy: {
+        Row: {
+          approuve_par: string | null
+          contenu: string
+          created_at: string
+          date_approbation: string | null
+          id: string
+          objectifs: string
+          statut: string
+          titre: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approuve_par?: string | null
+          contenu?: string
+          created_at?: string
+          date_approbation?: string | null
+          id?: string
+          objectifs?: string
+          statut?: string
+          titre?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approuve_par?: string | null
+          contenu?: string
+          created_at?: string
+          date_approbation?: string | null
+          id?: string
+          objectifs?: string
+          statut?: string
+          titre?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
       }
       risk_actions: {
         Row: {
