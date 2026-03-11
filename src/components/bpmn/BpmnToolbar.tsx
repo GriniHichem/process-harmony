@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Separator } from "@/components/ui/separator";
 import { 
   Play, Square, CheckSquare, Diamond, Clock, Mail, Layers, StickyNote,
-  MousePointer, Link2, Trash2, ZoomIn, ZoomOut, Maximize, Save, Undo2
+  MousePointer, Link2, Trash2, ZoomIn, ZoomOut, Maximize, Save, Undo2, Wand2
 } from "lucide-react";
 import { BpmnNodeType, NODE_CATEGORIES } from "./types";
 
