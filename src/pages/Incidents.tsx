@@ -50,19 +50,38 @@ export default function Incidents() {
   const [searchText, setSearchText] = useState("");
 
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const emptyForm = { description: "", date_incident: new Date().toISOString().split("T")[0], gravite: "mineure", statut: "ouvert", responsable: "", actions_correctives: "", risk_id: "", process_id: "" };
   const [form, setForm] = useState(emptyForm);
 
   const fetchData = async () => {
-    const [iRes, rRes, pRes] = await Promise.all([
-      supabase.from("risk_incidents").select("*").order("date_incident", { ascending: false }),
-      supabase.from("risks_opportunities").select("id, description, type"),
-      supabase.from("processes").select("id, nom").order("nom"),
-    ]);
+    let procQuery = supabase.from("processes").select("id, nom").order("nom");
+    if (isOnlyResponsable && user) {
+      procQuery = procQuery.eq("responsable_id", user.id);
+    }
+    const pRes = await procQuery;
+    const myProcesses = pRes.data ?? [];
+    setProcesses(myProcesses);
+    const myProcessIds = myProcesses.map(p => p.id);
+
+    let incQuery = supabase.from("risk_incidents").select("*").order("date_incident", { ascending: false });
+    if (isOnlyResponsable && myProcessIds.length > 0) {
+      incQuery = incQuery.in("process_id", myProcessIds);
+    } else if (isOnlyResponsable) {
+      incQuery = incQuery.in("process_id", ["__none__"]);
+    }
+
+    let riskQuery = supabase.from("risks_opportunities").select("id, description, type");
+    if (isOnlyResponsable && myProcessIds.length > 0) {
+      riskQuery = riskQuery.in("process_id", myProcessIds);
+    } else if (isOnlyResponsable) {
+      riskQuery = riskQuery.in("process_id", ["__none__"]);
+    }
+
+    const [iRes, rRes] = await Promise.all([incQuery, riskQuery]);
     setIncidents((iRes.data ?? []) as Incident[]);
     setRisks((rRes.data ?? []) as any[]);
-    setProcesses(pRes.data ?? []);
     setLoading(false);
   };
 

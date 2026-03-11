@@ -91,7 +91,6 @@ export default function Documents() {
 
   useEffect(() => {
     fetchDocs();
-    supabase.from("processes").select("id, nom").order("nom").then(({ data }) => setProcesses(data ?? []));
   }, []);
 
   const handleUpload = async () => {
