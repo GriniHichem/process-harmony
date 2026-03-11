@@ -38,6 +38,7 @@ interface Process {
   id: string;
   code: string;
   nom: string;
+  responsable_id: string | null;
 }
 
 interface Props {
