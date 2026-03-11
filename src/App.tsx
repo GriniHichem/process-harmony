@@ -32,6 +32,7 @@ import RevueDirection from "./pages/RevueDirection";
 import CompetencesPage from "./pages/Competences";
 import SatisfactionClient from "./pages/SatisfactionClient";
 import Fournisseurs from "./pages/Fournisseurs";
+import EvaluationProcessus from "./pages/EvaluationProcessus";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/processus/:id" element={<ProtectedPage><ProcessDetail /></ProtectedPage>} />
             <Route path="/cartographie" element={<ProtectedPage><Cartographie /></ProtectedPage>} />
             <Route path="/bpmn" element={<ProtectedPage><RoleGuard blockedOnlyRoles={["acteur"]}><Bpmn /></RoleGuard></ProtectedPage>} />
+            <Route path="/evaluation-processus" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><EvaluationProcessus /></RoleGuard></ProtectedPage>} />
             {/* Manager processus - admin, rmq, responsable_processus, consultant */}
             <Route path="/documents" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Documents /></RoleGuard></ProtectedPage>} />
             <Route path="/indicateurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><Indicateurs /></RoleGuard></ProtectedPage>} />

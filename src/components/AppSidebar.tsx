@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen,
-  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck
+  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -22,6 +22,7 @@ const processItems = [
   { title: "Processus", url: "/processus", icon: Network },
   { title: "Cartographie", url: "/cartographie", icon: Map },
   { title: "BPMN", url: "/bpmn", icon: Settings },
+  { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList },
 ];
 
 const qualityItems = [
