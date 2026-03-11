@@ -85,8 +85,11 @@ export default function Utilisateurs() {
 
   useEffect(() => { fetchUsers(); fetchActeurs(); }, []);
 
+  const canEdit = hasPermission("utilisateurs", "can_edit");
+  const canDelete = hasPermission("utilisateurs", "can_delete");
+
   const handleToggleRole = async (userId: string, roleKey: string, currentRoles: string[]) => {
-    if (!hasRole("admin")) return;
+    if (!canEdit) return;
     const has = currentRoles.includes(roleKey);
     if (has) {
       const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", roleKey as any);
