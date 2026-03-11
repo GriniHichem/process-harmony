@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Archive, Trash2 } from "lucide-react";
 import { format } from "date-fns";
@@ -46,6 +47,11 @@ export default function EvaluationProcessus() {
     score_risques: 2,
   });
 
+  // Dialog for process creation with custom code
+  const [processDialogOpen, setProcessDialogOpen] = useState(false);
+  const [processCode, setProcessCode] = useState("");
+  const [processType, setProcessType] = useState<"pilotage" | "realisation" | "support">("support");
+
   const scoreTotal = useMemo(() => Object.values(scores).reduce((a, b) => a + b, 0), [scores]);
   const resultat = scoreTotal >= 16 ? "processus" : scoreTotal >= 12 ? "zone_orange" : "activite";
 
@@ -64,6 +70,8 @@ export default function EvaluationProcessus() {
   const resetForm = () => {
     setNom("");
     setDescription("");
+    setProcessCode("");
+    setProcessType("support");
     setScores({ score_objectifs: 2, score_ca: 2, score_satisfaction: 2, score_perennite: 2, score_risques: 2 });
   };
 
@@ -74,10 +82,10 @@ export default function EvaluationProcessus() {
       // If converting to process, first create the process
       let processId: string | null = null;
       if (statut === "processus_cree") {
-        const code = "EVAL-" + Date.now().toString(36).toUpperCase();
+        if (!processCode.trim()) throw new Error("Le code du processus est requis");
         const { data: proc, error: procErr } = await supabase
           .from("processes")
-          .insert({ nom: nom.trim(), code, description: description.trim(), type_processus: "support" as const })
+          .insert({ nom: nom.trim(), code: processCode.trim(), description: description.trim(), type_processus: processType })
           .select("id")
           .single();
         if (procErr) throw procErr;
@@ -225,13 +233,48 @@ export default function EvaluationProcessus() {
                   Ignorer / garder comme activité
                 </Button>
                 <Button
-                  onClick={() => saveMutation.mutate("processus_cree")}
+                  onClick={() => setProcessDialogOpen(true)}
                   disabled={saveMutation.isPending || !nom.trim()}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter à la liste des processus
                 </Button>
               </div>
+
+              {/* Dialog for process code & type */}
+              <Dialog open={processDialogOpen} onOpenChange={setProcessDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Créer le processus « {nom} »</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Code du processus *</Label>
+                      <Input value={processCode} onChange={(e) => setProcessCode(e.target.value)} placeholder="Ex: PRO-001, PM-01, PS-03..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Type de processus</Label>
+                      <Select value={processType} onValueChange={(v: any) => setProcessType(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pilotage">Management</SelectItem>
+                          <SelectItem value="realisation">Réalisation</SelectItem>
+                          <SelectItem value="support">Support</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setProcessDialogOpen(false)}>Annuler</Button>
+                    <Button
+                      onClick={() => { setProcessDialogOpen(false); saveMutation.mutate("processus_cree"); }}
+                      disabled={!processCode.trim()}
+                    >
+                      Créer le processus
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         </TabsContent>
