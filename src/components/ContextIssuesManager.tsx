@@ -44,6 +44,8 @@ interface Props {
   processId?: string;
   canEdit: boolean;
   canDelete: boolean;
+  userId?: string;
+  isOnlyResponsable?: boolean;
 }
 
 const impactColors: Record<string, string> = {
