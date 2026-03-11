@@ -46,6 +46,7 @@ export default function Acteurs() {
   const [linkedUsers, setLinkedUsers] = useState<Record<string, LinkedUser[]>>({});
 
   const canEdit = hasRole("rmq") || hasRole("admin") || hasRole("responsable_processus") || hasRole("consultant");
+  const canDelete = hasRole("rmq") || hasRole("admin");
   const canViewImplications = hasRole("rmq") || hasRole("admin") || hasRole("auditeur");
   const [implicationActeur, setImplicationActeur] = useState<{ id: string; label: string } | null>(null);
 
