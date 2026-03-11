@@ -381,7 +381,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
             </div>
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <Input value={moyenForm.responsable} onChange={(e) => setMoyenForm({ ...moyenForm, responsable: e.target.value })} placeholder="Nom du responsable" />
+                <Input value={moyenForm.responsable} onChange={(e) => setMoyenForm({ ...moyenForm, responsable: e.target.value })} placeholder="Nom du responsable" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
