@@ -5,15 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Users, Plus, KeyRound } from "lucide-react";
 
+type ActeurRef = { id: string; fonction: string | null };
+
 type UserWithRoles = {
   id: string; nom: string; prenom: string; email: string; fonction: string; actif: boolean;
   roles: string[];
+  acteur_id: string | null;
 };
 
 const allRoles = [
