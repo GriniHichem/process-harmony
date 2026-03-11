@@ -63,13 +63,32 @@ export default function Risques() {
     setProcesses(myProcesses);
 
     let riskQuery = supabase.from("risks_opportunities").select("*").order("criticite", { ascending: false });
-    if (isOnlyResponsable && myProcesses.length > 0) {
+    if ((isOnlyResponsable || isOnlyActeur) && myProcesses.length > 0) {
       riskQuery = riskQuery.in("process_id", myProcesses.map(p => p.id));
-    } else if (isOnlyResponsable) {
+    } else if (isOnlyResponsable || isOnlyActeur) {
       riskQuery = riskQuery.in("process_id", ["__none__"]);
     }
     const rRes = await riskQuery;
-    setRisks((rRes.data ?? []) as Risk[]);
+    const allRisks = (rRes.data ?? []) as Risk[];
+    setRisks(allRisks);
+
+    // For acteur: find which risks have actions/moyens where they are responsible
+    if (isOnlyActeur && user) {
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
+      const acteurId = profileData?.acteur_id;
+      const riskIds = allRisks.map(r => r.id);
+      if (riskIds.length > 0 && acteurId) {
+        const [actionsRes, moyensRes] = await Promise.all([
+          supabase.from("risk_actions").select("risk_id").in("risk_id", riskIds).eq("responsable", acteurId),
+          supabase.from("risk_moyens").select("risk_id").in("risk_id", riskIds).eq("responsable", acteurId),
+        ]);
+        const ids = new Set<string>();
+        (actionsRes.data ?? []).forEach((a: any) => ids.add(a.risk_id));
+        (moyensRes.data ?? []).forEach((m: any) => ids.add(m.risk_id));
+        setActeurRiskIds(ids);
+      }
+    }
+
     setLoading(false);
   };
 
