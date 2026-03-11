@@ -220,8 +220,11 @@ export default function Risques() {
               <Card key={r.id} className={`transition-shadow ${isExpanded ? "ring-2 ring-primary/30 shadow-md" : ""}`}>
                 <CardContent className="py-4">
                   <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                    className={`flex items-center justify-between ${(!isOnlyActeur || acteurRiskIds.has(r.id)) ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (isOnlyActeur && !acteurRiskIds.has(r.id)) { return; }
+                      setExpandedId(isExpanded ? null : r.id);
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
