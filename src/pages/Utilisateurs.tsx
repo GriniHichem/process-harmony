@@ -32,6 +32,7 @@ const allRoles = [
 export default function Utilisateurs() {
   const { hasRole } = useAuth();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [acteursList, setActeursList] = useState<ActeurRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", nom: "", prenom: "", fonction: "" });
@@ -54,7 +55,12 @@ export default function Utilisateurs() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchActeurs = async () => {
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true).order("fonction");
+    setActeursList((data ?? []) as ActeurRef[]);
+  };
+
+  useEffect(() => { fetchUsers(); fetchActeurs(); }, []);
 
   const handleToggleRole = async (userId: string, roleKey: string, currentRoles: string[]) => {
     if (!hasRole("admin")) return;
