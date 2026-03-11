@@ -545,7 +545,8 @@ export default function Indicateurs() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
