@@ -454,7 +454,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
           <DialogHeader><DialogTitle>{editingAction ? "Modifier l'action" : "Nouvelle action"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1"><Label>Description</Label><Textarea value={actionForm.description} onChange={e => setActionForm({ ...actionForm, description: e.target.value })} rows={2} /></div>
-            <div className="space-y-1"><Label>Responsable</Label><Input value={actionForm.responsable} onChange={e => setActionForm({ ...actionForm, responsable: e.target.value })} /></div>
+            <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1"><Label>Date de revue</Label><Input type="date" value={actionForm.date_revue} onChange={e => setActionForm({ ...actionForm, date_revue: e.target.value })} /></div>
               <div className="space-y-1">
