@@ -1376,6 +1376,60 @@ export type Database = {
         }
         Relationships: []
       }
+      review_input_items: {
+        Row: {
+          commentaire: string
+          created_at: string
+          entity_id: string | null
+          id: string
+          label: string
+          ordre: number
+          parent_id: string | null
+          review_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          commentaire?: string
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          label?: string
+          ordre?: number
+          parent_id?: string | null
+          review_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          commentaire?: string
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          label?: string
+          ordre?: number
+          parent_id?: string | null
+          review_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_input_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "review_input_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_input_items_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "management_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       risk_actions: {
         Row: {
           created_at: string
