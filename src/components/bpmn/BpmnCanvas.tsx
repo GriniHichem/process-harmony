@@ -104,12 +104,12 @@ function orthogonalPath(
 
 /* ── Component ──────────────────────────────────────────── */
 
-export default function BpmnCanvas({
+const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCanvas({
   nodes, edges, mode, zoom,
   onNodesChange, onEdgesChange, onEdgeAdd,
   onNodeDelete, onEdgeDelete, onNodeSelect,
   selectedNodeId, canEdit,
-}: BpmnCanvasProps) {
+}, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
   const [connecting, setConnecting] = useState<{ fromId: string; mouseX: number; mouseY: number } | null>(null);
