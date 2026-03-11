@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { BpmnNode, BpmnEdge, BpmnData, BpmnDiagram, BpmnNodeType, NODE_DEFAULTS } from "@/components/bpmn/types";
 import BpmnToolbar from "@/components/bpmn/BpmnToolbar";
 import BpmnCanvas from "@/components/bpmn/BpmnCanvas";
 import BpmnPropertiesPanel from "@/components/bpmn/BpmnPropertiesPanel";
+import { generateBpmnFromTasks } from "@/lib/generateBpmnFromTasks";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type ToolMode = "select" | "connect" | "delete";
 
