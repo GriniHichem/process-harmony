@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
 import ParticipantSelector, { formatParticipantsDisplay, parseParticipants } from "@/components/ParticipantSelector";
+import { ReviewInputItemsEditor, ReviewInputItemsView } from "@/components/ReviewInputItems";
 
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -26,7 +27,6 @@ const statutLabels: Record<string, string> = { planifiee: "Planifiée", realisee
 const emptyForm = { reference: "", date_revue: "", participants: "", elements_entree: "", decisions: "", actions_decidees: "", statut: "planifiee", compte_rendu: "", prochaine_revue: "" };
 
 const RICH_FIELDS = [
-  { key: "elements_entree", label: "Éléments d'entrée", placeholder: "État des actions, performance des processus, résultats d'audit..." },
   { key: "decisions", label: "Décisions", placeholder: "Décisions prises lors de la revue..." },
   { key: "actions_decidees", label: "Actions décidées", placeholder: "Actions à mettre en œuvre..." },
   { key: "compte_rendu", label: "Compte rendu", placeholder: "Compte rendu détaillé de la revue..." },
@@ -34,6 +34,7 @@ const RICH_FIELDS = [
 
 const ALL_SECTIONS = [
   { key: "participants", label: "Participants", isRich: false },
+  { key: "elements_entree", label: "Éléments d'entrée", isRich: false },
   ...RICH_FIELDS.map(f => ({ ...f, isRich: true })),
 ] as const;
 
@@ -152,6 +153,13 @@ export default function RevueDirection() {
                   ))}
                 </div>
               </div>
+              {/* Éléments d'entrée structured */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Éléments d'entrée</Label>
+                <div className="mt-1">
+                  <ReviewInputItemsView reviewId={viewing.id} />
+                </div>
+              </div>
               {RICH_FIELDS.map(f => (
                 <div key={f.key}>
                   <Label className="text-xs text-muted-foreground">{f.label}</Label>
@@ -223,6 +231,21 @@ export default function RevueDirection() {
                     value={form.participants}
                     onChange={v => setForm(prev => ({ ...prev, participants: v }))}
                   />
+                </div>
+              </div>
+
+              {/* Éléments d'entrée section */}
+              <div className={`p-6 ${activeField === "elements_entree" ? "" : "hidden"}`}>
+                <div className="max-w-3xl mx-auto">
+                  <h3 className="text-lg font-semibold mb-2">Éléments d'entrée</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Ajoutez des points à discuter ou liez des éléments existants (processus, indicateurs, risques, audits, etc.).
+                  </p>
+                  {editing?.id ? (
+                    <ReviewInputItemsEditor reviewId={editing.id} canEdit={canEdit} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Enregistrez d'abord la revue pour ajouter des éléments d'entrée structurés.</p>
+                  )}
                 </div>
               </div>
 
