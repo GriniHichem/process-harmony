@@ -30,7 +30,7 @@ const allRoles = [
 ];
 
 export default function Utilisateurs() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [acteursList, setActeursList] = useState<ActeurRef[]>([]);
   const [loading, setLoading] = useState(true);

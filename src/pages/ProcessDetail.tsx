@@ -88,11 +88,11 @@ export default function ProcessDetail() {
     if (id) { fetch(); fetchElements(); fetchDocuments(); fetchUsers(); }
   }, [id, fetchElements, fetchDocuments]);
 
-  const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("consultant") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
+  const canEdit = hasPermission("processus", "can_edit") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
   const isArchived = process?.statut === "archive";
   const isLockedStatus = process?.statut === "valide" || process?.statut === "en_validation";
   // Archived = completely frozen for everyone (no edit, no delete, no status change)
-  const canDelete = !isArchived && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus")) && !isLockedStatus;
+  const canDelete = !isArchived && hasPermission("processus", "can_delete") && !isLockedStatus;
   const canChangeStatus = !isArchived && (hasRole("admin") || hasRole("rmq"));
   const canChangeResponsable = !isArchived && (hasRole("admin") || hasRole("rmq"));
 
