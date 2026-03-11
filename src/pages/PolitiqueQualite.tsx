@@ -122,7 +122,10 @@ export default function PolitiqueQualite() {
         <TabsContent value="politique" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Politique qualité</h2>
-            {canEdit && <Button onClick={openNewPolicy}><Plus className="h-4 w-4 mr-1" />Nouvelle version</Button>}
+            <div className="flex gap-2">
+              {policies.length > 0 && <Button variant="outline" onClick={exportPolitiqueQualitePdf}><Download className="h-4 w-4 mr-1" />Exporter PDF</Button>}
+              {canEdit && <Button onClick={openNewPolicy}><Plus className="h-4 w-4 mr-1" />Nouvelle version</Button>}
+            </div>
           </div>
 
           {policies.length === 0 ? (
