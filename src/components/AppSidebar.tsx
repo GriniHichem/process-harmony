@@ -1,11 +1,12 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen,
-  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList
+  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList, Lock
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import type { AppModule } from "@/lib/defaultPermissions";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
@@ -13,57 +14,67 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-const mainItems = [
+type NavItem = { title: string; url: string; icon: any; module?: AppModule };
+
+const mainItems: NavItem[] = [
   { title: "Tableau de bord", url: "/", icon: LayoutDashboard },
-  { title: "Acteurs", url: "/acteurs", icon: Contact },
-  { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList },
+  { title: "Acteurs", url: "/acteurs", icon: Contact, module: "acteurs" },
+  { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList, module: "evaluation_processus" },
 ];
 
-const processItems = [
-  { title: "Processus", url: "/processus", icon: Network },
-  { title: "Cartographie", url: "/cartographie", icon: Map },
-  { title: "BPMN", url: "/bpmn", icon: Settings },
+const processItems: NavItem[] = [
+  { title: "Processus", url: "/processus", icon: Network, module: "processus" },
+  { title: "Cartographie", url: "/cartographie", icon: Map, module: "cartographie" },
+  { title: "BPMN", url: "/bpmn", icon: Settings, module: "bpmn" },
 ];
 
-const qualityItems = [
-  { title: "Documents", url: "/documents", icon: FileText },
-  { title: "Indicateurs", url: "/indicateurs", icon: BarChart3 },
-  { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle },
-  { title: "Incidents", url: "/incidents", icon: AlertOctagon },
-  { title: "Enjeux du contexte", url: "/enjeux-contexte", icon: Landmark },
+const qualityItems: NavItem[] = [
+  { title: "Documents", url: "/documents", icon: FileText, module: "documents" },
+  { title: "Indicateurs", url: "/indicateurs", icon: BarChart3, module: "indicateurs" },
+  { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle, module: "risques" },
+  { title: "Incidents", url: "/incidents", icon: AlertOctagon, module: "incidents" },
+  { title: "Enjeux du contexte", url: "/enjeux-contexte", icon: Landmark, module: "enjeux_contexte" },
 ];
 
-const auditItems = [
-  { title: "Tableau Audit/NC", url: "/dashboard-audit", icon: BarChart3 },
-  { title: "Audits", url: "/audits", icon: ClipboardCheck },
-  { title: "Non-conformités", url: "/non-conformites", icon: XCircle },
-  { title: "Actions", url: "/actions", icon: Zap },
-  { title: "Journal d'activité", url: "/journal", icon: ScrollText },
+const auditItems: NavItem[] = [
+  { title: "Tableau Audit/NC", url: "/dashboard-audit", icon: BarChart3, module: "audits" },
+  { title: "Audits", url: "/audits", icon: ClipboardCheck, module: "audits" },
+  { title: "Non-conformités", url: "/non-conformites", icon: XCircle, module: "non_conformites" },
+  { title: "Actions", url: "/actions", icon: Zap, module: "actions" },
+  { title: "Journal d'activité", url: "/journal", icon: ScrollText, module: "journal" },
 ];
 
-const pilotageSMQItems = [
-  { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen },
-  { title: "Revue de direction", url: "/revue-direction", icon: CalendarCheck },
-  { title: "Compétences", url: "/competences", icon: GraduationCap },
-  { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus },
-  { title: "Fournisseurs", url: "/fournisseurs", icon: Truck },
+const pilotageSMQItems: NavItem[] = [
+  { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen, module: "politique_qualite" },
+  { title: "Revue de direction", url: "/revue-direction", icon: CalendarCheck, module: "revue_direction" },
+  { title: "Compétences", url: "/competences", icon: GraduationCap, module: "competences" },
+  { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus, module: "satisfaction_client" },
+  { title: "Fournisseurs", url: "/fournisseurs", icon: Truck, module: "fournisseurs" },
 ];
 
-const adminItems = [
-  { title: "Utilisateurs", url: "/utilisateurs", icon: Users },
-  { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen },
+const adminItems: NavItem[] = [
+  { title: "Utilisateurs", url: "/utilisateurs", icon: Users, module: "utilisateurs" },
+  { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen, module: "groupes_acteurs" },
+  { title: "Permissions", url: "/admin/permissions", icon: Lock },
 ];
-
-type NavItem = { title: string; url: string; icon: any };
 
 function NavGroup({ label, items, collapsed }: { label: string; items: NavItem[]; collapsed: boolean }) {
   const location = useLocation();
+  const { hasPermission } = useAuth();
+
+  const visibleItems = items.filter((item) => {
+    if (!item.module) return true; // no module = always visible (e.g. Dashboard)
+    return hasPermission(item.module, "can_read");
+  });
+
+  if (visibleItems.length === 0) return null;
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <SidebarMenuItem key={item.url}>
               <SidebarMenuButton asChild isActive={location.pathname === item.url}>
                 <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
@@ -84,13 +95,6 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { profile, roles, hasRole, signOut } = useAuth();
 
-  const showProcessMenu = true; // All roles can see processus menu
-  const isActeurOnly = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
-  const showQualityMenu = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant") || hasRole("acteur");
-  const showAuditMenu = hasRole("admin") || hasRole("rmq") || hasRole("auditeur");
-
-  // Acteur only sees Indicateurs, Risques, Enjeux (not Documents, Incidents)
-  const acteurQualityItems = qualityItems.filter(i => ["/indicateurs", "/risques", "/enjeux-contexte"].includes(i.url));
   const showAdminMenu = hasRole("admin") || hasRole("rmq");
 
   return (
@@ -111,10 +115,10 @@ export function AppSidebar() {
 
       <SidebarContent>
         <NavGroup label="Principal" items={mainItems} collapsed={collapsed} />
-        {showProcessMenu && <NavGroup label="Processus" items={processItems} collapsed={collapsed} />}
-        {showQualityMenu && <NavGroup label="Manager processus" items={isActeurOnly ? acteurQualityItems : qualityItems} collapsed={collapsed} />}
+        <NavGroup label="Processus" items={processItems} collapsed={collapsed} />
+        <NavGroup label="Manager processus" items={qualityItems} collapsed={collapsed} />
         <NavGroup label="Pilotage SMQ" items={pilotageSMQItems} collapsed={collapsed} />
-        {showAuditMenu && <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />}
+        <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />
         {showAdminMenu && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
       </SidebarContent>
 

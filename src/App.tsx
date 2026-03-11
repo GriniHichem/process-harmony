@@ -33,6 +33,7 @@ import CompetencesPage from "./pages/Competences";
 import SatisfactionClient from "./pages/SatisfactionClient";
 import Fournisseurs from "./pages/Fournisseurs";
 import EvaluationProcessus from "./pages/EvaluationProcessus";
+import AdminPermissions from "./pages/AdminPermissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,36 +54,37 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            {/* Principal - accessible à tous */}
+            {/* Principal */}
             <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
-            <Route path="/acteurs" element={<ProtectedPage><Acteurs /></ProtectedPage>} />
-            {/* Processus - accessible à tous les rôles */}
-            <Route path="/processus" element={<ProtectedPage><Processus /></ProtectedPage>} />
-            <Route path="/processus/:id" element={<ProtectedPage><ProcessDetail /></ProtectedPage>} />
-            <Route path="/cartographie" element={<ProtectedPage><Cartographie /></ProtectedPage>} />
-            <Route path="/bpmn" element={<ProtectedPage><RoleGuard blockedOnlyRoles={["acteur"]}><Bpmn /></RoleGuard></ProtectedPage>} />
-            <Route path="/evaluation-processus" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><EvaluationProcessus /></RoleGuard></ProtectedPage>} />
-            {/* Manager processus - admin, rmq, responsable_processus, consultant */}
-            <Route path="/documents" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Documents /></RoleGuard></ProtectedPage>} />
-            <Route path="/indicateurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><Indicateurs /></RoleGuard></ProtectedPage>} />
-            <Route path="/risques" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><Risques /></RoleGuard></ProtectedPage>} />
-            <Route path="/incidents" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant"]}><Incidents /></RoleGuard></ProtectedPage>} />
-            <Route path="/enjeux-contexte" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "responsable_processus", "consultant", "acteur"]}><EnjeuContexte /></RoleGuard></ProtectedPage>} />
-            {/* Pilotage SMQ - visible par tous, édition admin/rmq */}
-            <Route path="/politique-qualite" element={<ProtectedPage><PolitiqueQualite /></ProtectedPage>} />
-            <Route path="/revue-direction" element={<ProtectedPage><RevueDirection /></ProtectedPage>} />
-            <Route path="/competences" element={<ProtectedPage><CompetencesPage /></ProtectedPage>} />
-            <Route path="/satisfaction-client" element={<ProtectedPage><SatisfactionClient /></ProtectedPage>} />
-            <Route path="/fournisseurs" element={<ProtectedPage><Fournisseurs /></ProtectedPage>} />
-            {/* Audit & Amélioration - admin, rmq, auditeur */}
-            <Route path="/dashboard-audit" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><DashboardAuditNC /></RoleGuard></ProtectedPage>} />
-            <Route path="/audits" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><Audits /></RoleGuard></ProtectedPage>} />
-            <Route path="/non-conformites" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><NonConformites /></RoleGuard></ProtectedPage>} />
-            <Route path="/actions" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq", "auditeur"]}><Actions /></RoleGuard></ProtectedPage>} />
-            <Route path="/journal" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq"]}><Journal /></RoleGuard></ProtectedPage>} />
-            {/* Administration - admin uniquement */}
-            <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin"]}><Utilisateurs /></RoleGuard></ProtectedPage>} />
-            <Route path="/groupes-acteurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq"]}><GroupesActeurs /></RoleGuard></ProtectedPage>} />
+            <Route path="/acteurs" element={<ProtectedPage><RoleGuard requiredModule="acteurs"><Acteurs /></RoleGuard></ProtectedPage>} />
+            {/* Processus */}
+            <Route path="/processus" element={<ProtectedPage><RoleGuard requiredModule="processus"><Processus /></RoleGuard></ProtectedPage>} />
+            <Route path="/processus/:id" element={<ProtectedPage><RoleGuard requiredModule="processus"><ProcessDetail /></RoleGuard></ProtectedPage>} />
+            <Route path="/cartographie" element={<ProtectedPage><RoleGuard requiredModule="cartographie"><Cartographie /></RoleGuard></ProtectedPage>} />
+            <Route path="/bpmn" element={<ProtectedPage><RoleGuard requiredModule="bpmn"><Bpmn /></RoleGuard></ProtectedPage>} />
+            <Route path="/evaluation-processus" element={<ProtectedPage><RoleGuard requiredModule="evaluation_processus"><EvaluationProcessus /></RoleGuard></ProtectedPage>} />
+            {/* Manager processus */}
+            <Route path="/documents" element={<ProtectedPage><RoleGuard requiredModule="documents"><Documents /></RoleGuard></ProtectedPage>} />
+            <Route path="/indicateurs" element={<ProtectedPage><RoleGuard requiredModule="indicateurs"><Indicateurs /></RoleGuard></ProtectedPage>} />
+            <Route path="/risques" element={<ProtectedPage><RoleGuard requiredModule="risques"><Risques /></RoleGuard></ProtectedPage>} />
+            <Route path="/incidents" element={<ProtectedPage><RoleGuard requiredModule="incidents"><Incidents /></RoleGuard></ProtectedPage>} />
+            <Route path="/enjeux-contexte" element={<ProtectedPage><RoleGuard requiredModule="enjeux_contexte"><EnjeuContexte /></RoleGuard></ProtectedPage>} />
+            {/* Pilotage SMQ */}
+            <Route path="/politique-qualite" element={<ProtectedPage><RoleGuard requiredModule="politique_qualite"><PolitiqueQualite /></RoleGuard></ProtectedPage>} />
+            <Route path="/revue-direction" element={<ProtectedPage><RoleGuard requiredModule="revue_direction"><RevueDirection /></RoleGuard></ProtectedPage>} />
+            <Route path="/competences" element={<ProtectedPage><RoleGuard requiredModule="competences"><CompetencesPage /></RoleGuard></ProtectedPage>} />
+            <Route path="/satisfaction-client" element={<ProtectedPage><RoleGuard requiredModule="satisfaction_client"><SatisfactionClient /></RoleGuard></ProtectedPage>} />
+            <Route path="/fournisseurs" element={<ProtectedPage><RoleGuard requiredModule="fournisseurs"><Fournisseurs /></RoleGuard></ProtectedPage>} />
+            {/* Audit & Amélioration */}
+            <Route path="/dashboard-audit" element={<ProtectedPage><RoleGuard requiredModule="audits"><DashboardAuditNC /></RoleGuard></ProtectedPage>} />
+            <Route path="/audits" element={<ProtectedPage><RoleGuard requiredModule="audits"><Audits /></RoleGuard></ProtectedPage>} />
+            <Route path="/non-conformites" element={<ProtectedPage><RoleGuard requiredModule="non_conformites"><NonConformites /></RoleGuard></ProtectedPage>} />
+            <Route path="/actions" element={<ProtectedPage><RoleGuard requiredModule="actions"><Actions /></RoleGuard></ProtectedPage>} />
+            <Route path="/journal" element={<ProtectedPage><RoleGuard requiredModule="journal"><Journal /></RoleGuard></ProtectedPage>} />
+            {/* Administration */}
+            <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard requiredModule="utilisateurs"><Utilisateurs /></RoleGuard></ProtectedPage>} />
+            <Route path="/groupes-acteurs" element={<ProtectedPage><RoleGuard requiredModule="groupes_acteurs"><GroupesActeurs /></RoleGuard></ProtectedPage>} />
+            <Route path="/admin/permissions" element={<ProtectedPage><RoleGuard allowedRoles={["admin"]}><AdminPermissions /></RoleGuard></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

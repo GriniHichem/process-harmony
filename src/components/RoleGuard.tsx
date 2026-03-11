@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
+import type { AppModule, PermissionLevel } from "@/lib/defaultPermissions";
 
 type AppRole = "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
 
@@ -10,22 +11,31 @@ interface RoleGuardProps {
   allowedRoles?: AppRole[];
   /** User must NOT have only these roles (block if all roles match) */
   blockedOnlyRoles?: AppRole[];
+  /** Permission-based access: module + required level */
+  requiredModule?: AppModule;
+  requiredLevel?: PermissionLevel;
   /** Redirect instead of showing message */
   redirectTo?: string;
 }
 
-export function RoleGuard({ children, allowedRoles, blockedOnlyRoles, redirectTo }: RoleGuardProps) {
-  const { roles } = useAuth();
+export function RoleGuard({ children, allowedRoles, blockedOnlyRoles, requiredModule, requiredLevel = "can_read", redirectTo }: RoleGuardProps) {
+  const { roles, hasPermission } = useAuth();
 
   let allowed = true;
 
-  if (allowedRoles && allowedRoles.length > 0) {
-    allowed = roles.some((r) => allowedRoles.includes(r));
-  }
+  // New permission-based check takes priority if specified
+  if (requiredModule) {
+    allowed = hasPermission(requiredModule, requiredLevel);
+  } else {
+    // Legacy role-based checks
+    if (allowedRoles && allowedRoles.length > 0) {
+      allowed = roles.some((r) => allowedRoles.includes(r));
+    }
 
-  if (blockedOnlyRoles && blockedOnlyRoles.length > 0) {
-    const isOnlyBlocked = roles.length > 0 && roles.every((r) => blockedOnlyRoles.includes(r));
-    if (isOnlyBlocked) allowed = false;
+    if (blockedOnlyRoles && blockedOnlyRoles.length > 0) {
+      const isOnlyBlocked = roles.length > 0 && roles.every((r) => blockedOnlyRoles.includes(r));
+      if (isOnlyBlocked) allowed = false;
+    }
   }
 
   if (!allowed) {
