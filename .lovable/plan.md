@@ -1,106 +1,113 @@
 
 
-# Plan d'implémentation — Application de gestion ISO 9001
+# Plan: Refonte du Systeme de Roles et Permissions
 
-## Phase 1 : Fondations
+## 1. Migration Base de Donnees
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+### 1.1 Ajouter le role "acteur" a l'enum
+```sql
+ALTER TYPE public.app_role ADD VALUE 'acteur';
+```
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+### 1.2 Supprimer la contrainte UNIQUE(user_id, role) si elle empeche les roles multiples
+La table `user_roles` a deja `UNIQUE(user_id, role)` ce qui permet d'avoir plusieurs lignes par utilisateur avec des roles differents. C'est deja compatible avec les roles multiples (max 2).
 
-## Phase 2 : Modules principaux
+## 2. AuthContext - Support Multi-Roles
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+**Fichier**: `src/contexts/AuthContext.tsx`
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+- Changer `role: AppRole | null` en `roles: AppRole[]`
+- Ajouter `acteur` au type `AppRole`
+- Fetch tous les roles (supprimer `.single()`, utiliser `.select("role").eq("user_id", userId)`)
+- Ajouter helper `hasRole(role: AppRole): boolean` qui verifie si le role est dans le tableau
+- Exposer `roles` et `hasRole` dans le contexte
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+## 3. Sidebar - Visibilite par Role
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+**Fichier**: `src/components/AppSidebar.tsx`
 
-## Phase 3 : Modules qualité
+Appliquer la matrice d'acces:
+- **Menu Principal** (Dashboard, Acteurs): visible par tous
+- **Menu Processus** (Processus, Cartographie, BPMN): masque pour "acteur" seul
+- **Menu Manager Processus** (Documents, Indicateurs, Risques, Incidents, Enjeux): masque pour "acteur" et "auditeur" (auditeur = lecture seule via les pages)
+- **Menu Audit & Amelioration**: visible pour admin, rmq, auditeur
+- **Menu Administration**: visible pour admin uniquement (plus RMQ)
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+## 4. Header - Bouton Logs
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+**Fichier**: `src/components/AppLayout.tsx`
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+- Ajouter un bouton "Logs" (icone `ScrollText`) dans le header, visible uniquement pour admin et rmq
+- Au clic, naviguer vers `/journal`
 
-## Phase 4 : Modules audit & amélioration
+## 5. Page Utilisateurs - Admin Only + Multi-Roles
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+**Fichier**: `src/pages/Utilisateurs.tsx`
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
+- Restreindre l'acces a admin uniquement (plus RMQ)
+- Supporter l'affichage et l'attribution de 2 roles par utilisateur (checkboxes ou multi-select au lieu d'un Select unique)
+- Ajouter le role "acteur" dans la liste des roles disponibles
+- Admin peut: creer utilisateurs, modifier, desactiver, reinitialiser mot de passe
 
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
+### 5.1 Creation d'utilisateur par l'admin
+- Ajouter un bouton "Nouvel utilisateur" qui ouvre un formulaire (nom, prenom, email, fonction, mot de passe)
+- Utiliser une edge function `admin-create-user` qui appelle `supabase.auth.admin.createUser()` avec le service role key
 
-## Phase 5 : Tableaux de bord & Reporting
+### 5.2 Reinitialisation de mot de passe
+- Bouton par utilisateur pour reinitialiser le mot de passe
+- Edge function `admin-reset-password` qui appelle `supabase.auth.admin.updateUserById()` pour changer le mot de passe
 
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
+## 6. Page Journal - Acces Admin + RMQ
 
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
+**Fichier**: `src/pages/Journal.tsx`
 
-## Contrôle d'accès (transversal)
+- Autoriser l'acces pour admin en plus de rmq (deja dans les RLS)
 
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
+## 7. Mise a jour des verifications de role dans toutes les pages
+
+Remplacer tous les `role === "rmq"` / `role === "admin"` par `hasRole("rmq")` / `hasRole("admin")` dans:
+- `Processus.tsx` - filtrer pour responsable_processus (ne voir que ses processus)
+- `ProcessDetail.tsx` - restrictions d'edition
+- `Documents.tsx`, `Indicateurs.tsx`, `Risques.tsx`, `Incidents.tsx`
+- `Audits.tsx`, `NonConformites.tsx`, `Actions.tsx`
+- `Acteurs.tsx`, `EnjeuContexte.tsx`
+- `Cartographie.tsx`, `Bpmn.tsx`
+- `AdminPasswordDialog.tsx`
+
+## 8. Filtrage Processus pour Responsable
+
+**Fichier**: `src/pages/Processus.tsx`
+
+- Si l'utilisateur n'a que le role `responsable_processus` (pas admin/rmq), filtrer la requete pour ne retourner que les processus ou `responsable_id = auth.uid()`
+- Masquer le bouton de creation si pas rmq/admin
+- Bloquer l'edition sur processus valide/archive
+
+## 9. Role Acteur - Restrictions
+
+- Le role `acteur` ne voit que: Dashboard, Acteurs (menu principal)
+- Consultation seule de tous les processus ou il est implique
+- Pas d'acces aux menus Manager Processus ni Audit
+
+## 10. Edge Functions a creer
+
+### `admin-create-user`
+- Valide que l'appelant est admin (via JWT + has_role)
+- Cree l'utilisateur via `supabase.auth.admin.createUser()`
+- Assigne les roles dans `user_roles`
+
+### `admin-reset-password`  
+- Valide que l'appelant est admin
+- Met a jour le mot de passe via `supabase.auth.admin.updateUserById()`
+
+## Ordre d'implementation
+
+1. Migration DB (ajouter role acteur)
+2. AuthContext multi-roles + hasRole
+3. Edge functions admin
+4. Page Utilisateurs refonte
+5. Sidebar visibilite
+6. Header bouton Logs
+7. Mise a jour verifications roles dans toutes les pages
+8. Filtrage processus responsable
+9. Page Journal acces admin
 
