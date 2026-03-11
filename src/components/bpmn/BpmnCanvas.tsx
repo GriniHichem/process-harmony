@@ -18,6 +18,10 @@ interface BpmnCanvasProps {
   canEdit: boolean;
 }
 
+export interface BpmnCanvasHandle {
+  getSvgElement: () => SVGSVGElement | null;
+}
+
 /* ── Helpers ────────────────────────────────────────────── */
 
 function getNodeCenter(node: BpmnNode) {
