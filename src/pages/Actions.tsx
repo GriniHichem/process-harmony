@@ -363,7 +363,7 @@ export default function Actions() {
                                       <Progress value={n.avancement} className="h-1.5 w-16" />
                                       <span className="text-xs font-medium">{n.avancement}%</span>
                                     </div>
-                                    {(hasRole("rmq") || hasRole("admin")) && (
+                                    {canDelete && (
                                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteNote(n.id, a.id)}>
                                         <Trash2 className="h-3 w-3 text-destructive" />
                                       </Button>
