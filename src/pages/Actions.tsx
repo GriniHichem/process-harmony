@@ -378,7 +378,7 @@ export default function Actions() {
                         )}
 
                         {/* Add note form */}
-                        {canCreate && (
+                        {(canCreate || (profile?.acteur_id && a.responsable_id === profile.acteur_id)) && (
                           <div className="flex gap-2 items-end pt-2 border-t">
                             <div className="flex-1 space-y-1">
                               <Label className="text-xs">Note</Label>
