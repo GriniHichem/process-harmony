@@ -247,8 +247,11 @@ export default function EvaluationProcessus() {
                     <TableCell className="font-medium">{ev.nom}</TableCell>
                     <TableCell className="text-center font-bold">{ev.score_total} / 20</TableCell>
                     <TableCell>
-                      <Badge variant={ev.resultat === "processus" ? "default" : "secondary"}>
-                        {ev.resultat === "processus" ? "Processus" : "Activité"}
+                      <Badge
+                        variant={ev.resultat === "processus" ? "default" : "secondary"}
+                        className={ev.resultat === "zone_orange" ? "bg-orange-500 text-white" : ""}
+                      >
+                        {ev.resultat === "processus" ? "Processus" : ev.resultat === "zone_orange" ? "Zone de décision" : "Activité"}
                       </Badge>
                     </TableCell>
                     <TableCell>
