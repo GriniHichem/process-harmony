@@ -181,7 +181,7 @@ export default function Acteurs() {
                 <TableHead>Type</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Utilisateurs liés</TableHead>
-                {(canEdit || canDelete) && <TableHead className="text-right">Actions</TableHead>}
+                {(canEdit || canDelete || canViewImplications) && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
