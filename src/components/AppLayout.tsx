@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { Info, ScrollText } from "lucide-react";
+import { Info, ScrollText, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import logo from "@/assets/logo.jpg";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, hasRole } = useAuth();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [accessible, setAccessible] = useState(() => localStorage.getItem("qprocess-accessible") === "true");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("theme-accessible", accessible);
+    localStorage.setItem("qprocess-accessible", String(accessible));
+  }, [accessible]);
 
   const showLogs = hasRole("admin") || hasRole("rmq");
 
@@ -53,6 +60,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </div>
             <div className="flex items-center gap-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={accessible ? "default" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setAccessible(a => !a)}
+                  >
+                    {accessible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{accessible ? "Désactiver le mode confort visuel" : "Activer le mode confort visuel"}</TooltipContent>
+              </Tooltip>
               {profile && (
                 <div className="text-right">
                   <p className="text-sm font-medium">{profile.prenom} {profile.nom}</p>
