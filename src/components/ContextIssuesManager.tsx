@@ -89,8 +89,8 @@ const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "
 const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
 
 export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds }: Props) {
+  const { acteurs, getActeurLabel } = useActeurs();
   const [issues, setIssues] = useState<ContextIssue[]>([]);
-  const [issueProcesses, setIssueProcesses] = useState<Record<string, string[]>>({});
   const [actions, setActions] = useState<Record<string, ContextIssueAction[]>>({});
   const [processes, setProcesses] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
