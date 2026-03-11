@@ -32,6 +32,7 @@ import RevueDirection from "./pages/RevueDirection";
 import CompetencesPage from "./pages/Competences";
 import SatisfactionClient from "./pages/SatisfactionClient";
 import Fournisseurs from "./pages/Fournisseurs";
+import EvaluationProcessus from "./pages/EvaluationProcessus";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
