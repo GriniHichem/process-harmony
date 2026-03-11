@@ -88,7 +88,8 @@ export default function ProcessDetail() {
   }, [id, fetchElements, fetchDocuments]);
 
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("consultant") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
-  const canDelete = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const isLockedStatus = process?.statut === "valide" || process?.statut === "en_validation";
+  const canDelete = (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus")) && !isLockedStatus;
   const canChangeStatus = hasRole("admin") || hasRole("rmq");
   const canChangeResponsable = hasRole("admin") || hasRole("rmq");
 
