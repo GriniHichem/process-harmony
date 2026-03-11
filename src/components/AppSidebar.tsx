@@ -16,13 +16,13 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Tableau de bord", url: "/", icon: LayoutDashboard },
   { title: "Acteurs", url: "/acteurs", icon: Contact },
+  { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList },
 ];
 
 const processItems = [
   { title: "Processus", url: "/processus", icon: Network },
   { title: "Cartographie", url: "/cartographie", icon: Map },
   { title: "BPMN", url: "/bpmn", icon: Settings },
-  { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList },
 ];
 
 const qualityItems = [
