@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Save, Shield, Plus, Trash2, Copy } from "lucide-react";
+import { Save, Shield, Plus, Trash2, ChevronRight, Users, UserCog } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   ALL_MODULES,
   ALL_ROLES,
@@ -41,14 +42,16 @@ interface CustomRole {
   description: string;
 }
 
+type SelectedRole =
+  | { type: "standard"; role: Exclude<AppRole, "admin"> }
+  | { type: "custom"; role: CustomRole };
+
 export default function AdminPermissions() {
   const { hasRole } = useAuth();
-  // Standard role overrides
   const [overrides, setOverrides] = useState<Record<string, ModulePermissions>>({});
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  // Custom roles
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [customPerms, setCustomPerms] = useState<Record<string, ModulePermissions>>({});
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -57,9 +60,9 @@ export default function AdminPermissions() {
   const [duplicateFrom, setDuplicateFrom] = useState<string>("none");
   const [deleteRole, setDeleteRole] = useState<CustomRole | null>(null);
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  const [selected, setSelected] = useState<SelectedRole | null>(null);
+
+  useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
     const [permRes, crRes, crpRes] = await Promise.all([
@@ -95,7 +98,7 @@ export default function AdminPermissions() {
     setLoaded(true);
   };
 
-  // --- Standard role permission helpers ---
+  // --- Standard role helpers ---
   const getPermValue = (role: Exclude<AppRole, "admin">, module: AppModule, level: PermissionLevel): boolean => {
     const key = `${role}:${module}`;
     if (overrides[key]) return overrides[key][level];
@@ -120,7 +123,7 @@ export default function AdminPermissions() {
     setOverrides((prev) => { const next = { ...prev }; delete next[`${role}:${module}`]; return next; });
   };
 
-  // --- Custom role permission helpers ---
+  // --- Custom role helpers ---
   const getCustomPermValue = (crId: string, module: AppModule, level: PermissionLevel): boolean => {
     return customPerms[`${crId}:${module}`]?.[level] ?? false;
   };
@@ -141,45 +144,31 @@ export default function AdminPermissions() {
     const newRole = data as CustomRole;
     setCustomRoles((prev) => [...prev, newRole]);
 
-    // If duplicating, copy permissions
     if (duplicateFrom !== "none" && duplicateFrom) {
       const permsToInsert: Record<string, ModulePermissions> = {};
-
       if (duplicateFrom.startsWith("custom:")) {
-        // Duplicate from custom role
         const sourceId = duplicateFrom.replace("custom:", "");
         for (const mod of ALL_MODULES) {
           const key = `${sourceId}:${mod}`;
-          if (customPerms[key]) {
-            permsToInsert[`${newRole.id}:${mod}`] = { ...customPerms[key] };
-          }
+          if (customPerms[key]) permsToInsert[`${newRole.id}:${mod}`] = { ...customPerms[key] };
         }
       } else {
-        // Duplicate from standard role
         const sourceRole = duplicateFrom as Exclude<AppRole, "admin">;
         const defaults = DEFAULT_PERMISSIONS[sourceRole];
         if (defaults) {
           for (const mod of ALL_MODULES) {
-            // Use override if exists, else default
             const overrideKey = `${sourceRole}:${mod}`;
             const perms = overrides[overrideKey] || defaults[mod];
-            if (perms) {
-              permsToInsert[`${newRole.id}:${mod}`] = { ...perms };
-            }
+            if (perms) permsToInsert[`${newRole.id}:${mod}`] = { ...perms };
           }
         }
       }
 
-      // Save to DB
       const rows = Object.entries(permsToInsert).map(([key, perms]) => {
         const mod = key.split(":")[1];
         return { custom_role_id: newRole.id, module: mod, ...perms };
       });
-
-      if (rows.length > 0) {
-        await supabase.from("custom_role_permissions").insert(rows);
-      }
-
+      if (rows.length > 0) await supabase.from("custom_role_permissions").insert(rows);
       setCustomPerms((prev) => ({ ...prev, ...permsToInsert }));
     }
 
@@ -187,6 +176,7 @@ export default function AdminPermissions() {
     setNewRoleName("");
     setNewRoleDesc("");
     setDuplicateFrom("none");
+    setSelected({ type: "custom", role: newRole });
     toast.success(`Rôle "${newRole.nom}" créé`);
   };
 
@@ -203,6 +193,7 @@ export default function AdminPermissions() {
       }
       return next;
     });
+    if (selected?.type === "custom" && selected.role.id === deleteRole.id) setSelected(null);
     setDeleteRole(null);
     toast.success("Rôle supprimé");
   };
@@ -211,7 +202,6 @@ export default function AdminPermissions() {
   const saveAll = async () => {
     setSaving(true);
     try {
-      // Save standard overrides
       await supabase.from("role_permissions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       const stdRows = Object.entries(overrides).map(([key, perms]) => {
         const [role, module] = key.split(":");
@@ -222,16 +212,11 @@ export default function AdminPermissions() {
         if (error) throw error;
       }
 
-      // Save custom role permissions
       for (const cr of customRoles) {
         await supabase.from("custom_role_permissions").delete().eq("custom_role_id", cr.id);
         const crRows = ALL_MODULES
           .filter((mod) => customPerms[`${cr.id}:${mod}`])
-          .map((mod) => ({
-            custom_role_id: cr.id,
-            module: mod,
-            ...customPerms[`${cr.id}:${mod}`],
-          }));
+          .map((mod) => ({ custom_role_id: cr.id, module: mod, ...customPerms[`${cr.id}:${mod}`] }));
         if (crRows.length > 0) {
           const { error } = await supabase.from("custom_role_permissions").insert(crRows);
           if (error) throw error;
@@ -246,28 +231,49 @@ export default function AdminPermissions() {
     }
   };
 
+  // --- Count permissions for a role ---
+  const countPerms = (role: Exclude<AppRole, "admin">): number => {
+    let count = 0;
+    for (const mod of ALL_MODULES) {
+      for (const p of PERM_LEVELS) {
+        if (getPermValue(role, mod, p.key)) count++;
+      }
+    }
+    return count;
+  };
+
+  const countCustomPerms = (crId: string): number => {
+    let count = 0;
+    for (const mod of ALL_MODULES) {
+      for (const p of PERM_LEVELS) {
+        if (getCustomPermValue(crId, mod, p.key)) count++;
+      }
+    }
+    return count;
+  };
+
+  const totalPerms = ALL_MODULES.length * PERM_LEVELS.length;
+
   if (!hasRole("admin")) {
-    return (
-      <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé aux administrateurs.</CardContent></Card>
-    );
+    return <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé aux administrateurs.</CardContent></Card>;
   }
 
   if (!loaded) {
-    return (
-      <Card><CardContent className="py-12 text-center text-muted-foreground">Chargement...</CardContent></Card>
-    );
+    return <Card><CardContent className="py-12 text-center text-muted-foreground">Chargement...</CardContent></Card>;
   }
 
+  const isStdSelected = selected?.type === "standard";
+  const isCustomSelected = selected?.type === "custom";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Shield className="h-6 w-6 text-primary" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">Gestion des permissions</h1>
-            <p className="text-sm text-muted-foreground">
-              Configurez les droits d'accès par rôle et par module. Le rôle Admin a toujours un accès complet.
-            </p>
+            <p className="text-sm text-muted-foreground">Sélectionnez un rôle pour configurer ses droits d'accès.</p>
           </div>
         </div>
         <Button onClick={saveAll} disabled={saving}>
@@ -276,170 +282,226 @@ export default function AdminPermissions() {
         </Button>
       </div>
 
-      <Tabs defaultValue="standard">
-        <TabsList>
-          <TabsTrigger value="standard">Rôles système</TabsTrigger>
-          <TabsTrigger value="custom">Rôles personnalisés ({customRoles.length})</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-12 gap-4" style={{ minHeight: "calc(100vh - 220px)" }}>
+        {/* LEFT PANEL - Role list */}
+        <div className="col-span-4 space-y-3">
+          {/* System roles */}
+          <Card>
+            <CardHeader className="pb-2 pt-3 px-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <Users className="h-4 w-4" />
+                Rôles système
+              </div>
+            </CardHeader>
+            <CardContent className="p-1">
+              {/* Admin - disabled */}
+              <div className="flex items-center gap-3 rounded-md px-3 py-2.5 opacity-50 cursor-not-allowed">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">Administrateur</div>
+                  <div className="text-xs text-muted-foreground">Accès complet — non modifiable</div>
+                </div>
+                <Badge variant="secondary" className="text-xs shrink-0">{totalPerms}/{totalPerms}</Badge>
+              </div>
 
-        <TabsContent value="standard" className="space-y-4 mt-4">
-          {NON_ADMIN_ROLES.map((role) => (
-            <Card key={role}>
+              {NON_ADMIN_ROLES.map((role) => {
+                const active = isStdSelected && selected.role === role;
+                const count = countPerms(role);
+                const hasOverrides = ALL_MODULES.some((mod) => isOverridden(role, mod));
+                return (
+                  <button
+                    key={role}
+                    onClick={() => setSelected({ type: "standard", role })}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors",
+                      active ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/60"
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm flex items-center gap-2">
+                        {ROLE_LABELS[role]}
+                        {hasOverrides && <span className="h-1.5 w-1.5 rounded-full bg-primary inline-block" />}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs shrink-0">{count}/{totalPerms}</Badge>
+                    <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", active && "text-primary")} />
+                  </button>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Custom roles */}
+          <Card>
+            <CardHeader className="pb-2 pt-3 px-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  <UserCog className="h-4 w-4" />
+                  Rôles personnalisés
+                </div>
+                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs">
+                      <Plus className="mr-1 h-3 w-3" />Nouveau
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Créer un rôle personnalisé</DialogTitle></DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Nom du rôle *</Label>
+                        <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="Ex: Superviseur, Directeur..." />
+                      </div>
+                      <div>
+                        <Label>Description</Label>
+                        <Textarea value={newRoleDesc} onChange={(e) => setNewRoleDesc(e.target.value)} placeholder="Description du rôle..." />
+                      </div>
+                      <div>
+                        <Label>Dupliquer les permissions de</Label>
+                        <Select value={duplicateFrom} onValueChange={setDuplicateFrom}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">— Rôle vide —</SelectItem>
+                            {NON_ADMIN_ROLES.map((r) => (
+                              <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                            ))}
+                            {customRoles.map((cr) => (
+                              <SelectItem key={cr.id} value={`custom:${cr.id}`}>{cr.nom}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button className="w-full" onClick={handleCreateRole}>
+                        <Plus className="mr-2 h-4 w-4" />Créer
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent className="p-1">
+              {customRoles.length === 0 ? (
+                <div className="text-center text-sm text-muted-foreground py-6">Aucun rôle personnalisé</div>
+              ) : (
+                customRoles.map((cr) => {
+                  const active = isCustomSelected && selected.role.id === cr.id;
+                  const count = countCustomPerms(cr.id);
+                  return (
+                    <button
+                      key={cr.id}
+                      onClick={() => setSelected({ type: "custom", role: cr })}
+                      className={cn(
+                        "w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors",
+                        active ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/60"
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">{cr.nom}</div>
+                        {cr.description && <div className="text-xs text-muted-foreground truncate">{cr.description}</div>}
+                      </div>
+                      <Badge variant="outline" className="text-xs shrink-0">{count}/{totalPerms}</Badge>
+                      <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", active && "text-primary")} />
+                    </button>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* RIGHT PANEL - Permission matrix */}
+        <div className="col-span-8">
+          {!selected ? (
+            <Card className="h-full flex items-center justify-center">
+              <CardContent className="text-center text-muted-foreground py-20">
+                <Shield className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-medium">Sélectionnez un rôle</p>
+                <p className="text-sm mt-1">Cliquez sur un rôle à gauche pour configurer ses permissions.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="h-full">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{ROLE_LABELS[role]}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">
+                      {isStdSelected ? ROLE_LABELS[selected.role] : selected.role.nom}
+                    </CardTitle>
+                    {isCustomSelected && selected.role.description && (
+                      <p className="text-sm text-muted-foreground mt-0.5">{selected.role.description}</p>
+                    )}
+                  </div>
+                  {isCustomSelected && (
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteRole(selected.role)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="overflow-auto">
+                <div className="overflow-auto max-h-[calc(100vh-320px)]">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[180px]">Module</TableHead>
+                        <TableHead className="min-w-[180px] sticky top-0 bg-background z-10">Module</TableHead>
                         {PERM_LEVELS.map((p) => (
-                          <TableHead key={p.key} className="text-center w-24">{p.label}</TableHead>
+                          <TableHead key={p.key} className="text-center w-24 sticky top-0 bg-background z-10">{p.label}</TableHead>
                         ))}
-                        <TableHead className="text-center w-24">Actions</TableHead>
+                        {isStdSelected && <TableHead className="text-center w-28 sticky top-0 bg-background z-10">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {ALL_MODULES.map((mod) => (
-                        <TableRow key={mod} className={isOverridden(role, mod) ? "bg-accent/30" : ""}>
-                          <TableCell className="font-medium text-sm">{MODULE_LABELS[mod]}</TableCell>
-                          {PERM_LEVELS.map((p) => (
-                            <TableCell key={p.key} className="text-center">
-                              <Checkbox
-                                checked={getPermValue(role, mod, p.key)}
-                                onCheckedChange={() => togglePerm(role, mod, p.key)}
-                              />
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-center">
-                            {isOverridden(role, mod) && (
-                              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => resetToDefault(role, mod)}>
-                                Réinitialiser
-                              </Button>
+                      {ALL_MODULES.map((mod) => {
+                        const overridden = isStdSelected && isOverridden(selected.role, mod);
+                        return (
+                          <TableRow key={mod} className={overridden ? "bg-accent/30" : ""}>
+                            <TableCell className="font-medium text-sm">{MODULE_LABELS[mod]}</TableCell>
+                            {PERM_LEVELS.map((p) => (
+                              <TableCell key={p.key} className="text-center">
+                                <Checkbox
+                                  checked={
+                                    isStdSelected
+                                      ? getPermValue(selected.role, mod, p.key)
+                                      : getCustomPermValue(selected.role.id, mod, p.key)
+                                  }
+                                  onCheckedChange={() =>
+                                    isStdSelected
+                                      ? togglePerm(selected.role, mod, p.key)
+                                      : toggleCustomPerm(selected.role.id, mod, p.key)
+                                  }
+                                />
+                              </TableCell>
+                            ))}
+                            {isStdSelected && (
+                              <TableCell className="text-center">
+                                {overridden && (
+                                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => resetToDefault(selected.role, mod)}>
+                                    Réinitialiser
+                                  </Button>
+                                )}
+                              </TableCell>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="custom" className="space-y-4 mt-4">
-          <div className="flex items-center gap-3">
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" />Nouveau rôle</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Créer un rôle personnalisé</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Nom du rôle *</Label>
-                    <Input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="Ex: Superviseur, Directeur..." />
-                  </div>
-                  <div>
-                    <Label>Description</Label>
-                    <Textarea value={newRoleDesc} onChange={(e) => setNewRoleDesc(e.target.value)} placeholder="Description du rôle..." />
-                  </div>
-                  <div>
-                    <Label>Dupliquer les permissions de</Label>
-                    <Select value={duplicateFrom} onValueChange={setDuplicateFrom}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">— Rôle vide —</SelectItem>
-                        {NON_ADMIN_ROLES.map((r) => (
-                          <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
-                        ))}
-                        {customRoles.map((cr) => (
-                          <SelectItem key={cr.id} value={`custom:${cr.id}`}>{cr.nom}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button className="w-full" onClick={handleCreateRole}>
-                    <Plus className="mr-2 h-4 w-4" />Créer
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {customRoles.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                Aucun rôle personnalisé créé. Cliquez sur "Nouveau rôle" pour commencer.
-              </CardContent>
-            </Card>
-          ) : (
-            customRoles.map((cr) => (
-              <Card key={cr.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{cr.nom}</CardTitle>
-                      {cr.description && <p className="text-sm text-muted-foreground mt-1">{cr.description}</p>}
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteRole(cr)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[180px]">Module</TableHead>
-                          {PERM_LEVELS.map((p) => (
-                            <TableHead key={p.key} className="text-center w-24">{p.label}</TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {ALL_MODULES.map((mod) => (
-                          <TableRow key={mod}>
-                            <TableCell className="font-medium text-sm">{MODULE_LABELS[mod]}</TableCell>
-                            {PERM_LEVELS.map((p) => (
-                              <TableCell key={p.key} className="text-center">
-                                <Checkbox
-                                  checked={getCustomPermValue(cr.id, mod, p.key)}
-                                  onCheckedChange={() => toggleCustomPerm(cr.id, mod, p.key)}
-                                />
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteRole} onOpenChange={(o) => !o && setDeleteRole(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le rôle "{deleteRole?.nom}" ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. Tous les utilisateurs ayant ce rôle le perdront.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Cette action est irréversible. Tous les utilisateurs ayant ce rôle le perdront.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteRole} className="bg-destructive text-destructive-foreground">
-              Supprimer
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteRole} className="bg-destructive text-destructive-foreground">Supprimer</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
