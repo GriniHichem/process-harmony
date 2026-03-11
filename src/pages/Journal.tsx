@@ -107,6 +107,16 @@ export default function Journal() {
   const filtered = logs.filter((log) => {
     if (entityFilter !== "all" && log.entity_type !== entityFilter) return false;
     if (actionFilter !== "all" && log.action !== actionFilter) return false;
+    if (dateFrom) {
+      const logDate = new Date(log.created_at);
+      if (logDate < dateFrom) return false;
+    }
+    if (dateTo) {
+      const endOfDay = new Date(dateTo);
+      endOfDay.setHours(23, 59, 59, 999);
+      const logDate = new Date(log.created_at);
+      if (logDate > endOfDay) return false;
+    }
     if (search) {
       const name = getEntityName(log).toLowerCase();
       const userName = profiles[log.user_id ?? ""]
