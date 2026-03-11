@@ -17,6 +17,7 @@ interface Profile {
   email: string;
   fonction: string;
   actif: boolean;
+  acteur_id: string | null;
 }
 
 export interface CustomRole {
