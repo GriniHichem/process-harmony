@@ -93,9 +93,9 @@ export default function ProcessDetail() {
   const canChangeStatus = hasRole("admin") || hasRole("rmq");
   const canChangeResponsable = hasRole("admin") || hasRole("rmq");
 
-  // Block edit on validated/archived for responsable_processus
-  const isLockedForResp = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq") && (process?.statut === "valide" || process?.statut === "archive");
-  const effectiveCanEdit = canEdit && !isLockedForResp;
+  // Block edit on validated/archived for all non-admin roles (RMQ, responsable_processus, consultant)
+  const isLockedForNonAdmin = !hasRole("admin") && (process?.statut === "valide" || process?.statut === "archive");
+  const effectiveCanEdit = canEdit && !isLockedForNonAdmin;
 
   // RMQ: cannot change state of validated process, cannot delete validated process
   const isRmqOnly = hasRole("rmq") && !hasRole("admin");
