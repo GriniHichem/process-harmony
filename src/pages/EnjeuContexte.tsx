@@ -14,7 +14,7 @@ export default function EnjeuContexte() {
         <h1 className="text-2xl font-bold">Enjeux du contexte</h1>
         <p className="text-muted-foreground">Identification et suivi des enjeux internes et externes</p>
       </div>
-      <ContextIssuesManager canEdit={canEdit} canDelete={canDelete} userId={user?.id} isOnlyResponsable={isOnlyResponsable} />
+      <ContextIssuesManager canEdit={canEdit} canDelete={canDelete} userId={user?.id} isOnlyResponsable={isOnlyResponsable || isOnlyActeur} />
     </div>
   );
 }
