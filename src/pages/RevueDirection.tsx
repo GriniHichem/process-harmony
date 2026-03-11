@@ -234,6 +234,21 @@ export default function RevueDirection() {
                 </div>
               </div>
 
+              {/* Éléments d'entrée section */}
+              <div className={`p-6 ${activeField === "elements_entree" ? "" : "hidden"}`}>
+                <div className="max-w-3xl mx-auto">
+                  <h3 className="text-lg font-semibold mb-2">Éléments d'entrée</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Ajoutez des points à discuter ou liez des éléments existants (processus, indicateurs, risques, audits, etc.).
+                  </p>
+                  {editing?.id ? (
+                    <ReviewInputItemsEditor reviewId={editing.id} canEdit={canEdit} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Enregistrez d'abord la revue pour ajouter des éléments d'entrée structurés.</p>
+                  )}
+                </div>
+              </div>
+
               {/* Rich text sections */}
               {RICH_FIELDS.map(f => (
                 <div key={f.key} className={`h-full ${activeField === f.key ? "" : "hidden"}`}>
