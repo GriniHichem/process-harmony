@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type AppRole = "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur";
+type AppRole = "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
 
 interface Profile {
   id: string;
@@ -17,8 +17,11 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  roles: AppRole[];
+  /** @deprecated use hasRole() instead */
   role: AppRole | null;
   loading: boolean;
+  hasRole: (role: AppRole) => boolean;
   signOut: () => Promise<void>;
 }
 
@@ -26,8 +29,10 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   profile: null,
+  roles: [],
   role: null,
   loading: true,
+  hasRole: () => false,
   signOut: async () => {},
 });
 
@@ -37,17 +42,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
+  const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
 
   const fetchUserData = async (userId: string) => {
     try {
-      const [profileRes, roleRes] = await Promise.all([
+      const [profileRes, rolesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
-        supabase.from("user_roles").select("role").eq("user_id", userId).single(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
       ]);
       if (profileRes.data) setProfile(profileRes.data as Profile);
-      if (roleRes.data) setRole(roleRes.data.role as AppRole);
+      if (rolesRes.data) {
+        setRoles(rolesRes.data.map((r) => r.role as AppRole));
+      }
     } catch (err) {
       console.error("Error fetching user data:", err);
     }
@@ -62,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => fetchUserData(session.user.id), 0);
         } else {
           setProfile(null);
-          setRole(null);
+          setRoles([]);
         }
         setLoading(false);
       }
@@ -85,11 +94,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
-    setRole(null);
+    setRoles([]);
   };
 
+  // Backward compat: role = first role (priority: admin > rmq > others)
+  const priorityOrder: AppRole[] = ["admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
+  const role = priorityOrder.find((r) => roles.includes(r)) ?? null;
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, role, loading, hasRole, signOut }}>
       {children}
     </AuthContext.Provider>
   );

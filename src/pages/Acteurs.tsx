@@ -27,7 +27,7 @@ interface Acteur {
 const emptyForm = { nom: "", prenom: "", fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe" };
 
 export default function Acteurs() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -36,8 +36,8 @@ export default function Acteurs() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const canEdit = role === "rmq" || role === "admin" || role === "responsable_processus" || role === "consultant";
-  const canDelete = role === "rmq" || role === "admin";
+  const canEdit = hasRole("rmq") || hasRole("admin") || hasRole("responsable_processus") || hasRole("consultant");
+  const canDelete = hasRole("rmq") || hasRole("admin");
 
   const fetchActeurs = async () => {
     const { data } = await supabase.from("acteurs").select("*").order("nom");

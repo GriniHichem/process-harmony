@@ -7,23 +7,25 @@ import { ScrollText } from "lucide-react";
 type LogEntry = { id: string; user_id: string | null; entity_type: string; action: string; created_at: string; entity_id: string | null };
 
 export default function Journal() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const canView = hasRole("rmq") || hasRole("admin");
+
   useEffect(() => {
-    if (role !== "rmq") { setLoading(false); return; }
+    if (!canView) { setLoading(false); return; }
     supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(100).then(({ data }) => {
       setLogs((data ?? []) as LogEntry[]);
       setLoading(false);
     });
-  }, [role]);
+  }, [canView]);
 
-  if (role !== "rmq") {
+  if (!canView) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Journal d'activité</h1>
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé au RMQ</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé au RMQ ou Admin</CardContent></Card>
       </div>
     );
   }

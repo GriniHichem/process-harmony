@@ -29,7 +29,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function Documents() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -38,8 +38,8 @@ export default function Documents() {
   const [file, setFile] = useState<File | null>(null);
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
 
-  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
-  const canDelete = role === "admin" || role === "rmq";
+  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const canDelete = hasRole("admin") || hasRole("rmq");
 
 
   const fetchDocs = async () => {

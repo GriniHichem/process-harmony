@@ -23,7 +23,7 @@ type IndicatorValue = { id: string; indicator_id: string; valeur: number; date_m
 const TYPE_LABELS: Record<IndicatorType, string> = { activite: "Activité", resultat: "Résultat", perception: "Perception", interne: "Interne" };
 
 export default function Indicateurs() {
-  const { role, user } = useAuth();
+  const { hasRole, user } = useAuth();
   const [indicators, setIndicators] = useState<Indicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
@@ -40,8 +40,8 @@ export default function Indicateurs() {
   const [editInd, setEditInd] = useState({ nom: "", formule: "", unite: "", cible: "", seuil_alerte: "", frequence: "mensuel", process_id: "", type_indicateur: "activite" as IndicatorType, moyens: "" });
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
-  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus";
-  const canDelete = role === "admin" || role === "rmq";
+  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const canDelete = hasRole("admin") || hasRole("rmq");
 
   const fetchData = async () => {
     const [indRes, procRes] = await Promise.all([

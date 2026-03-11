@@ -12,13 +12,15 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-
 const mainItems = [
   { title: "Tableau de bord", url: "/", icon: LayoutDashboard },
+  { title: "Acteurs", url: "/acteurs", icon: Contact },
+];
+
+const processItems = [
   { title: "Processus", url: "/processus", icon: Network },
   { title: "Cartographie", url: "/cartographie", icon: Map },
   { title: "BPMN", url: "/bpmn", icon: Settings },
-  { title: "Acteurs", url: "/acteurs", icon: Contact },
 ];
 
 const qualityItems = [
@@ -41,7 +43,9 @@ const adminItems = [
   { title: "Utilisateurs", url: "/utilisateurs", icon: Users },
 ];
 
-function NavGroup({ label, items, collapsed }: { label: string; items: typeof mainItems; collapsed: boolean }) {
+type NavItem = { title: string; url: string; icon: any };
+
+function NavGroup({ label, items, collapsed }: { label: string; items: NavItem[]; collapsed: boolean }) {
   const location = useLocation();
   return (
     <SidebarGroup>
@@ -67,7 +71,13 @@ function NavGroup({ label, items, collapsed }: { label: string; items: typeof ma
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { profile, role, signOut } = useAuth();
+  const { profile, roles, hasRole, signOut } = useAuth();
+
+  const isActeurOnly = roles.length > 0 && roles.every((r) => r === "acteur");
+  const showProcessMenu = !isActeurOnly;
+  const showQualityMenu = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const showAuditMenu = hasRole("admin") || hasRole("rmq") || hasRole("auditeur");
+  const showAdminMenu = hasRole("admin");
 
   return (
     <Sidebar collapsible="icon">
@@ -87,9 +97,10 @@ export function AppSidebar() {
 
       <SidebarContent>
         <NavGroup label="Principal" items={mainItems} collapsed={collapsed} />
-        <NavGroup label="Manager processus" items={qualityItems} collapsed={collapsed} />
-        <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />
-        {(role === "rmq" || role === "admin") && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
+        {showProcessMenu && <NavGroup label="Processus" items={processItems} collapsed={collapsed} />}
+        {showQualityMenu && <NavGroup label="Manager processus" items={qualityItems} collapsed={collapsed} />}
+        {showAuditMenu && <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />}
+        {showAdminMenu && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
@@ -98,7 +109,7 @@ export function AppSidebar() {
             <p className="text-xs font-medium text-sidebar-foreground truncate">
               {profile.prenom} {profile.nom}
             </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{role ?? ""}</p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{roles.join(", ")}</p>
           </div>
         )}
         <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={signOut}>

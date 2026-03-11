@@ -15,9 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 type Process = {
-  id: string;
-  code: string;
-  nom: string;
+  id: string; code: string; nom: string;
   type_processus: "pilotage" | "realisation" | "support";
   finalite: string | null;
   statut: "brouillon" | "en_validation" | "valide" | "archive";
@@ -34,13 +32,11 @@ const statusColors: Record<string, string> = {
 };
 
 const typeLabels: Record<string, string> = {
-  pilotage: "Management",
-  realisation: "Réalisation",
-  support: "Support",
+  pilotage: "Management", realisation: "Réalisation", support: "Support",
 };
 
 export default function Processus() {
-  const { role } = useAuth();
+  const { hasRole, user } = useAuth();
   const navigate = useNavigate();
   const [processes, setProcesses] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,11 +45,17 @@ export default function Processus() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [users, setUsers] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
-
   const [newProcess, setNewProcess] = useState({ code: "", nom: "", type_processus: "realisation" as const, finalite: "", responsable_id: "" });
 
+  const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
+
   const fetchProcesses = async () => {
-    const { data } = await supabase.from("processes").select("*").order("code");
+    let query = supabase.from("processes").select("*").order("code");
+    // Filter for responsable_processus only
+    if (isOnlyResponsable && user) {
+      query = query.eq("responsable_id", user.id);
+    }
+    const { data } = await query;
     setProcesses((data ?? []) as Process[]);
     setLoading(false);
   };
@@ -80,8 +82,7 @@ export default function Processus() {
   const handleCreate = async () => {
     if (!newProcess.code || !newProcess.nom) { toast.error("Code et nom requis"); return; }
     const { error } = await supabase.from("processes").insert({
-      code: newProcess.code,
-      nom: newProcess.nom,
+      code: newProcess.code, nom: newProcess.nom,
       type_processus: newProcess.type_processus,
       finalite: newProcess.finalite || null,
       responsable_id: newProcess.responsable_id || null,
@@ -93,16 +94,13 @@ export default function Processus() {
     fetchProcesses();
   };
 
-  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
-  const canDelete = role === "admin" || role === "rmq";
+  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const canDelete = hasRole("admin") || hasRole("rmq");
 
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  const handleDeleteClick = (id: string) => {
-    setPendingDeleteId(id);
-    setAdminDialogOpen(true);
-  };
+  const handleDeleteClick = (id: string) => { setPendingDeleteId(id); setAdminDialogOpen(true); };
 
   const handleDeleteConfirm = async () => {
     if (!pendingDeleteId) return;
@@ -122,9 +120,7 @@ export default function Processus() {
         </div>
         {canCreate && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" /> Nouveau processus</Button>
-            </DialogTrigger>
+            <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Nouveau processus</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Créer un processus</DialogTitle></DialogHeader>
               <div className="space-y-4">
@@ -148,9 +144,7 @@ export default function Processus() {
                     <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Non assigné</SelectItem>
-                      {users.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{getUserLabel(u)}</SelectItem>
-                      ))}
+                      {users.map((u) => <SelectItem key={u.id} value={u.id}>{getUserLabel(u)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -196,30 +190,30 @@ export default function Processus() {
           {filtered.map((p) => {
             const responsable = users.find(u => u.id === p.responsable_id);
             return (
-            <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/processus/${p.id}`)}>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-4">
-                  <div className="font-mono text-sm font-medium text-primary">{p.code}</div>
-                  <div>
-                    <p className="font-medium">{p.nom}</p>
-                    <p className="text-xs text-muted-foreground">{typeLabels[p.type_processus]} • v{p.version_courante}</p>
+              <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(`/processus/${p.id}`)}>
+                <CardContent className="flex items-center justify-between py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="font-mono text-sm font-medium text-primary">{p.code}</div>
+                    <div>
+                      <p className="font-medium">{p.nom}</p>
+                      <p className="text-xs text-muted-foreground">{typeLabels[p.type_processus]} • v{p.version_courante}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Responsable">
-                    <UserCheck className="h-3.5 w-3.5" />
-                    <span>{responsable ? getUserLabel(responsable) : "Non assigné"}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Responsable">
+                      <UserCheck className="h-3.5 w-3.5" />
+                      <span>{responsable ? getUserLabel(responsable) : "Non assigné"}</span>
+                    </div>
+                    <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    {canDelete && (
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                  {canDelete && (
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(p.id); }}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
             );
           })}
         </div>

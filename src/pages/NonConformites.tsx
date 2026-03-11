@@ -54,7 +54,7 @@ const workflowSteps = [
 ];
 
 export default function NonConformites() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [ncs, setNcs] = useState<NC[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
@@ -69,9 +69,9 @@ export default function NonConformites() {
 
   const [deleteNC, setDeleteNC] = useState<NC | null>(null);
 
-  const canCreate = role === "rmq" || role === "responsable_processus" || role === "auditeur" || role === "admin";
-  const canEdit = role === "rmq" || role === "responsable_processus" || role === "admin";
-  const canDelete = role === "admin" || role === "rmq";
+  const canCreate = hasRole("rmq") || hasRole("responsable_processus") || hasRole("auditeur") || hasRole("admin");
+  const canEdit = hasRole("rmq") || hasRole("responsable_processus") || hasRole("admin");
+  const canDelete = hasRole("admin") || hasRole("rmq");
 
   const handleDeleteNC = async () => {
     if (!deleteNC) return;

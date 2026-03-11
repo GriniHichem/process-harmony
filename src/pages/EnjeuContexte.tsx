@@ -2,9 +2,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 
 export default function EnjeuContexte() {
-  const { role } = useAuth();
-  const canEdit = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
-  const canDelete = role === "admin" || role === "rmq";
+  const { hasRole } = useAuth();
+  const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const canDelete = hasRole("admin") || hasRole("rmq");
 
   return (
     <div className="space-y-6">

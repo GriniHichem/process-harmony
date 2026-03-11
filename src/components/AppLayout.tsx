@@ -2,14 +2,18 @@ import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { Info } from "lucide-react";
+import { Info, ScrollText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.jpg";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { profile, role } = useAuth();
+  const { profile, roles, hasRole } = useAuth();
   const [infoOpen, setInfoOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const showLogs = hasRole("admin") || hasRole("rmq");
 
   return (
     <SidebarProvider>
@@ -36,12 +40,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <Info className="h-4 w-4" />
               </Button>
+              {showLogs && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-muted-foreground hover:text-primary"
+                  onClick={() => navigate("/journal")}
+                >
+                  <ScrollText className="h-4 w-4 mr-1" />
+                  Logs
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-3">
               {profile && (
                 <div className="text-right">
                   <p className="text-sm font-medium">{profile.prenom} {profile.nom}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{role?.replace("_", " ") ?? ""}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{roles.join(", ").replace(/_/g, " ")}</p>
                 </div>
               )}
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-medium">
