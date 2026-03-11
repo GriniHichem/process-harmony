@@ -134,7 +134,7 @@ export default function ProcessDetail() {
       if (error || !newProc) { toast.error(error?.message || "Erreur"); setCreatingVersion(false); return; }
 
       // Duplicate elements
-      const elemsToInsert = elements.map(({ id: _id, process_id: _pid, created_at: _ca, updated_at: _ua, ...rest }) => ({
+      const elemsToInsert = elements.map(({ id: _id, process_id: _pid, ...rest }) => ({
         ...rest,
         process_id: newProc.id,
       }));
