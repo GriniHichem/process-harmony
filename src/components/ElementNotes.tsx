@@ -59,7 +59,7 @@ export function ElementNotes({ elementType, elementId, responsableActeurId }: El
   // Can respond: managers (responsable_processus, rmq, admin)
   const canRespond = isAdmin || isRmq || isResponsableProcessus;
   // Can delete: admin/rmq only
-  const canDelete = isAdmin || isRmq;
+  const canDelete = isAdmin;
 
   const fetchNotes = useCallback(async () => {
     const { data } = await supabase
