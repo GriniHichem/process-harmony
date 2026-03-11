@@ -75,7 +75,7 @@ export default function RevueDirection() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Revue de direction</h1>
-          <p className="text-muted-foreground">Clause 9.3 — Éléments d'entrée, décisions et actions</p>
+          
         </div>
         {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle revue</Button>}
       </div>
@@ -128,8 +128,8 @@ export default function RevueDirection() {
                 <div><Label className="text-xs text-muted-foreground">Statut</Label><Badge className={statutColors[viewing.statut]}>{statutLabels[viewing.statut]}</Badge></div>
               </div>
               <div><Label className="text-xs text-muted-foreground">Participants</Label><p className="text-sm whitespace-pre-wrap">{viewing.participants || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Éléments d'entrée (ISO 9001 §9.3.2)</Label><p className="text-sm whitespace-pre-wrap">{viewing.elements_entree || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Décisions et actions (ISO 9001 §9.3.3)</Label><p className="text-sm whitespace-pre-wrap">{viewing.decisions || "—"}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Éléments d'entrée</Label><p className="text-sm whitespace-pre-wrap">{viewing.elements_entree || "—"}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Décisions et actions</Label><p className="text-sm whitespace-pre-wrap">{viewing.decisions || "—"}</p></div>
               <div><Label className="text-xs text-muted-foreground">Actions décidées</Label><p className="text-sm whitespace-pre-wrap">{viewing.actions_decidees || "—"}</p></div>
               <div><Label className="text-xs text-muted-foreground">Compte rendu</Label><p className="text-sm whitespace-pre-wrap">{viewing.compte_rendu || "—"}</p></div>
             </div>
@@ -157,8 +157,8 @@ export default function RevueDirection() {
               </div>
             </div>
             <div><Label>Participants</Label><Textarea value={form.participants} onChange={e => setForm(f => ({ ...f, participants: e.target.value }))} placeholder="Noms et fonctions des participants..." /></div>
-            <div><Label>Éléments d'entrée (§9.3.2)</Label><Textarea rows={5} value={form.elements_entree} onChange={e => setForm(f => ({ ...f, elements_entree: e.target.value }))} placeholder="- État des actions des revues précédentes&#10;- Modifications des enjeux&#10;- Performance des processus&#10;- Non-conformités et actions correctives&#10;- Résultats de surveillance et mesure&#10;- Résultats d'audit&#10;- Satisfaction client&#10;- Adéquation des ressources&#10;- Opportunités d'amélioration" /></div>
-            <div><Label>Décisions (§9.3.3)</Label><Textarea rows={4} value={form.decisions} onChange={e => setForm(f => ({ ...f, decisions: e.target.value }))} placeholder="Décisions prises lors de la revue..." /></div>
+            <div><Label>Éléments d'entrée</Label><Textarea rows={5} value={form.elements_entree} onChange={e => setForm(f => ({ ...f, elements_entree: e.target.value }))} placeholder="- État des actions des revues précédentes&#10;- Modifications des enjeux&#10;- Performance des processus&#10;- Non-conformités et actions correctives&#10;- Résultats de surveillance et mesure&#10;- Résultats d'audit&#10;- Satisfaction client&#10;- Adéquation des ressources&#10;- Opportunités d'amélioration" /></div>
+            <div><Label>Décisions</Label><Textarea rows={4} value={form.decisions} onChange={e => setForm(f => ({ ...f, decisions: e.target.value }))} placeholder="Décisions prises lors de la revue..." /></div>
             <div><Label>Actions décidées</Label><Textarea rows={3} value={form.actions_decidees} onChange={e => setForm(f => ({ ...f, actions_decidees: e.target.value }))} placeholder="Actions à mettre en œuvre..." /></div>
             <div><Label>Compte rendu</Label><Textarea rows={4} value={form.compte_rendu} onChange={e => setForm(f => ({ ...f, compte_rendu: e.target.value }))} /></div>
             <div><Label>Prochaine revue</Label><Input type="date" value={form.prochaine_revue} onChange={e => setForm(f => ({ ...f, prochaine_revue: e.target.value }))} /></div>

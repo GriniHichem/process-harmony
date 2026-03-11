@@ -72,7 +72,7 @@ export default function SatisfactionClient() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Satisfaction client</h1>
-          <p className="text-muted-foreground">Clause 9.1.2 — Surveillance de la satisfaction client</p>
+          
         </div>
         {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle enquête</Button>}
       </div>

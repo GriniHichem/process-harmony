@@ -106,7 +106,7 @@ export default function Competences() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Compétences & Formations</h1>
-        <p className="text-muted-foreground">Clause 7.2 — Gestion des compétences, formations et évaluation de l'efficacité</p>
+        
       </div>
 
       <Tabs defaultValue="competences">
