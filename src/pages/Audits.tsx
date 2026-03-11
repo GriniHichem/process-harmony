@@ -87,7 +87,7 @@ export default function Audits() {
   };
 
   const fetchActeurs = async () => {
-    const { data } = await supabase.from("acteurs").select("id, nom, prenom").eq("actif", true);
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true);
     setActeurs(data ?? []);
   };
 
