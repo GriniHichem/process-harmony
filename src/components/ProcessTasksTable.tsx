@@ -254,7 +254,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   const acteurName = (id: string | null) => {
     if (!id) return "—";
     const a = acteurs.find((a) => a.id === id);
-    return a ? `${a.prenom} ${a.nom}`.trim() : "—";
+    return a ? (a.fonction || "—") : "—";
   };
 
   const resolveElementDescriptions = (codesStr: string | null): string => {
