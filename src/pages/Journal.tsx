@@ -74,6 +74,9 @@ export default function Journal() {
   const [entityFilter, setEntityFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
 
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+
   const canView = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("auditeur") || hasRole("acteur");
 
   useEffect(() => {
