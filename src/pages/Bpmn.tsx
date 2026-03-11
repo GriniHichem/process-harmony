@@ -24,6 +24,7 @@ export default function Bpmn() {
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
   const [selectedProcessId, setSelectedProcessId] = useState("");
   const [diagram, setDiagram] = useState<BpmnDiagram | null>(null);
+  const [inclureBpmnPdf, setInclureBpmnPdf] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<ToolMode>("select");
