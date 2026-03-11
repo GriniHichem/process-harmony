@@ -325,7 +325,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
                   key={a.id}
                   description={a.description}
                   statut={a.statut}
-                  responsable={a.responsable}
+                  responsable={getActeurLabel(a.responsable)}
                   datePrevue={a.date_prevue}
                   deadline={a.deadline}
                   canEdit={canEdit}
