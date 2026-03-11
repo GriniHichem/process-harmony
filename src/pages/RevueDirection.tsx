@@ -153,6 +153,13 @@ export default function RevueDirection() {
                   ))}
                 </div>
               </div>
+              {/* Éléments d'entrée structured */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Éléments d'entrée</Label>
+                <div className="mt-1">
+                  <ReviewInputItemsView reviewId={viewing.id} />
+                </div>
+              </div>
               {RICH_FIELDS.map(f => (
                 <div key={f.key}>
                   <Label className="text-xs text-muted-foreground">{f.label}</Label>
