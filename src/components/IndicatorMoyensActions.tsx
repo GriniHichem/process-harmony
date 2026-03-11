@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Check, X, Wrench, ClipboardList, CalendarClock, D
 import { format } from "date-fns";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ActeurSelect } from "@/components/ActeurSelect";
+import { ElementNotes } from "@/components/ElementNotes";
 
 interface IndicatorMoyen {
   id: string;
