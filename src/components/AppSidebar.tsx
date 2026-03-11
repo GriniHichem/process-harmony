@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Tableau de bord", url: "/", icon: LayoutDashboard },
   { title: "Acteurs", url: "/acteurs", icon: Contact },
+  { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList },
 ];
 
 const processItems = [
