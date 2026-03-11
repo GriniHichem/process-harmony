@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { parseParticipants } from "@/components/ParticipantSelector";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 function esc(str: string | null | undefined): string {
   if (!str) return "";
@@ -140,19 +142,72 @@ function buildSignatures() {
   </div>`;
 }
 
-function openPdf(html: string, filename: string) {
-  const win = window.open("", "_blank");
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-  } else {
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
+async function openPdf(html: string, filename: string) {
+  // Create a hidden container to render the HTML
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "794px"; // A4 width at 96dpi
+  container.style.background = "#fff";
+  container.innerHTML = html.replace(/.*<body[^>]*>/s, "").replace(/<\/body>.*/s, "");
+  
+  // Extract and apply styles
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+  if (styleMatch) {
+    const style = document.createElement("style");
+    style.textContent = styleMatch[1];
+    container.prepend(style);
+  }
+  
+  document.body.appendChild(container);
+
+  try {
+    // Wait for images to load
+    const images = container.querySelectorAll("img");
+    await Promise.all(
+      Array.from(images).map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete) return resolve();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+          })
+      )
+    );
+
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      width: 794,
+      windowWidth: 794,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pdfWidth = 210;
+    const pdfHeight = 297;
+    const margin = 5;
+    const contentWidth = pdfWidth - margin * 2;
+    const contentHeight = (canvas.height * contentWidth) / canvas.width;
+
+    let heightLeft = contentHeight;
+    let position = margin;
+
+    pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight);
+    heightLeft -= pdfHeight - margin * 2;
+
+    while (heightLeft > 0) {
+      position = -(contentHeight - heightLeft) + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight);
+      heightLeft -= pdfHeight - margin * 2;
+    }
+
+    pdf.save(filename.replace(/\.html$/i, ".pdf"));
+  } finally {
+    document.body.removeChild(container);
   }
 }
 
@@ -230,7 +285,7 @@ export async function exportPolitiqueQualitePdf() {
   ${buildFooter("POL-QUA", "Politique Qualité")}
   </body></html>`;
 
-  openPdf(html, "politique-qualite.html");
+  await openPdf(html, "politique-qualite.pdf");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -305,7 +360,7 @@ export async function exportObjectifsQualitePdf() {
   ${buildFooter("OBJ-QUA", "Objectifs Qualité")}
   </body></html>`;
 
-  openPdf(html, "objectifs-qualite.html");
+  await openPdf(html, "objectifs-qualite.pdf");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -447,5 +502,5 @@ export async function exportRevueDirectionPdf(reviewId: string) {
   ${buildFooter(review.reference || "RD", "Revue de Direction")}
   </body></html>`;
 
-  openPdf(html, `revue-direction-${review.reference || reviewId}.html`);
+  await openPdf(html, `revue-direction-${review.reference || reviewId}.pdf`);
 }
