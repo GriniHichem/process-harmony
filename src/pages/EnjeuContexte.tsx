@@ -14,6 +14,8 @@ export default function EnjeuContexte() {
   const [acteurProcessIds, setActeurProcessIds] = useState<string[] | undefined>(undefined);
   const [acteurId, setActeurId] = useState<string | null>(null);
   const [ready, setReady] = useState(!isOnlyActeur);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const issueId = searchParams.get("issue");
 
   useEffect(() => {
     if (!isOnlyActeur || !user) return;
@@ -31,13 +33,11 @@ export default function EnjeuContexte() {
     })();
   }, [isOnlyActeur, user]);
 
-  if (!ready) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
-  const [searchParams, setSearchParams] = useSearchParams();
-  const issueId = searchParams.get("issue");
-
   useEffect(() => {
     if (issueId) setSearchParams({}, { replace: true });
   }, [issueId]);
+
+  if (!ready) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   return (
     <div className="space-y-6">
