@@ -128,8 +128,8 @@ export default function RevueDirection() {
                 <div><Label className="text-xs text-muted-foreground">Statut</Label><Badge className={statutColors[viewing.statut]}>{statutLabels[viewing.statut]}</Badge></div>
               </div>
               <div><Label className="text-xs text-muted-foreground">Participants</Label><p className="text-sm whitespace-pre-wrap">{viewing.participants || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Éléments d'entrée (ISO 9001 §9.3.2)</Label><p className="text-sm whitespace-pre-wrap">{viewing.elements_entree || "—"}</p></div>
-              <div><Label className="text-xs text-muted-foreground">Décisions et actions (ISO 9001 §9.3.3)</Label><p className="text-sm whitespace-pre-wrap">{viewing.decisions || "—"}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Éléments d'entrée</Label><p className="text-sm whitespace-pre-wrap">{viewing.elements_entree || "—"}</p></div>
+              <div><Label className="text-xs text-muted-foreground">Décisions et actions</Label><p className="text-sm whitespace-pre-wrap">{viewing.decisions || "—"}</p></div>
               <div><Label className="text-xs text-muted-foreground">Actions décidées</Label><p className="text-sm whitespace-pre-wrap">{viewing.actions_decidees || "—"}</p></div>
               <div><Label className="text-xs text-muted-foreground">Compte rendu</Label><p className="text-sm whitespace-pre-wrap">{viewing.compte_rendu || "—"}</p></div>
             </div>
