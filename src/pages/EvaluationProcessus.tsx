@@ -46,7 +46,7 @@ export default function EvaluationProcessus() {
   });
 
   const scoreTotal = useMemo(() => Object.values(scores).reduce((a, b) => a + b, 0), [scores]);
-  const resultat = scoreTotal >= 15 ? "processus" : "activite";
+  const resultat = scoreTotal >= 16 ? "processus" : scoreTotal >= 12 ? "zone_orange" : "activite";
 
   const { data: evaluations = [], isLoading } = useQuery({
     queryKey: ["process_evaluations"],
