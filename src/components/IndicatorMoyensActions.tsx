@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Check, X, Wrench, ClipboardList, CalendarClock, DollarSign } from "lucide-react";
 import { format } from "date-fns";
+import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurSelect } from "@/components/ActeurSelect";
 
 interface IndicatorMoyen {
   id: string;
@@ -130,6 +132,7 @@ function ItemCard({
 }
 
 export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyensActionsProps) {
+  const { acteurs, getActeurLabel } = useActeurs();
   const [moyens, setMoyens] = useState<IndicatorMoyen[]>([]);
   const [actions, setActions] = useState<IndicatorAction[]>([]);
 
@@ -279,11 +282,11 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
           ) : (
             <div className="space-y-2">
               {moyens.map((m) => (
-                <ItemCard
+                 <ItemCard
                   key={m.id}
                   description={m.description}
                   statut={m.statut}
-                  responsable={m.responsable}
+                  responsable={getActeurLabel(m.responsable)}
                   datePrevue={m.date_prevue}
                   deadline={m.deadline}
                   budget={m.budget}
@@ -322,7 +325,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
                   key={a.id}
                   description={a.description}
                   statut={a.statut}
-                  responsable={a.responsable}
+                  responsable={getActeurLabel(a.responsable)}
                   datePrevue={a.date_prevue}
                   deadline={a.deadline}
                   canEdit={canEdit}
@@ -378,7 +381,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
             </div>
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <Input value={moyenForm.responsable} onChange={(e) => setMoyenForm({ ...moyenForm, responsable: e.target.value })} placeholder="Nom du responsable" />
+              <ActeurSelect value={moyenForm.responsable} onChange={(v) => setMoyenForm({ ...moyenForm, responsable: v })} acteurs={acteurs} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -419,7 +422,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
             </div>
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <Input value={actionForm.responsable} onChange={(e) => setActionForm({ ...actionForm, responsable: e.target.value })} placeholder="Nom du responsable" />
+              <ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

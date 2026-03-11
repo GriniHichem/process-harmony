@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Calendar, DollarSign, User, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurSelect } from "@/components/ActeurSelect";
 
 interface RiskAction {
   id: string;
@@ -139,6 +141,7 @@ interface RiskMoyensActionsProps {
 }
 
 export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
+  const { acteurs, getActeurLabel } = useActeurs();
   const [actions, setActions] = useState<RiskAction[]>([]);
   const [moyens, setMoyens] = useState<RiskMoyen[]>([]);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
@@ -260,7 +263,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
                     </div>
                   </div>
                   <div className="space-y-1"><Label>Budget (DH)</Label><Input type="number" value={moyenForm.budget} onChange={(e) => setMoyenForm({ ...moyenForm, budget: e.target.value })} /></div>
-                  <div className="space-y-1"><Label>Responsable</Label><Input value={moyenForm.responsable} onChange={(e) => setMoyenForm({ ...moyenForm, responsable: e.target.value })} /></div>
+                  <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={moyenForm.responsable} onChange={(v) => setMoyenForm({ ...moyenForm, responsable: v })} acteurs={acteurs} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><Label>Date prévue</Label><Input type="date" value={moyenForm.date_prevue} onChange={(e) => setMoyenForm({ ...moyenForm, date_prevue: e.target.value })} /></div>
                     <div className="space-y-1"><Label>Deadline</Label><Input type="date" value={moyenForm.deadline} onChange={(e) => setMoyenForm({ ...moyenForm, deadline: e.target.value })} /></div>
@@ -276,7 +279,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
         ) : (
           <div className="space-y-2">
             {moyens.map((m) => (
-              <ItemCard key={m.id} description={m.description} statut={m.statut} responsable={m.responsable} datePrevue={m.date_prevue} deadline={m.deadline} budget={m.budget} typeMoyen={m.type_moyen} canEdit={canEdit} onEdit={() => openEditMoyen(m)} onDelete={() => handleDeleteMoyen(m.id)} />
+              <ItemCard key={m.id} description={m.description} statut={m.statut} responsable={getActeurLabel(m.responsable)} datePrevue={m.date_prevue} deadline={m.deadline} budget={m.budget} typeMoyen={m.type_moyen} canEdit={canEdit} onEdit={() => openEditMoyen(m)} onDelete={() => handleDeleteMoyen(m.id)} />
             ))}
           </div>
         )}
@@ -302,7 +305,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1"><Label>Responsable</Label><Input value={actionForm.responsable} onChange={(e) => setActionForm({ ...actionForm, responsable: e.target.value })} /></div>
+                  <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><Label>Date prévue</Label><Input type="date" value={actionForm.date_prevue} onChange={(e) => setActionForm({ ...actionForm, date_prevue: e.target.value })} /></div>
                     <div className="space-y-1"><Label>Deadline</Label><Input type="date" value={actionForm.deadline} onChange={(e) => setActionForm({ ...actionForm, deadline: e.target.value })} /></div>
@@ -318,7 +321,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
         ) : (
           <div className="space-y-2">
             {actions.map((a) => (
-              <ItemCard key={a.id} description={a.description} statut={a.statut} responsable={a.responsable} datePrevue={a.date_prevue} deadline={a.deadline} canEdit={canEdit} onEdit={() => openEditAction(a)} onDelete={() => handleDeleteAction(a.id)} />
+              <ItemCard key={a.id} description={a.description} statut={a.statut} responsable={getActeurLabel(a.responsable)} datePrevue={a.date_prevue} deadline={a.deadline} canEdit={canEdit} onEdit={() => openEditAction(a)} onDelete={() => handleDeleteAction(a.id)} />
             ))}
           </div>
         )}

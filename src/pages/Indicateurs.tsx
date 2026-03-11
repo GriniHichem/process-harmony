@@ -85,13 +85,13 @@ export default function Indicateurs() {
 
     // For acteur: find which indicators have actions/moyens where they are responsible
     if (isOnlyActeur && user) {
-      const { data: profileData } = await supabase.from("profiles").select("acteur_id, nom, prenom").eq("id", user.id).single();
-      const acteurName = profileData ? `${profileData.prenom} ${profileData.nom}`.trim() : "";
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
+      const acteurId = profileData?.acteur_id;
       const indicatorIds = allIndicators.map(i => i.id);
-      if (indicatorIds.length > 0 && acteurName) {
+      if (indicatorIds.length > 0 && acteurId) {
         const [actionsRes, moyensRes] = await Promise.all([
-          supabase.from("indicator_actions").select("indicator_id").in("indicator_id", indicatorIds).ilike("responsable", `%${acteurName}%`),
-          supabase.from("indicator_moyens" as any).select("indicator_id").in("indicator_id", indicatorIds).ilike("responsable", `%${acteurName}%`),
+          supabase.from("indicator_actions").select("indicator_id").in("indicator_id", indicatorIds).eq("responsable", acteurId),
+          supabase.from("indicator_moyens" as any).select("indicator_id").in("indicator_id", indicatorIds).eq("responsable", acteurId),
         ]);
         const ids = new Set<string>();
         (actionsRes.data ?? []).forEach((a: any) => ids.add(a.indicator_id));
