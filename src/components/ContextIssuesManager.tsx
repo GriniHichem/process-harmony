@@ -53,6 +53,8 @@ interface Props {
   filterProcessIds?: string[];
   /** Acteur ID for restricting expand to issues where they have actions */
   acteurId?: string | null;
+  /** Auto-expand this issue on mount (deep-link) */
+  initialExpandIssueId?: string | null;
 }
 
 const impactColors: Record<string, string> = {

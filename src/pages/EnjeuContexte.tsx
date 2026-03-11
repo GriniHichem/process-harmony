@@ -32,6 +32,12 @@ export default function EnjeuContexte() {
   }, [isOnlyActeur, user]);
 
   if (!ready) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const issueId = searchParams.get("issue");
+
+  useEffect(() => {
+    if (issueId) setSearchParams({}, { replace: true });
+  }, [issueId]);
 
   return (
     <div className="space-y-6">
@@ -46,6 +52,7 @@ export default function EnjeuContexte() {
         isOnlyResponsable={isOnlyResponsable || isOnlyActeur}
         filterProcessIds={acteurProcessIds}
         acteurId={isOnlyActeur ? acteurId : undefined}
+        initialExpandIssueId={issueId}
       />
     </div>
   );
