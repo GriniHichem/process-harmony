@@ -8,7 +8,9 @@ export type BpmnNodeType =
   | "intermediate-timer"
   | "intermediate-message"
   | "subprocess"
-  | "annotation";
+  | "annotation"
+  | "data-object"
+  | "data-store";
 
 export interface BpmnNode {
   id: string;
@@ -25,6 +27,7 @@ export interface BpmnEdge {
   from: string;
   to: string;
   label?: string;
+  type?: "sequence" | "association" | "data";
 }
 
 export interface BpmnData {
@@ -51,7 +54,9 @@ export const NODE_DEFAULTS: Record<BpmnNodeType, { width: number; height: number
   "intermediate-timer": { width: 40, height: 40, label: "Timer" },
   "intermediate-message": { width: 40, height: 40, label: "Message" },
   "subprocess": { width: 160, height: 80, label: "Sous-processus" },
-  "annotation": { width: 140, height: 50, label: "Note" },
+  "annotation": { width: 150, height: 40, label: "Note" },
+  "data-object": { width: 36, height: 48, label: "Document" },
+  "data-store": { width: 44, height: 40, label: "Données" },
 };
 
 export const NODE_CATEGORIES = [
