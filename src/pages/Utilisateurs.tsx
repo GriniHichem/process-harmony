@@ -104,7 +104,7 @@ export default function Utilisateurs() {
   };
 
   const handleToggleCustomRole = async (userId: string, customRoleId: string, currentCustomRoleIds: string[]) => {
-    if (!hasRole("admin")) return;
+    if (!canEdit) return;
     const has = currentCustomRoleIds.includes(customRoleId);
     if (has) {
       const { error } = await supabase.from("user_custom_roles").delete().eq("user_id", userId).eq("custom_role_id", customRoleId);
