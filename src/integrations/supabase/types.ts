@@ -687,6 +687,53 @@ export type Database = {
           },
         ]
       }
+      element_notes: {
+        Row: {
+          avancement: number
+          contenu: string
+          created_at: string
+          created_by: string | null
+          date_note: string
+          element_id: string
+          element_type: string
+          id: string
+          is_response: boolean
+          parent_note_id: string | null
+        }
+        Insert: {
+          avancement?: number
+          contenu?: string
+          created_at?: string
+          created_by?: string | null
+          date_note?: string
+          element_id: string
+          element_type: string
+          id?: string
+          is_response?: boolean
+          parent_note_id?: string | null
+        }
+        Update: {
+          avancement?: number
+          contenu?: string
+          created_at?: string
+          created_by?: string | null
+          date_note?: string
+          element_id?: string
+          element_type?: string
+          id?: string
+          is_response?: boolean
+          parent_note_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "element_notes_parent_note_id_fkey"
+            columns: ["parent_note_id"]
+            isOneToOne: false
+            referencedRelation: "element_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formations: {
         Row: {
           acteur_id: string
