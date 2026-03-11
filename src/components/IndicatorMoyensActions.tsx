@@ -65,9 +65,12 @@ const TYPE_MOYEN_LABELS: Record<string, string> = {
 };
 
 function ItemCard({
+  itemId,
+  elementType,
   description,
   statut,
   responsable,
+  responsableActeurId,
   datePrevue,
   deadline,
   budget,
@@ -76,9 +79,12 @@ function ItemCard({
   onEdit,
   onDelete,
 }: {
+  itemId: string;
+  elementType: string;
   description: string;
   statut: string;
   responsable: string | null;
+  responsableActeurId: string | null;
   datePrevue: string | null;
   deadline: string | null;
   budget?: number | null;
@@ -128,6 +134,7 @@ function ItemCard({
           </div>
         )}
       </div>
+      <ElementNotes elementType={elementType} elementId={itemId} responsableActeurId={responsableActeurId} />
     </div>
   );
 }
