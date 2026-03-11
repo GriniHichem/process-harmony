@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Calendar, DollarSign, User, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurSelect } from "@/components/ActeurSelect";
 
 interface RiskAction {
   id: string;
