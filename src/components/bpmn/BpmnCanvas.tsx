@@ -347,13 +347,17 @@ export default function BpmnCanvas({
 
     const ports = bestPorts(fromNode, toNode);
     const isAnnotation = fromNode.type === "annotation" || toNode.type === "annotation";
+    const isData = edge.type === "data" || edge.type === "association"
+      || fromNode.type === "data-object" || toNode.type === "data-object"
+      || fromNode.type === "data-store" || toNode.type === "data-store";
+    const isDashed = isAnnotation || isData;
 
     return (
       <g key={edge.id} onClick={() => handleEdgeClick(edge.id)}
         style={{ cursor: mode === "delete" ? "crosshair" : "default" }}>
         <defs>
           <marker id={`ah-${edge.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--foreground) / 0.6)" />
+            <polygon points="0 0, 10 3.5, 0 7" fill={isData ? "hsl(var(--foreground) / 0.3)" : "hsl(var(--foreground) / 0.6)"} />
           </marker>
         </defs>
         {/* Invisible fat line for easier clicking */}
@@ -361,17 +365,17 @@ export default function BpmnCanvas({
           stroke="transparent" strokeWidth={12} />
         <line
           x1={ports.from.x} y1={ports.from.y} x2={ports.to.x} y2={ports.to.y}
-          stroke="hsl(var(--foreground) / 0.4)"
-          strokeWidth={1.5}
-          strokeDasharray={isAnnotation ? "4 3" : "none"}
+          stroke={isData ? "hsl(var(--foreground) / 0.25)" : "hsl(var(--foreground) / 0.4)"}
+          strokeWidth={isDashed ? 1 : 1.5}
+          strokeDasharray={isDashed ? "5 3" : "none"}
           markerEnd={isAnnotation ? undefined : `url(#ah-${edge.id})`}
         />
         {edge.label && (
           <g>
             <rect
-              x={(ports.from.x + ports.to.x) / 2 - 20}
+              x={(ports.from.x + ports.to.x) / 2 - Math.min(edge.label.length * 3.5, 50)}
               y={(ports.from.y + ports.to.y) / 2 - 10}
-              width={40} height={18} rx={4}
+              width={Math.min(edge.label.length * 7, 100)} height={18} rx={4}
               fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={1}
             />
             <text
@@ -380,7 +384,7 @@ export default function BpmnCanvas({
               textAnchor="middle"
               className="text-[10px] fill-muted-foreground"
             >
-              {edge.label}
+              {edge.label.length > 16 ? edge.label.slice(0, 16) + "…" : edge.label}
             </text>
           </g>
         )}

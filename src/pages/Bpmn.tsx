@@ -165,15 +165,25 @@ export default function Bpmn() {
     if (!selectedProcessId) return;
     setGenerating(true);
     try {
-      const [{ data: tasks }, { data: elements }] = await Promise.all([
+      const [{ data: tasks }, { data: elements }, { data: docLinks }] = await Promise.all([
         supabase.from("process_tasks").select("*").eq("process_id", selectedProcessId).order("ordre"),
         supabase.from("process_elements").select("*").eq("process_id", selectedProcessId),
+        supabase.from("document_processes").select("document_id, documents(id, titre)").eq("process_id", selectedProcessId),
       ]);
 
       if (!tasks || tasks.length === 0) {
         toast.error("Aucune activité trouvée pour ce processus. Ajoutez des activités d'abord.");
         setGenerating(false);
         return;
+      }
+
+      // Build documents list from linked documents
+      const allDocs: { id: string; titre: string }[] = [];
+      if (docLinks) {
+        for (const link of docLinks) {
+          const doc = link.documents as unknown as { id: string; titre: string } | null;
+          if (doc) allDocs.push(doc);
+        }
       }
 
       const bpmnData = generateBpmnFromTasks(
@@ -187,13 +197,15 @@ export default function Bpmn() {
           entrees: t.entrees,
           sorties: t.sorties,
           ordre: t.ordre,
+          documents: t.documents,
         })),
         (elements ?? []).map(e => ({
           id: e.id,
           code: e.code,
           description: e.description,
           type: e.type,
-        }))
+        })),
+        allDocs
       );
 
       if (diagram) {
