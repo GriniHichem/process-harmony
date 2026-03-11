@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { renderBpmnSvgString } from "./renderBpmnSvgString";
+import { BpmnData } from "@/components/bpmn/types";
 
 interface ProcessData {
   process: any;
@@ -18,6 +20,7 @@ interface ProcessData {
   contextIssues: any[];
   contextIssueActions: Record<string, any[]>;
   acteurs: any[];
+  bpmnData: BpmnData | null;
 }
 
 async function fetchAllProcessData(processId: string): Promise<ProcessData> {
@@ -114,6 +117,20 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     }
   }
 
+  // Fetch BPMN diagram if inclure_bpmn_pdf is true
+  let bpmnData: BpmnData | null = null;
+  if ((process as any)?.inclure_bpmn_pdf) {
+    const { data: bpmnDiagrams } = await supabase
+      .from("bpmn_diagrams")
+      .select("donnees")
+      .eq("process_id", processId)
+      .order("version", { ascending: false })
+      .limit(1);
+    if (bpmnDiagrams && bpmnDiagrams.length > 0 && bpmnDiagrams[0].donnees) {
+      bpmnData = bpmnDiagrams[0].donnees as unknown as BpmnData;
+    }
+  }
+
   const resp = profiles?.find((p: any) => p.id === process?.responsable_id);
   const responsableName = resp ? `${resp.prenom} ${resp.nom}`.trim() || resp.email : "Non assigné";
 
@@ -135,6 +152,7 @@ async function fetchAllProcessData(processId: string): Promise<ProcessData> {
     contextIssues,
     contextIssueActions,
     acteurs: acteurs ?? [],
+    bpmnData,
   };
 }
 
@@ -150,7 +168,7 @@ function buildHtml(data: ProcessData): string {
     process: p, elements, tasks, interactions, targetProcesses, documents,
     indicators, indicatorValues, indicatorActions, indicatorMoyens,
     risks, riskActions, riskMoyens, responsableName,
-    contextIssues, contextIssueActions, acteurs,
+    contextIssues, contextIssueActions, acteurs, bpmnData,
   } = data;
 
   const typeLabels: Record<string, string> = { pilotage: "Management", realisation: "Réalisation", support: "Support" };
@@ -514,7 +532,16 @@ function buildHtml(data: ProcessData): string {
     </div>
   </div>
 
-  <!-- ═══ 5. INTERACTIONS ENTRE PROCESSUS (cl. 4.4.1 c) ═══ -->
+  <!-- ═══ DIAGRAMME BPMN ═══ -->
+  ${bpmnData && bpmnData.nodes.length > 0 ? `
+  <div class="section" style="page-break-inside:avoid">
+    <div class="section-header"><div class="num">${sn()}</div><h2>Diagramme BPMN du processus</h2></div>
+    <div class="section-body" style="text-align:center;padding:16px">
+      ${renderBpmnSvgString(bpmnData)}
+    </div>
+  </div>` : (() => { if (bpmnData) sectionNum++; return ""; })()}
+
+  <!-- ═══ ${sectionNum + 1}. INTERACTIONS ENTRE PROCESSUS (cl. 4.4.1 c) ═══ -->
   <div class="section">
     <div class="section-header"><div class="num">${sn()}</div><h2>Interactions entre processus</h2></div>
     <div class="section-body">

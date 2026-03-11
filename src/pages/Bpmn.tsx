@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Wand2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { BpmnNode, BpmnEdge, BpmnData, BpmnDiagram, BpmnNodeType, NODE_DEFAULTS } from "@/components/bpmn/types";
 import BpmnToolbar from "@/components/bpmn/BpmnToolbar";
@@ -23,6 +24,7 @@ export default function Bpmn() {
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
   const [selectedProcessId, setSelectedProcessId] = useState("");
   const [diagram, setDiagram] = useState<BpmnDiagram | null>(null);
+  const [inclureBpmnPdf, setInclureBpmnPdf] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<ToolMode>("select");
@@ -54,13 +56,13 @@ export default function Bpmn() {
   }, []);
 
   const fetchDiagram = useCallback(async (processId: string) => {
-    const { data } = await supabase
-      .from("bpmn_diagrams")
-      .select("*")
-      .eq("process_id", processId)
-      .order("version", { ascending: false })
-      .limit(1);
+    const [{ data }, { data: processData }] = await Promise.all([
+      supabase.from("bpmn_diagrams").select("*").eq("process_id", processId).order("version", { ascending: false }).limit(1),
+      supabase.from("processes").select("inclure_bpmn_pdf").eq("id", processId).single(),
+    ]);
     
+    setInclureBpmnPdf((processData as any)?.inclure_bpmn_pdf ?? false);
+
     if (data && data.length > 0) {
       const raw = data[0];
       const d: BpmnDiagram = { ...raw, donnees: raw.donnees as unknown as BpmnData | null };
@@ -283,9 +285,26 @@ export default function Bpmn() {
               </Select>
             </div>
             {selectedProcessId && diagram && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">v{diagram.version}</Badge>
-                <Badge variant="secondary">{diagram.statut}</Badge>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="inclure-bpmn-pdf"
+                    checked={inclureBpmnPdf}
+                    onCheckedChange={async (checked) => {
+                      setInclureBpmnPdf(checked);
+                      await supabase.from("processes").update({ inclure_bpmn_pdf: checked } as any).eq("id", selectedProcessId);
+                      toast.success(checked ? "Le diagramme BPMN sera inclus dans le PDF" : "Le diagramme BPMN ne sera plus inclus dans le PDF");
+                    }}
+                    disabled={!canEdit}
+                  />
+                  <Label htmlFor="inclure-bpmn-pdf" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                    Inclure dans le PDF
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">v{diagram.version}</Badge>
+                  <Badge variant="secondary">{diagram.statut}</Badge>
+                </div>
               </div>
             )}
           </div>

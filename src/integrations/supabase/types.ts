@@ -1042,6 +1042,7 @@ export type Database = {
           donnees_sortie: string | null
           finalite: string | null
           id: string
+          inclure_bpmn_pdf: boolean
           interactions: string | null
           nom: string
           parties_prenantes: string | null
@@ -1061,6 +1062,7 @@ export type Database = {
           donnees_sortie?: string | null
           finalite?: string | null
           id?: string
+          inclure_bpmn_pdf?: boolean
           interactions?: string | null
           nom: string
           parties_prenantes?: string | null
@@ -1080,6 +1082,7 @@ export type Database = {
           donnees_sortie?: string | null
           finalite?: string | null
           id?: string
+          inclure_bpmn_pdf?: boolean
           interactions?: string | null
           nom?: string
           parties_prenantes?: string | null

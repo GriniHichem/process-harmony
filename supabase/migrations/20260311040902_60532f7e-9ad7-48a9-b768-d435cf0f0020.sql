@@ -1,0 +1,1 @@
+ALTER TABLE public.processes ADD COLUMN inclure_bpmn_pdf boolean NOT NULL DEFAULT false;
