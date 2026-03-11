@@ -161,6 +161,71 @@ export default function Bpmn() {
     setDiagram({ ...diagram, donnees: prev });
   };
 
+  const doGenerate = async () => {
+    if (!selectedProcessId) return;
+    setGenerating(true);
+    try {
+      const [{ data: tasks }, { data: elements }] = await Promise.all([
+        supabase.from("process_tasks").select("*").eq("process_id", selectedProcessId).order("ordre"),
+        supabase.from("process_elements").select("*").eq("process_id", selectedProcessId),
+      ]);
+
+      if (!tasks || tasks.length === 0) {
+        toast.error("Aucune activité trouvée pour ce processus. Ajoutez des activités d'abord.");
+        setGenerating(false);
+        return;
+      }
+
+      const bpmnData = generateBpmnFromTasks(
+        tasks.map(t => ({
+          id: t.id,
+          code: t.code,
+          description: t.description,
+          type_flux: t.type_flux as "sequentiel" | "conditionnel" | "parallele" | "inclusif",
+          condition: t.condition,
+          parent_code: t.parent_code,
+          entrees: t.entrees,
+          sorties: t.sorties,
+          ordre: t.ordre,
+        })),
+        (elements ?? []).map(e => ({
+          id: e.id,
+          code: e.code,
+          description: e.description,
+          type: e.type,
+        }))
+      );
+
+      if (diagram) {
+        // Update existing diagram
+        updateData(bpmnData);
+      } else {
+        // Create new diagram with generated data
+        const processName = processes.find(p => p.id === selectedProcessId)?.nom ?? "Diagramme";
+        const { error } = await supabase.from("bpmn_diagrams").insert([{
+          nom: `BPMN - ${processName}`,
+          process_id: selectedProcessId,
+          donnees: bpmnData as unknown as null,
+        }]);
+        if (error) { toast.error(error.message); setGenerating(false); return; }
+        await fetchDiagram(selectedProcessId);
+      }
+
+      toast.success("Diagramme généré depuis les activités du processus");
+    } catch (err) {
+      toast.error("Erreur lors de la génération");
+    }
+    setGenerating(false);
+  };
+
+  const handleGenerate = () => {
+    if (diagram?.donnees && diagram.donnees.nodes.length > 0) {
+      setShowGenerateConfirm(true);
+    } else {
+      doGenerate();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
