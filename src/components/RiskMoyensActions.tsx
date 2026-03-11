@@ -141,6 +141,7 @@ interface RiskMoyensActionsProps {
 }
 
 export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
+  const { acteurs, getActeurLabel } = useActeurs();
   const [actions, setActions] = useState<RiskAction[]>([]);
   const [moyens, setMoyens] = useState<RiskMoyen[]>([]);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
