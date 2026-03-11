@@ -51,6 +51,8 @@ interface Props {
   isOnlyResponsable?: boolean;
   /** If set, only show enjeux linked to these process IDs */
   filterProcessIds?: string[];
+  /** Acteur ID for restricting expand to issues where they have actions */
+  acteurId?: string | null;
 }
 
 const impactColors: Record<string, string> = {
