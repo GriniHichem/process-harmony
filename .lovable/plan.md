@@ -1,66 +1,106 @@
 
 
-# Implementation des 5 modules ISO 9001 manquants (priorite haute)
+# Plan d'implémentation — Application de gestion ISO 9001
 
-## Vue d'ensemble
+## Phase 1 : Fondations
 
-5 nouveaux modules a creer, avec droits de modification pour admin/rmq et consultation pour les autres roles.
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-## 1. Tables a creer (migration SQL)
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-### 1.1 `quality_policy` (Clause 5.2 - Politique qualite)
-- `id`, `titre`, `contenu` (text), `objectifs` (text), `date_approbation` (date), `approuve_par` (uuid), `version` (integer), `statut` (text: brouillon/valide/archive), `created_at`, `updated_at`
+## Phase 2 : Modules principaux
 
-### 1.2 `quality_objectives` (Clause 5.2 - Objectifs qualite)
-- `id`, `reference` (text), `description` (text), `indicateur` (text), `cible` (text), `echeance` (date), `responsable_id` (uuid), `process_id` (uuid nullable), `statut` (text: en_cours/atteint/non_atteint), `commentaire` (text), `created_at`, `updated_at`
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-### 1.3 `competences` (Clause 7.2 - Competences & Formations)
-- `id`, `acteur_id` (uuid), `competence` (text), `niveau` (text: debutant/intermediaire/avance/expert), `date_evaluation` (date), `prochaine_evaluation` (date nullable), `commentaire` (text), `created_at`, `updated_at`
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-### 1.4 `formations` (Clause 7.2)
-- `id`, `titre` (text), `description` (text), `acteur_id` (uuid), `date_formation` (date), `formateur` (text), `duree_heures` (numeric), `efficacite` (text: non_evaluee/efficace/non_efficace), `preuve` (text nullable), `commentaire` (text), `created_at`, `updated_at`
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
-### 1.5 `satisfaction_surveys` (Clause 9.1.2 - Satisfaction client)
-- `id`, `reference` (text), `titre` (text), `date_enquete` (date), `type_enquete` (text: questionnaire/entretien/reclamation/retour_client), `score_global` (numeric nullable), `nombre_reponses` (integer), `analyse` (text), `actions_prevues` (text), `responsable_id` (uuid nullable), `process_id` (uuid nullable), `statut` (text: planifiee/en_cours/terminee/analysee), `created_at`, `updated_at`
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
-### 1.6 `suppliers` (Clause 8.4 - Fournisseurs)
-- `id`, `reference` (text), `nom` (text), `type_prestataire` (text: fournisseur/sous_traitant/prestataire), `domaine` (text), `contact` (text), `email` (text nullable), `telephone` (text nullable), `statut` (text: actif/suspendu/retire), `date_evaluation` (date nullable), `score_evaluation` (numeric nullable), `criteres_evaluation` (text), `commentaire` (text), `created_at`, `updated_at`
+## Phase 3 : Modules qualité
 
-### 1.7 `management_reviews` (Clause 9.3 - Revue de direction)
-- `id`, `reference` (text), `date_revue` (date), `participants` (text), `elements_entree` (text - donnees d'entree ISO), `decisions` (text), `actions_decidees` (text), `responsable_id` (uuid nullable), `statut` (text: planifiee/realisee/cloturee), `compte_rendu` (text), `prochaine_revue` (date nullable), `created_at`, `updated_at`
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-### RLS pour toutes les tables
-- **SELECT**: tous les `authenticated`
-- **INSERT/UPDATE**: admin + rmq uniquement
-- **DELETE**: admin uniquement
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-## 2. Pages a creer
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-| Fichier | Clause | Contenu |
-|---|---|---|
-| `src/pages/PolitiqueQualite.tsx` | 5.2 | Politique qualite + tableau des objectifs |
-| `src/pages/Competences.tsx` | 7.2 | Liste competences/formations par acteur |
-| `src/pages/SatisfactionClient.tsx` | 9.1.2 | Enquetes de satisfaction, scores, analyses |
-| `src/pages/Fournisseurs.tsx` | 8.4 | Registre fournisseurs avec evaluations |
-| `src/pages/RevueDirection.tsx` | 9.3 | Planification et PV des revues de direction |
+## Phase 4 : Modules audit & amélioration
 
-Chaque page : tableau filtrable, dialog de creation/edition, badges de statut, design pro coherent avec l'existant.
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-## 3. Navigation et routing
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-- **Sidebar** : nouveau groupe "Pilotage SMQ" avec les 5 entrees
-- **App.tsx** : 5 nouvelles routes protegees par `RoleGuard allowedRoles={["admin", "rmq"]}` pour edition, consultation ouverte a tous les authentifies
-- Tous les roles voient le menu, mais les boutons d'ajout/modification sont masques pour les non-admin/rmq
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
 
-## 4. Design
+## Phase 5 : Tableaux de bord & Reporting
 
-- Meme pattern que les pages existantes (Cards, Tables, Dialogs, Badges)
-- Sections ISO numerotees dans les en-tetes
-- Couleurs de statut coherentes avec le reste de l'application
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
 
-## Ordre d'implementation
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
 
-1. Migration SQL (toutes les tables + RLS en une seule migration)
-2. Pages dans l'ordre : PolitiqueQualite → RevueDirection → Competences → SatisfactionClient → Fournisseurs
-3. Sidebar + Routes
+## Contrôle d'accès (transversal)
+
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
 

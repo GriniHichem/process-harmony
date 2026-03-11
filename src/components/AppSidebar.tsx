@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
-  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen
+  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen,
+  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -37,6 +38,14 @@ const auditItems = [
   { title: "Non-conformités", url: "/non-conformites", icon: XCircle },
   { title: "Actions", url: "/actions", icon: Zap },
   { title: "Journal d'activité", url: "/journal", icon: ScrollText },
+];
+
+const pilotageSMQItems = [
+  { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen },
+  { title: "Revue de direction", url: "/revue-direction", icon: CalendarCheck },
+  { title: "Compétences", url: "/competences", icon: GraduationCap },
+  { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus },
+  { title: "Fournisseurs", url: "/fournisseurs", icon: Truck },
 ];
 
 const adminItems = [
@@ -103,6 +112,7 @@ export function AppSidebar() {
         <NavGroup label="Principal" items={mainItems} collapsed={collapsed} />
         {showProcessMenu && <NavGroup label="Processus" items={processItems} collapsed={collapsed} />}
         {showQualityMenu && <NavGroup label="Manager processus" items={isActeurOnly ? acteurQualityItems : qualityItems} collapsed={collapsed} />}
+        <NavGroup label="Pilotage SMQ" items={pilotageSMQItems} collapsed={collapsed} />
         {showAuditMenu && <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />}
         {showAdminMenu && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
       </SidebarContent>

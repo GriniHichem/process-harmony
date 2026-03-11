@@ -367,6 +367,50 @@ export type Database = {
           },
         ]
       }
+      competences: {
+        Row: {
+          acteur_id: string
+          commentaire: string
+          competence: string
+          created_at: string
+          date_evaluation: string
+          id: string
+          niveau: string
+          prochaine_evaluation: string | null
+          updated_at: string
+        }
+        Insert: {
+          acteur_id: string
+          commentaire?: string
+          competence?: string
+          created_at?: string
+          date_evaluation?: string
+          id?: string
+          niveau?: string
+          prochaine_evaluation?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acteur_id?: string
+          commentaire?: string
+          competence?: string
+          created_at?: string
+          date_evaluation?: string
+          id?: string
+          niveau?: string
+          prochaine_evaluation?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competences_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       context_issue_actions: {
         Row: {
           context_issue_id: string
@@ -575,6 +619,59 @@ export type Database = {
           },
         ]
       }
+      formations: {
+        Row: {
+          acteur_id: string
+          commentaire: string
+          created_at: string
+          date_formation: string
+          description: string
+          duree_heures: number
+          efficacite: string
+          formateur: string
+          id: string
+          preuve: string | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          acteur_id: string
+          commentaire?: string
+          created_at?: string
+          date_formation?: string
+          description?: string
+          duree_heures?: number
+          efficacite?: string
+          formateur?: string
+          id?: string
+          preuve?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Update: {
+          acteur_id?: string
+          commentaire?: string
+          created_at?: string
+          date_formation?: string
+          description?: string
+          duree_heures?: number
+          efficacite?: string
+          formateur?: string
+          id?: string
+          preuve?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formations_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       indicator_actions: {
         Row: {
           created_at: string
@@ -759,6 +856,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      management_reviews: {
+        Row: {
+          actions_decidees: string
+          compte_rendu: string
+          created_at: string
+          date_revue: string
+          decisions: string
+          elements_entree: string
+          id: string
+          participants: string
+          prochaine_revue: string | null
+          reference: string
+          responsable_id: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          actions_decidees?: string
+          compte_rendu?: string
+          created_at?: string
+          date_revue?: string
+          decisions?: string
+          elements_entree?: string
+          id?: string
+          participants?: string
+          prochaine_revue?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          actions_decidees?: string
+          compte_rendu?: string
+          created_at?: string
+          date_revue?: string
+          decisions?: string
+          elements_entree?: string
+          id?: string
+          participants?: string
+          prochaine_revue?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       nonconformities: {
         Row: {
@@ -1139,6 +1284,98 @@ export type Database = {
           },
         ]
       }
+      quality_objectives: {
+        Row: {
+          cible: string
+          commentaire: string
+          created_at: string
+          description: string
+          echeance: string | null
+          id: string
+          indicateur: string
+          process_id: string | null
+          reference: string
+          responsable_id: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          cible?: string
+          commentaire?: string
+          created_at?: string
+          description?: string
+          echeance?: string | null
+          id?: string
+          indicateur?: string
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          cible?: string
+          commentaire?: string
+          created_at?: string
+          description?: string
+          echeance?: string | null
+          id?: string
+          indicateur?: string
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_objectives_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quality_policy: {
+        Row: {
+          approuve_par: string | null
+          contenu: string
+          created_at: string
+          date_approbation: string | null
+          id: string
+          objectifs: string
+          statut: string
+          titre: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approuve_par?: string | null
+          contenu?: string
+          created_at?: string
+          date_approbation?: string | null
+          id?: string
+          objectifs?: string
+          statut?: string
+          titre?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approuve_par?: string | null
+          contenu?: string
+          created_at?: string
+          date_approbation?: string | null
+          id?: string
+          objectifs?: string
+          statut?: string
+          titre?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       risk_actions: {
         Row: {
           created_at: string
@@ -1339,6 +1576,119 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      satisfaction_surveys: {
+        Row: {
+          actions_prevues: string
+          analyse_resultats: string
+          created_at: string
+          date_enquete: string
+          id: string
+          nombre_reponses: number
+          process_id: string | null
+          reference: string
+          responsable_id: string | null
+          score_global: number | null
+          statut: string
+          titre: string
+          type_enquete: string
+          updated_at: string
+        }
+        Insert: {
+          actions_prevues?: string
+          analyse_resultats?: string
+          created_at?: string
+          date_enquete?: string
+          id?: string
+          nombre_reponses?: number
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          score_global?: number | null
+          statut?: string
+          titre?: string
+          type_enquete?: string
+          updated_at?: string
+        }
+        Update: {
+          actions_prevues?: string
+          analyse_resultats?: string
+          created_at?: string
+          date_enquete?: string
+          id?: string
+          nombre_reponses?: number
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          score_global?: number | null
+          statut?: string
+          titre?: string
+          type_enquete?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satisfaction_surveys_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          commentaire: string
+          contact: string
+          created_at: string
+          criteres_evaluation: string
+          date_evaluation: string | null
+          domaine: string
+          email: string | null
+          id: string
+          nom: string
+          reference: string
+          score_evaluation: number | null
+          statut: string
+          telephone: string | null
+          type_prestataire: string
+          updated_at: string
+        }
+        Insert: {
+          commentaire?: string
+          contact?: string
+          created_at?: string
+          criteres_evaluation?: string
+          date_evaluation?: string | null
+          domaine?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          reference?: string
+          score_evaluation?: number | null
+          statut?: string
+          telephone?: string | null
+          type_prestataire?: string
+          updated_at?: string
+        }
+        Update: {
+          commentaire?: string
+          contact?: string
+          created_at?: string
+          criteres_evaluation?: string
+          date_evaluation?: string | null
+          domaine?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          reference?: string
+          score_evaluation?: number | null
+          statut?: string
+          telephone?: string | null
+          type_prestataire?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
