@@ -208,8 +208,13 @@ export default function Acteurs() {
                         </div>
                       )}
                     </TableCell>
-                    {(canEdit || canDelete) && (
+                    {(canEdit || canDelete || canViewImplications) && (
                       <TableCell className="text-right space-x-1">
+                        {canViewImplications && (
+                          <Button variant="ghost" size="icon" onClick={() => setImplicationActeur({ id: a.id, label: a.fonction || a.organisation || "Acteur" })} title="Voir les implications">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
                         {canEdit && (
                           <>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(a)}><Pencil className="h-4 w-4" /></Button>
