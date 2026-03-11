@@ -111,8 +111,10 @@ export default function ProcessDetail() {
     if (!process || !id) return;
     setCreatingVersion(true);
     try {
-      const currentVersion = process.version_courante;
-      const newVersion = currentVersion + 1;
+      const currentVersion = parseFloat(process.version_courante);
+      const major = Math.floor(currentVersion);
+      const minor = Math.round((currentVersion - major) * 100);
+      const newVersion = parseFloat((major + (minor + 1) / 100).toFixed(2));
       const newCode = `${process.code}-v${newVersion}`;
 
       // Duplicate the process
