@@ -284,7 +284,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
         ) : (
           <div className="space-y-2">
             {moyens.map((m) => (
-              <ItemCard key={m.id} description={m.description} statut={m.statut} responsable={getActeurLabel(m.responsable)} datePrevue={m.date_prevue} deadline={m.deadline} budget={m.budget} typeMoyen={m.type_moyen} canEdit={canEdit} onEdit={() => openEditMoyen(m)} onDelete={() => handleDeleteMoyen(m.id)} />
+              <ItemCard key={m.id} itemId={m.id} elementType="risk_moyen" description={m.description} statut={m.statut} responsable={getActeurLabel(m.responsable)} responsableActeurId={m.responsable} datePrevue={m.date_prevue} deadline={m.deadline} budget={m.budget} typeMoyen={m.type_moyen} canEdit={canEdit} onEdit={() => openEditMoyen(m)} onDelete={() => handleDeleteMoyen(m.id)} />
             ))}
           </div>
         )}
