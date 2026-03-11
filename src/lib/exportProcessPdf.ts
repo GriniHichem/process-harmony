@@ -532,7 +532,16 @@ function buildHtml(data: ProcessData): string {
     </div>
   </div>
 
-  <!-- ═══ 5. INTERACTIONS ENTRE PROCESSUS (cl. 4.4.1 c) ═══ -->
+  <!-- ═══ DIAGRAMME BPMN ═══ -->
+  ${bpmnData && bpmnData.nodes.length > 0 ? `
+  <div class="section" style="page-break-inside:avoid">
+    <div class="section-header"><div class="num">${sn()}</div><h2>Diagramme BPMN du processus</h2></div>
+    <div class="section-body" style="text-align:center;padding:16px">
+      ${renderBpmnSvgString(bpmnData)}
+    </div>
+  </div>` : (() => { if (bpmnData) sectionNum++; return ""; })()}
+
+  <!-- ═══ ${sectionNum + 1}. INTERACTIONS ENTRE PROCESSUS (cl. 4.4.1 c) ═══ -->
   <div class="section">
     <div class="section-header"><div class="num">${sn()}</div><h2>Interactions entre processus</h2></div>
     <div class="section-body">
