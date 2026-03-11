@@ -21,7 +21,7 @@ export default function EnjeuContexte() {
       const acteurId_ = profileData?.acteur_id;
       if (acteurId_) {
         setActeurId(acteurId_);
-        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId);
+        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId_);
         setActeurProcessIds([...new Set((taskData ?? []).map(t => t.process_id))]);
       } else {
         setActeurProcessIds([]);
