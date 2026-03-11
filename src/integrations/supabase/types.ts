@@ -1027,6 +1027,65 @@ export type Database = {
           },
         ]
       }
+      process_evaluations: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          nom: string
+          process_id: string | null
+          resultat: string
+          score_ca: number
+          score_objectifs: number
+          score_perennite: number
+          score_risques: number
+          score_satisfaction: number
+          score_total: number
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          nom: string
+          process_id?: string | null
+          resultat?: string
+          score_ca?: number
+          score_objectifs?: number
+          score_perennite?: number
+          score_risques?: number
+          score_satisfaction?: number
+          score_total?: number
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          nom?: string
+          process_id?: string | null
+          resultat?: string
+          score_ca?: number
+          score_objectifs?: number
+          score_perennite?: number
+          score_risques?: number
+          score_satisfaction?: number
+          score_total?: number
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_evaluations_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_interactions: {
         Row: {
           created_at: string
