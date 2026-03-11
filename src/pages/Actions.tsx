@@ -38,7 +38,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function Actions() {
-  const { hasRole, hasPermission, user } = useAuth();
+  const { hasRole, hasPermission, user, profile } = useAuth();
   const [actions, setActions] = useState<Action[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);
