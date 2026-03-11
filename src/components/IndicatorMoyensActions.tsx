@@ -132,6 +132,7 @@ function ItemCard({
 }
 
 export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyensActionsProps) {
+  const { acteurs, getActeurLabel } = useActeurs();
   const [moyens, setMoyens] = useState<IndicatorMoyen[]>([]);
   const [actions, setActions] = useState<IndicatorAction[]>([]);
 
