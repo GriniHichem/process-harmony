@@ -168,11 +168,11 @@ export default function Utilisateurs() {
     setResetting(false);
   };
 
-  if (!hasRole("admin")) {
+  if (!hasPermission("utilisateurs", "can_read")) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Utilisateurs</h1>
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé à l'administrateur</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès non autorisé</CardContent></Card>
       </div>
     );
   }
