@@ -11,6 +11,7 @@ export default function EnjeuContexte() {
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const [acteurProcessIds, setActeurProcessIds] = useState<string[] | undefined>(undefined);
+  const [acteurId, setActeurId] = useState<string | null>(null);
   const [ready, setReady] = useState(!isOnlyActeur);
 
   useEffect(() => {
