@@ -33,7 +33,7 @@ export default function Bpmn() {
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
 
   useEffect(() => {
-    supabase.from("processes").select("id, nom").order("nom").then(({ data }) => {
+    supabase.from("processes").select("id, nom").neq("statut", "archive").order("nom").then(({ data }) => {
       setProcesses(data ?? []);
       setLoading(false);
     });
