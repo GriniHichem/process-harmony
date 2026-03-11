@@ -268,7 +268,29 @@ export default function RevueDirection() {
                 </div>
               </div>
 
-              {/* Rich text sections */}
+              {/* Décisions section */}
+              <div className={`p-6 ${activeField === "decisions" ? "" : "hidden"}`}>
+                <div className="max-w-3xl mx-auto">
+                  <h3 className="text-lg font-semibold mb-2">Décisions</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Décisions prises lors de la revue. Vous pouvez les lier aux éléments d'entrée.
+                  </p>
+                  <ReviewDecisionsEditor reviewId={editing?.id} canEdit={canEdit} filterType="decision" />
+                </div>
+              </div>
+
+              {/* Actions décidées section */}
+              <div className={`p-6 ${activeField === "actions_decidees" ? "" : "hidden"}`}>
+                <div className="max-w-3xl mx-auto">
+                  <h3 className="text-lg font-semibold mb-2">Actions décidées</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Actions à mettre en œuvre. Importez des actions existantes depuis les risques, indicateurs ou enjeux liés.
+                  </p>
+                  <ReviewDecisionsEditor reviewId={editing?.id} canEdit={canEdit} filterType="action" />
+                </div>
+              </div>
+
+              {/* Rich text sections (compte rendu only) */}
               {RICH_FIELDS.map(f => (
                 <div key={f.key} className={`h-full ${activeField === f.key ? "" : "hidden"}`}>
                   <RichTextEditor
