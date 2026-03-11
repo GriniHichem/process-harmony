@@ -75,7 +75,7 @@ export default function RevueDirection() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Revue de direction</h1>
-          <p className="text-muted-foreground">Clause 9.3 — Éléments d'entrée, décisions et actions</p>
+          
         </div>
         {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle revue</Button>}
       </div>
