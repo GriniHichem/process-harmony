@@ -285,7 +285,7 @@ export async function exportPolitiqueQualitePdf() {
   ${buildFooter("POL-QUA", "Politique Qualité")}
   </body></html>`;
 
-  openPdf(html, "politique-qualite.html");
+  await openPdf(html, "politique-qualite.pdf");
 }
 
 // ═══════════════════════════════════════════════════════════════
