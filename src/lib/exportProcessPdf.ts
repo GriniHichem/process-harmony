@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { renderBpmnSvgString } from "./renderBpmnSvgString";
+import { BpmnData } from "@/components/bpmn/types";
 
 interface ProcessData {
   process: any;
@@ -18,6 +20,7 @@ interface ProcessData {
   contextIssues: any[];
   contextIssueActions: Record<string, any[]>;
   acteurs: any[];
+  bpmnData: BpmnData | null;
 }
 
 async function fetchAllProcessData(processId: string): Promise<ProcessData> {
