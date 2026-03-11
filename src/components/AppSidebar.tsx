@@ -40,6 +40,14 @@ const auditItems = [
   { title: "Journal d'activité", url: "/journal", icon: ScrollText },
 ];
 
+const pilotageSMQItems = [
+  { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen },
+  { title: "Revue de direction", url: "/revue-direction", icon: CalendarCheck },
+  { title: "Compétences", url: "/competences", icon: GraduationCap },
+  { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus },
+  { title: "Fournisseurs", url: "/fournisseurs", icon: Truck },
+];
+
 const adminItems = [
   { title: "Utilisateurs", url: "/utilisateurs", icon: Users },
   { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen },
