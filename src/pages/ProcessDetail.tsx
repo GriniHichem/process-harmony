@@ -113,10 +113,11 @@ export default function ProcessDetail() {
     try {
       const currentVersion = process.version_courante;
       const newVersion = currentVersion + 1;
+      const newCode = `${process.code}-v${newVersion}`;
 
       // Duplicate the process
       const { data: newProc, error } = await supabase.from("processes").insert({
-        code: process.code,
+        code: newCode,
         nom: process.nom,
         description: process.description,
         type_processus: process.type_processus,
