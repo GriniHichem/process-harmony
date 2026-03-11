@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -114,7 +115,21 @@ export default function Indicateurs() {
     setLoadingValues(false);
   }, []);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   useEffect(() => { fetchData(); }, []);
+
+  // Deep-link: auto-select indicator from URL
+  useEffect(() => {
+    const indicatorId = searchParams.get("indicator");
+    if (indicatorId && indicators.length > 0 && !selectedIndicator) {
+      const found = indicators.find(i => i.id === indicatorId);
+      if (found) {
+        setSelectedIndicator(found);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [indicators, searchParams]);
 
   useEffect(() => {
     if (selectedIndicator) fetchValues(selectedIndicator.id);

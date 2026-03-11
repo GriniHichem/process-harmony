@@ -53,6 +53,8 @@ interface Props {
   filterProcessIds?: string[];
   /** Acteur ID for restricting expand to issues where they have actions */
   acteurId?: string | null;
+  /** Auto-expand this issue on mount (deep-link) */
+  initialExpandIssueId?: string | null;
 }
 
 const impactColors: Record<string, string> = {
@@ -90,7 +92,7 @@ type FormType = {
 const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false, domaine: "strategique", process_ids: [] };
 const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
 
-export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds, acteurId }: Props) {
+export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds, acteurId, initialExpandIssueId }: Props) {
   const { acteurs, getActeurLabel } = useActeurs();
   const [issues, setIssues] = useState<ContextIssue[]>([]);
   const [issueProcesses, setIssueProcesses] = useState<Record<string, string[]>>({});
@@ -104,7 +106,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
   const [actionForm, setActionForm] = useState(emptyAction);
   const [editingAction, setEditingAction] = useState<ContextIssueAction | null>(null);
   const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
-  const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+  const [expandedIssues, setExpandedIssues] = useState<Set<string>>(initialExpandIssueId ? new Set([initialExpandIssueId]) : new Set());
   const [acteurIssueIds, setActeurIssueIds] = useState<Set<string>>(new Set());
 
   const fetchProcesses = useCallback(async () => {

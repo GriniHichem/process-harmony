@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,8 @@ export default function EnjeuContexte() {
   const [acteurProcessIds, setActeurProcessIds] = useState<string[] | undefined>(undefined);
   const [acteurId, setActeurId] = useState<string | null>(null);
   const [ready, setReady] = useState(!isOnlyActeur);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const issueId = searchParams.get("issue");
 
   useEffect(() => {
     if (!isOnlyActeur || !user) return;
@@ -30,6 +33,10 @@ export default function EnjeuContexte() {
     })();
   }, [isOnlyActeur, user]);
 
+  useEffect(() => {
+    if (issueId) setSearchParams({}, { replace: true });
+  }, [issueId]);
+
   if (!ready) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
   return (
@@ -45,6 +52,7 @@ export default function EnjeuContexte() {
         isOnlyResponsable={isOnlyResponsable || isOnlyActeur}
         filterProcessIds={acteurProcessIds}
         acteurId={isOnlyActeur ? acteurId : undefined}
+        initialExpandIssueId={issueId}
       />
     </div>
   );

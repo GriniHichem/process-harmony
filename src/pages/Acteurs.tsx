@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, UserCheck, UserX, Search, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, UserCheck, UserX, Search, Users, Eye } from "lucide-react";
+import { ActeurImplicationsDialog } from "@/components/ActeurImplicationsDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface Acteur {
@@ -46,6 +47,8 @@ export default function Acteurs() {
 
   const canEdit = hasRole("rmq") || hasRole("admin") || hasRole("responsable_processus") || hasRole("consultant");
   const canDelete = hasRole("rmq") || hasRole("admin");
+  const canViewImplications = hasRole("rmq") || hasRole("admin") || hasRole("auditeur");
+  const [implicationActeur, setImplicationActeur] = useState<{ id: string; label: string } | null>(null);
 
   const fetchActeurs = async () => {
     const { data } = await supabase.from("acteurs").select("*").order("fonction");
@@ -179,7 +182,7 @@ export default function Acteurs() {
                 <TableHead>Type</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Utilisateurs liés</TableHead>
-                {(canEdit || canDelete) && <TableHead className="text-right">Actions</TableHead>}
+                {(canEdit || canDelete || canViewImplications) && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -206,8 +209,13 @@ export default function Acteurs() {
                         </div>
                       )}
                     </TableCell>
-                    {(canEdit || canDelete) && (
+                    {(canEdit || canDelete || canViewImplications) && (
                       <TableCell className="text-right space-x-1">
+                        {canViewImplications && (
+                          <Button variant="ghost" size="icon" onClick={() => setImplicationActeur({ id: a.id, label: a.fonction || a.organisation || "Acteur" })} title="Voir les implications">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
                         {canEdit && (
                           <>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(a)}><Pencil className="h-4 w-4" /></Button>
@@ -242,6 +250,15 @@ export default function Acteurs() {
           </Table>
         </CardContent>
       </Card>
+
+      {implicationActeur && (
+        <ActeurImplicationsDialog
+          acteurId={implicationActeur.id}
+          acteurLabel={implicationActeur.label}
+          open={!!implicationActeur}
+          onOpenChange={(o) => { if (!o) setImplicationActeur(null); }}
+        />
+      )}
     </div>
   );
 }

@@ -1,56 +1,106 @@
 
 
-# Plan: Fiche d'implication par acteur (Dialog)
+# Plan d'implémentation — Application de gestion ISO 9001
 
-## Concept
+## Phase 1 : Fondations
 
-Ajouter un bouton "Voir les implications" sur chaque ligne d'acteur (visible uniquement pour admin, rmq, auditeur). Au clic, un Dialog s'ouvre et affiche toutes les entites ou cet acteur est implique, groupees par categorie. Chaque element est cliquable et redirige vers la page de detail correspondante.
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-## Categories affichees
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-1. **Activites processus** - depuis `process_tasks` ou `responsable_id = acteur.id` -> affiche description (Nom processus). Clic -> `/processus/{process_id}`
-2. **Actions & Moyens indicateurs** - depuis `indicator_actions` / `indicator_moyens` ou `responsable = acteur.id` -> affiche description (Nom indicateur - Nom processus). Clic -> `/indicateurs` avec selection de l'indicateur
-3. **Actions & Moyens risques** - depuis `risk_actions` / `risk_moyens` ou `responsable = acteur.id` -> affiche description (Description risque - Nom processus). Clic -> `/risques`
-4. **Actions enjeux contexte** - depuis `context_issue_actions` ou `responsable = acteur.id` -> affiche description (Intitule enjeu). Clic -> `/enjeux-contexte`
+## Phase 2 : Modules principaux
 
-## Implementation
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-### Fichier: `src/components/ActeurImplicationsDialog.tsx` (nouveau)
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-- Props: `acteurId: string`, `acteurLabel: string`, `open: boolean`, `onOpenChange`
-- Au mount, 5 requetes paralleles:
-  - `process_tasks` (responsable_id = acteurId) + join processes pour le nom
-  - `indicator_actions` (responsable = acteurId) + join indicators/processes
-  - `indicator_moyens` (responsable = acteurId) + join indicators/processes  
-  - `risk_actions` (responsable = acteurId) + join risks_opportunities/processes
-  - `risk_moyens` (responsable = acteurId) + join risks_opportunities/processes
-  - `context_issue_actions` (responsable = acteurId) + join context_issues
-- Rendu: sections avec titres, listes cliquables avec `useNavigate()`
-- Pour indicateurs: navigation avec query param `?indicator={id}` (necessitea une petite modification dans Indicateurs.tsx pour lire ce param)
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
-### Fichier: `src/pages/Acteurs.tsx` (modifie)
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
-- Ajouter un bouton icone (Eye/List) dans la colonne Actions, visible si `canViewImplications` (admin/rmq/auditeur)
-- State pour `implicationActeurId`
-- Integrer `<ActeurImplicationsDialog />`
+## Phase 3 : Modules qualité
 
-### Fichier: `src/pages/Indicateurs.tsx` (modifie)
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-- Lire `searchParams.get("indicator")` au mount
-- Si present, auto-selectionner cet indicateur dans la vue detail
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-### Fichier: `src/pages/Risques.tsx` (modifie)
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-- Lire `searchParams.get("risk")` au mount
-- Si present, auto-expand ce risque
+## Phase 4 : Modules audit & amélioration
 
-### Fichier: `src/pages/EnjeuContexte.tsx` (modifie)
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-- Lire `searchParams.get("issue")` au mount, passer a ContextIssuesManager pour auto-expand
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-## Section technique
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
 
-Les requetes Supabase ne supportent pas les joins classiques sur ces tables (pas de FK declares). On fera donc des requetes separees puis un enrichissement cote client avec les maps processes/indicators/risks/issues chargees en parallele.
+## Phase 5 : Tableaux de bord & Reporting
 
-Navigation via `useNavigate()` + query params pour cibler l'element exact a afficher.
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
+
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
+
+## Contrôle d'accès (transversal)
+
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
 
