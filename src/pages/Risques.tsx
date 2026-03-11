@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, AlertTriangle, Lightbulb, Trash2, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
 
