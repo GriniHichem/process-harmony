@@ -26,6 +26,7 @@ import Acteurs from "./pages/Acteurs";
 import Incidents from "./pages/Incidents";
 import DashboardAuditNC from "./pages/DashboardAuditNC";
 import EnjeuContexte from "./pages/EnjeuContexte";
+import GroupesActeurs from "./pages/GroupesActeurs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
