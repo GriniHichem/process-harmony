@@ -180,7 +180,7 @@ export default function Actions() {
   const getResponsableName = (id: string | null) => {
     if (!id) return null;
     const a = acteurs.find((act) => act.id === id);
-    return a ? `${a.prenom} ${a.nom}` : null;
+    return a ? (a.fonction || "—") : null;
   };
 
   const isOverdue = (a: Action) => a.echeance && new Date(a.echeance) < new Date() && !["cloturee", "verifiee"].includes(a.statut);
