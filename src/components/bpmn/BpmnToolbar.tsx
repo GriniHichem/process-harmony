@@ -38,7 +38,7 @@ interface BpmnToolbarProps {
 export default function BpmnToolbar({
   mode, onModeChange, onAddNode,
   onZoomIn, onZoomOut, onFitView,
-  onSave, onUndo, saving, canEdit,
+  onSave, onUndo, onGenerate, saving, generating, canEdit,
 }: BpmnToolbarProps) {
   if (!canEdit) return null;
 
