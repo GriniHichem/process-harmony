@@ -30,7 +30,7 @@ type Finding = {
   preuve: string | null; statut: string; process_id: string | null;
 };
 
-type Acteur = { id: string; nom: string; prenom: string };
+type Acteur = { id: string; fonction: string | null };
 
 const statusColors: Record<string, string> = {
   planifie: "bg-muted text-muted-foreground",
