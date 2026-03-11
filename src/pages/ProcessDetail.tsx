@@ -110,12 +110,8 @@ export default function ProcessDetail() {
     if (!process || !id) return;
     setCreatingVersion(true);
     try {
-      // Parse current version: e.g. 1.03 → major=1, minor=03 → new = 1.04
       const currentVersion = process.version_courante;
-      const major = Math.floor(currentVersion);
-      const minor = Math.round((currentVersion - major) * 100);
-      const newVersion = major + (minor + 1) / 100;
-      const newVersionRounded = parseFloat(newVersion.toFixed(2));
+      const newVersion = currentVersion + 1;
 
       // Duplicate the process
       const { data: newProc, error } = await supabase.from("processes").insert({
@@ -132,18 +128,63 @@ export default function ProcessDetail() {
         parties_prenantes: process.parties_prenantes,
         ressources: process.ressources,
         statut: "brouillon" as const,
-        version_courante: newVersionRounded,
+        version_courante: newVersion,
       }).select("id").single();
 
       if (error || !newProc) { toast.error(error?.message || "Erreur"); setCreatingVersion(false); return; }
 
       // Duplicate elements
-      const elemsToInsert = elements.map(({ id: _id, process_id: _pid, ...rest }) => ({
+      const elemsToInsert = elements.map(({ id: _id, process_id: _pid, created_at: _ca, updated_at: _ua, ...rest }) => ({
         ...rest,
         process_id: newProc.id,
       }));
       if (elemsToInsert.length > 0) {
         await supabase.from("process_elements").insert(elemsToInsert);
+      }
+
+      // Duplicate tasks
+      const { data: tasksData } = await supabase.from("process_tasks").select("*").eq("process_id", id);
+      if (tasksData && tasksData.length > 0) {
+        const tasksToInsert = tasksData.map(({ id: _id, process_id: _pid, created_at: _ca, updated_at: _ua, ...rest }) => ({
+          ...rest,
+          process_id: newProc.id,
+        }));
+        await supabase.from("process_tasks").insert(tasksToInsert);
+      }
+
+      // Duplicate document links
+      const { data: docLinks } = await supabase.from("document_processes").select("*").eq("process_id", id);
+      if (docLinks && docLinks.length > 0) {
+        const docLinksToInsert = docLinks.map(({ id: _id, created_at: _ca, ...rest }) => ({
+          ...rest,
+          process_id: newProc.id,
+        }));
+        await supabase.from("document_processes").insert(docLinksToInsert);
+      }
+
+      // Duplicate interactions
+      const { data: interSource } = await supabase.from("process_interactions").select("*").eq("source_process_id", id);
+      if (interSource && interSource.length > 0) {
+        // Need to map old element IDs to new element IDs
+        const { data: newElems } = await supabase.from("process_elements").select("*").eq("process_id", newProc.id);
+        const oldElems = elements;
+        const elemIdMap = new Map<string, string>();
+        if (newElems) {
+          oldElems.forEach(oldEl => {
+            const match = newElems.find(ne => ne.code === oldEl.code && ne.type === oldEl.type);
+            if (match) elemIdMap.set(oldEl.id, match.id);
+          });
+        }
+        const interToInsert = interSource
+          .filter(i => elemIdMap.has(i.element_id))
+          .map(({ id: _id, created_at: _ca, ...rest }) => ({
+            ...rest,
+            source_process_id: newProc.id,
+            element_id: elemIdMap.get(rest.element_id) || rest.element_id,
+          }));
+        if (interToInsert.length > 0) {
+          await supabase.from("process_interactions").insert(interToInsert);
+        }
       }
 
       // Archive original
@@ -157,7 +198,7 @@ export default function ProcessDetail() {
         modifie_par: user?.id ?? null,
       });
 
-      toast.success(`Nouvelle version v${newVersionRounded} créée`);
+      toast.success(`Nouvelle version v${newVersion} créée`);
       navigate(`/processus/${newProc.id}`);
     } catch (e: any) {
       toast.error(e.message || "Erreur");
