@@ -59,7 +59,7 @@ export default function ParticipantSelector({ value, onChange }: ParticipantSele
     if (profileId === "none" || participants.some(p => p.type === "user" && p.id === profileId)) return;
     const profile = profiles.find(p => p.id === profileId);
     if (!profile) return;
-    const name = `${profile.prenom} ${profile.nom}`.trim() || profile.email;
+    const name = `${profile.prenom} ${profile.nom}`.trim() || "Utilisateur";
     update([...participants, { type: "user", id: profileId, name, fonction: profile.fonction || "" }]);
   };
 
