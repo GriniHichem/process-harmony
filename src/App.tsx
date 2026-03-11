@@ -27,6 +27,11 @@ import Incidents from "./pages/Incidents";
 import DashboardAuditNC from "./pages/DashboardAuditNC";
 import EnjeuContexte from "./pages/EnjeuContexte";
 import GroupesActeurs from "./pages/GroupesActeurs";
+import PolitiqueQualite from "./pages/PolitiqueQualite";
+import RevueDirection from "./pages/RevueDirection";
+import CompetencesPage from "./pages/Competences";
+import SatisfactionClient from "./pages/SatisfactionClient";
+import Fournisseurs from "./pages/Fournisseurs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
