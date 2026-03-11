@@ -250,6 +250,15 @@ export default function Acteurs() {
           </Table>
         </CardContent>
       </Card>
+
+      {implicationActeur && (
+        <ActeurImplicationsDialog
+          acteurId={implicationActeur.id}
+          acteurLabel={implicationActeur.label}
+          open={!!implicationActeur}
+          onOpenChange={(o) => { if (!o) setImplicationActeur(null); }}
+        />
+      )}
     </div>
   );
 }
