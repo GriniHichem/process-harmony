@@ -96,6 +96,64 @@
     --sidebar-border: 220 20% 15%;
     --sidebar-ring: 215 80% 55%;
   }
+
+  /* Accessibility theme: high contrast + larger text */
+  .theme-accessible {
+    --background: 220 15% 95%;
+    --foreground: 220 40% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 40% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 8%;
+
+    --primary: 215 85% 35%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 25% 88%;
+    --secondary-foreground: 220 40% 10%;
+
+    --muted: 210 15% 90%;
+    --muted-foreground: 215 20% 30%;
+
+    --accent: 170 65% 32%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 78% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 65% 32%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 95% 42%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 25% 78%;
+    --input: 214 25% 78%;
+    --ring: 215 85% 35%;
+
+    --sidebar-background: 220 35% 10%;
+    --sidebar-foreground: 210 15% 90%;
+    --sidebar-primary: 215 85% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 30% 16%;
+    --sidebar-accent-foreground: 210 15% 95%;
+    --sidebar-border: 220 25% 18%;
+    --sidebar-ring: 215 85% 50%;
+
+    font-size: 17px;
+  }
+
+  .theme-accessible h1 { font-size: 1.85rem; }
+  .theme-accessible h2 { font-size: 1.55rem; }
+  .theme-accessible h3 { font-size: 1.3rem; }
+  .theme-accessible p, .theme-accessible span, .theme-accessible td, .theme-accessible th, .theme-accessible label, .theme-accessible li {
+    letter-spacing: 0.01em;
+  }
+  .theme-accessible .text-xs { font-size: 0.8rem; }
+  .theme-accessible .text-sm { font-size: 0.925rem; }
+  .theme-accessible .text-muted-foreground { color: hsl(215 20% 30%); }
 }
 
 @layer base {

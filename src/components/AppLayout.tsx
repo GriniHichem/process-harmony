@@ -60,6 +60,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </div>
             <div className="flex items-center gap-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={accessible ? "default" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setAccessible(a => !a)}
+                  >
+                    {accessible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{accessible ? "Désactiver le mode confort visuel" : "Activer le mode confort visuel"}</TooltipContent>
+              </Tooltip>
               {profile && (
                 <div className="text-right">
                   <p className="text-sm font-medium">{profile.prenom} {profile.nom}</p>
