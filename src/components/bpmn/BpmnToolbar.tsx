@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Separator } from "@/components/ui/separator";
 import { 
   Play, Square, CheckSquare, Diamond, Clock, Mail, Layers, StickyNote,
-  MousePointer, Link2, Trash2, ZoomIn, ZoomOut, Maximize, Save, Undo2
+  MousePointer, Link2, Trash2, ZoomIn, ZoomOut, Maximize, Save, Undo2, Wand2
 } from "lucide-react";
 import { BpmnNodeType, NODE_CATEGORIES } from "./types";
 
@@ -29,14 +29,16 @@ interface BpmnToolbarProps {
   onFitView: () => void;
   onSave: () => void;
   onUndo: () => void;
+  onGenerate?: () => void;
   saving: boolean;
+  generating?: boolean;
   canEdit: boolean;
 }
 
 export default function BpmnToolbar({
   mode, onModeChange, onAddNode,
   onZoomIn, onZoomOut, onFitView,
-  onSave, onUndo, saving, canEdit,
+  onSave, onUndo, onGenerate, saving, generating, canEdit,
 }: BpmnToolbarProps) {
   if (!canEdit) return null;
 
@@ -73,6 +75,12 @@ export default function BpmnToolbar({
         <Separator orientation="vertical" className="h-8 mx-1" />
 
         <ToolBtn icon={<Undo2 className="h-4 w-4" />} label="Annuler" onClick={onUndo} />
+        {onGenerate && (
+          <Button size="sm" variant="outline" onClick={onGenerate} disabled={generating} className="ml-1">
+            <Wand2 className="h-4 w-4 mr-1" />
+            {generating ? "Génération..." : "Générer"}
+          </Button>
+        )}
         <Button size="sm" onClick={onSave} disabled={saving} className="ml-1">
           <Save className="h-4 w-4 mr-1" />
           {saving ? "..." : "Sauvegarder"}

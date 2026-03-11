@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { BpmnNode, BpmnEdge, BpmnData, BpmnDiagram, BpmnNodeType, NODE_DEFAULTS } from "@/components/bpmn/types";
 import BpmnToolbar from "@/components/bpmn/BpmnToolbar";
 import BpmnCanvas from "@/components/bpmn/BpmnCanvas";
 import BpmnPropertiesPanel from "@/components/bpmn/BpmnPropertiesPanel";
+import { generateBpmnFromTasks } from "@/lib/generateBpmnFromTasks";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type ToolMode = "select" | "connect" | "delete";
 
@@ -26,7 +28,8 @@ export default function Bpmn() {
   const [zoom, setZoom] = useState(1);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [history, setHistory] = useState<BpmnData[]>([]);
-
+  const [generating, setGenerating] = useState(false);
+  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
 
   useEffect(() => {
@@ -158,6 +161,71 @@ export default function Bpmn() {
     setDiagram({ ...diagram, donnees: prev });
   };
 
+  const doGenerate = async () => {
+    if (!selectedProcessId) return;
+    setGenerating(true);
+    try {
+      const [{ data: tasks }, { data: elements }] = await Promise.all([
+        supabase.from("process_tasks").select("*").eq("process_id", selectedProcessId).order("ordre"),
+        supabase.from("process_elements").select("*").eq("process_id", selectedProcessId),
+      ]);
+
+      if (!tasks || tasks.length === 0) {
+        toast.error("Aucune activité trouvée pour ce processus. Ajoutez des activités d'abord.");
+        setGenerating(false);
+        return;
+      }
+
+      const bpmnData = generateBpmnFromTasks(
+        tasks.map(t => ({
+          id: t.id,
+          code: t.code,
+          description: t.description,
+          type_flux: t.type_flux as "sequentiel" | "conditionnel" | "parallele" | "inclusif",
+          condition: t.condition,
+          parent_code: t.parent_code,
+          entrees: t.entrees,
+          sorties: t.sorties,
+          ordre: t.ordre,
+        })),
+        (elements ?? []).map(e => ({
+          id: e.id,
+          code: e.code,
+          description: e.description,
+          type: e.type,
+        }))
+      );
+
+      if (diagram) {
+        // Update existing diagram
+        updateData(bpmnData);
+      } else {
+        // Create new diagram with generated data
+        const processName = processes.find(p => p.id === selectedProcessId)?.nom ?? "Diagramme";
+        const { error } = await supabase.from("bpmn_diagrams").insert([{
+          nom: `BPMN - ${processName}`,
+          process_id: selectedProcessId,
+          donnees: bpmnData as unknown as null,
+        }]);
+        if (error) { toast.error(error.message); setGenerating(false); return; }
+        await fetchDiagram(selectedProcessId);
+      }
+
+      toast.success("Diagramme généré depuis les activités du processus");
+    } catch (err) {
+      toast.error("Erreur lors de la génération");
+    }
+    setGenerating(false);
+  };
+
+  const handleGenerate = () => {
+    if (diagram?.donnees && diagram.donnees.nodes.length > 0) {
+      setShowGenerateConfirm(true);
+    } else {
+      doGenerate();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -204,9 +272,15 @@ export default function Bpmn() {
           <CardContent className="py-12 text-center space-y-4">
             <p className="text-muted-foreground">Aucun diagramme BPMN pour ce processus</p>
             {canEdit && (
-              <Button onClick={createDiagram}>
-                <Plus className="mr-2 h-4 w-4" /> Créer un diagramme
-              </Button>
+              <div className="flex justify-center gap-3">
+                <Button onClick={createDiagram}>
+                  <Plus className="mr-2 h-4 w-4" /> Créer un diagramme vide
+                </Button>
+                <Button variant="outline" onClick={doGenerate} disabled={generating}>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  {generating ? "Génération..." : "Générer depuis les activités"}
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -224,7 +298,9 @@ export default function Bpmn() {
             onFitView={() => { setZoom(1); }}
             onSave={saveDiagram}
             onUndo={handleUndo}
+            onGenerate={handleGenerate}
             saving={saving}
+            generating={generating}
             canEdit={canEdit}
           />
 
@@ -264,6 +340,21 @@ export default function Bpmn() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={showGenerateConfirm} onOpenChange={setShowGenerateConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remplacer le diagramme existant ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La génération va remplacer le diagramme actuel par un nouveau basé sur les activités du processus. Cette action est irréversible si vous sauvegardez ensuite.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={doGenerate}>Générer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
