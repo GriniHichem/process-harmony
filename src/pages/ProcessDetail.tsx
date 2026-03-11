@@ -49,7 +49,7 @@ const generateNextCode = (prefix: string, existingElements: ProcessElement[]): s
 export default function ProcessDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { hasRole, user } = useAuth();
+  const { hasRole, hasPermission, user } = useAuth();
   const [process, setProcess] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
