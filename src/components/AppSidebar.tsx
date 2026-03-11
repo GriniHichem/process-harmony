@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
-  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon
+  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -41,6 +41,7 @@ const auditItems = [
 
 const adminItems = [
   { title: "Utilisateurs", url: "/utilisateurs", icon: Users },
+  { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen },
 ];
 
 type NavItem = { title: string; url: string; icon: any };
@@ -80,7 +81,7 @@ export function AppSidebar() {
 
   // Acteur only sees Indicateurs, Risques, Enjeux (not Documents, Incidents)
   const acteurQualityItems = qualityItems.filter(i => ["/indicateurs", "/risques", "/enjeux-contexte"].includes(i.url));
-  const showAdminMenu = hasRole("admin");
+  const showAdminMenu = hasRole("admin") || hasRole("rmq");
 
   return (
     <Sidebar collapsible="icon">

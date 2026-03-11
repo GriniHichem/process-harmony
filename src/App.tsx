@@ -26,6 +26,7 @@ import Acteurs from "./pages/Acteurs";
 import Incidents from "./pages/Incidents";
 import DashboardAuditNC from "./pages/DashboardAuditNC";
 import EnjeuContexte from "./pages/EnjeuContexte";
+import GroupesActeurs from "./pages/GroupesActeurs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/journal" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq"]}><Journal /></RoleGuard></ProtectedPage>} />
             {/* Administration - admin uniquement */}
             <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin"]}><Utilisateurs /></RoleGuard></ProtectedPage>} />
+            <Route path="/groupes-acteurs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "rmq"]}><GroupesActeurs /></RoleGuard></ProtectedPage>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

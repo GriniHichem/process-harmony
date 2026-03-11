@@ -15,6 +15,11 @@ import { Plus, Pencil, Trash2, UserCheck, UserX, Search, Users, Eye } from "luci
 import { ActeurImplicationsDialog } from "@/components/ActeurImplicationsDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface ActeurGroup {
+  id: string;
+  nom: string;
+}
+
 interface Acteur {
   id: string;
   fonction: string | null;
@@ -23,6 +28,7 @@ interface Acteur {
   actif: boolean;
   description_poste: string | null;
   created_at: string;
+  group_id: string | null;
 }
 
 interface LinkedUser {
@@ -32,14 +38,16 @@ interface LinkedUser {
   email: string;
 }
 
-const emptyForm = { fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe", description_poste: "" };
+const emptyForm = { fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe", description_poste: "", group_id: "" };
 
 export default function Acteurs() {
   const { hasRole } = useAuth();
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
+  const [groups, setGroups] = useState<ActeurGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterGroup, setFilterGroup] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -56,6 +64,11 @@ export default function Acteurs() {
     setLoading(false);
   };
 
+  const fetchGroups = async () => {
+    const { data } = await supabase.from("acteur_groups").select("id, nom").order("nom");
+    if (data) setGroups(data as ActeurGroup[]);
+  };
+
   const fetchLinkedUsers = async () => {
     const { data } = await supabase.from("profiles").select("id, nom, prenom, email, acteur_id").not("acteur_id", "is", null);
     if (data) {
@@ -69,22 +82,26 @@ export default function Acteurs() {
     }
   };
 
-  useEffect(() => { fetchActeurs(); fetchLinkedUsers(); }, []);
+  useEffect(() => { fetchActeurs(); fetchGroups(); fetchLinkedUsers(); }, []);
+
+  const getGroupName = (groupId: string | null) => {
+    if (!groupId) return null;
+    return groups.find(g => g.id === groupId)?.nom ?? null;
+  };
 
   const handleSubmit = async () => {
     if (!form.fonction.trim()) { toast.error("La fonction est obligatoire"); return; }
+    const payload = {
+      fonction: form.fonction, organisation: form.organisation,
+      type_acteur: form.type_acteur, description_poste: form.description_poste,
+      group_id: form.group_id || null,
+    };
     if (editId) {
-      const { error } = await supabase.from("acteurs").update({
-        fonction: form.fonction, organisation: form.organisation,
-        type_acteur: form.type_acteur, description_poste: form.description_poste,
-      }).eq("id", editId);
+      const { error } = await supabase.from("acteurs").update(payload).eq("id", editId);
       if (error) { toast.error(error.message); return; }
       toast.success("Acteur modifié");
     } else {
-      const { error } = await supabase.from("acteurs").insert({
-        fonction: form.fonction, organisation: form.organisation,
-        type_acteur: form.type_acteur, description_poste: form.description_poste,
-      });
+      const { error } = await supabase.from("acteurs").insert(payload);
       if (error) { toast.error(error.message); return; }
       toast.success("Acteur ajouté");
     }
@@ -96,7 +113,7 @@ export default function Acteurs() {
 
   const handleEdit = (a: Acteur) => {
     setEditId(a.id);
-    setForm({ fonction: a.fonction ?? "", organisation: a.organisation ?? "", type_acteur: a.type_acteur, description_poste: a.description_poste ?? "" });
+    setForm({ fonction: a.fonction ?? "", organisation: a.organisation ?? "", type_acteur: a.type_acteur, description_poste: a.description_poste ?? "", group_id: a.group_id ?? "" });
     setDialogOpen(true);
   };
 
@@ -117,7 +134,8 @@ export default function Acteurs() {
   const filtered = acteurs.filter(a => {
     const matchSearch = `${a.fonction ?? ""} ${a.organisation ?? ""} ${a.description_poste ?? ""}`.toLowerCase().includes(search.toLowerCase());
     const matchType = filterType === "all" || a.type_acteur === filterType;
-    return matchSearch && matchType;
+    const matchGroup = filterGroup === "all" || (filterGroup === "none" ? !a.group_id : a.group_id === filterGroup);
+    return matchSearch && matchType && matchGroup;
   });
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
@@ -149,6 +167,18 @@ export default function Acteurs() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Groupe</Label>
+                  <Select value={form.group_id || "none"} onValueChange={v => setForm({ ...form, group_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Aucun groupe" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Aucun groupe</SelectItem>
+                      {groups.map(g => (
+                        <SelectItem key={g.id} value={g.id}>{g.nom}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2"><Label>Description de poste</Label><Textarea value={form.description_poste} onChange={e => setForm({ ...form, description_poste: e.target.value })} rows={3} /></div>
                 <Button onClick={handleSubmit} className="w-full">{editId ? "Modifier" : "Ajouter"}</Button>
               </div>
@@ -157,7 +187,7 @@ export default function Acteurs() {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -170,6 +200,16 @@ export default function Acteurs() {
             <SelectItem value="externe">Externe</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filterGroup} onValueChange={setFilterGroup}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Tous les groupes" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les groupes</SelectItem>
+            <SelectItem value="none">Sans groupe</SelectItem>
+            {groups.map(g => (
+              <SelectItem key={g.id} value={g.id}>{g.nom}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -179,6 +219,7 @@ export default function Acteurs() {
               <TableRow>
                 <TableHead>Fonction</TableHead>
                 <TableHead>Organisation</TableHead>
+                <TableHead>Groupe</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Utilisateurs liés</TableHead>
@@ -187,13 +228,15 @@ export default function Acteurs() {
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucun acteur trouvé</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Aucun acteur trouvé</TableCell></TableRow>
               ) : filtered.map(a => {
                 const users = linkedUsers[a.id] || [];
+                const groupName = getGroupName(a.group_id);
                 return (
                   <TableRow key={a.id}>
                     <TableCell className="font-medium">{a.fonction || "—"}</TableCell>
                     <TableCell>{a.organisation || "—"}</TableCell>
+                    <TableCell>{groupName ? <Badge variant="outline">{groupName}</Badge> : <span className="text-muted-foreground text-xs">—</span>}</TableCell>
                     <TableCell><Badge variant={a.type_acteur === "interne" ? "default" : "secondary"}>{a.type_acteur}</Badge></TableCell>
                     <TableCell><Badge variant={a.actif ? "default" : "outline"}>{a.actif ? "Actif" : "Inactif"}</Badge></TableCell>
                     <TableCell>

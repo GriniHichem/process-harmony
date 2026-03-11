@@ -14,12 +14,37 @@ export type Database = {
   }
   public: {
     Tables: {
+      acteur_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          nom: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       acteurs: {
         Row: {
           actif: boolean
           created_at: string
           description_poste: string | null
           fonction: string | null
+          group_id: string | null
           id: string
           organisation: string | null
           type_acteur: Database["public"]["Enums"]["acteur_type"]
@@ -30,6 +55,7 @@ export type Database = {
           created_at?: string
           description_poste?: string | null
           fonction?: string | null
+          group_id?: string | null
           id?: string
           organisation?: string | null
           type_acteur?: Database["public"]["Enums"]["acteur_type"]
@@ -40,12 +66,21 @@ export type Database = {
           created_at?: string
           description_poste?: string | null
           fonction?: string | null
+          group_id?: string | null
           id?: string
           organisation?: string | null
           type_acteur?: Database["public"]["Enums"]["acteur_type"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "acteurs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "acteur_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       action_notes: {
         Row: {
