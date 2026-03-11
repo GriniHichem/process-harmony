@@ -151,6 +151,15 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
       }
       setActions(groupedActions);
 
+      // For acteur: find which issues have actions assigned to them
+      if (acteurId) {
+        const aIds = new Set<string>();
+        for (const [issueId, issueActions] of Object.entries(groupedActions)) {
+          if (issueActions.some(a => a.responsable === acteurId)) aIds.add(issueId);
+        }
+        setActeurIssueIds(aIds);
+      }
+
       const groupedProcesses: Record<string, string[]> = {};
       for (const link of (cipData ?? []) as any[]) {
         if (!groupedProcesses[link.context_issue_id]) groupedProcesses[link.context_issue_id] = [];
