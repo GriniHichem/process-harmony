@@ -422,7 +422,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
             </div>
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <Input value={actionForm.responsable} onChange={(e) => setActionForm({ ...actionForm, responsable: e.target.value })} placeholder="Nom du responsable" />
+              <ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
