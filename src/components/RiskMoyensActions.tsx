@@ -263,7 +263,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
                     </div>
                   </div>
                   <div className="space-y-1"><Label>Budget (DH)</Label><Input type="number" value={moyenForm.budget} onChange={(e) => setMoyenForm({ ...moyenForm, budget: e.target.value })} /></div>
-                  <div className="space-y-1"><Label>Responsable</Label><Input value={moyenForm.responsable} onChange={(e) => setMoyenForm({ ...moyenForm, responsable: e.target.value })} /></div>
+                  <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={moyenForm.responsable} onChange={(v) => setMoyenForm({ ...moyenForm, responsable: v })} acteurs={acteurs} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><Label>Date prévue</Label><Input type="date" value={moyenForm.date_prevue} onChange={(e) => setMoyenForm({ ...moyenForm, date_prevue: e.target.value })} /></div>
                     <div className="space-y-1"><Label>Deadline</Label><Input type="date" value={moyenForm.deadline} onChange={(e) => setMoyenForm({ ...moyenForm, deadline: e.target.value })} /></div>
