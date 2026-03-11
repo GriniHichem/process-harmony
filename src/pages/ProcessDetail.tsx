@@ -89,16 +89,18 @@ export default function ProcessDetail() {
   }, [id, fetchElements, fetchDocuments]);
 
   const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("consultant") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
+  const isArchived = process?.statut === "archive";
   const isLockedStatus = process?.statut === "valide" || process?.statut === "en_validation";
-  const canDelete = (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus")) && !isLockedStatus;
-  const canChangeStatus = hasRole("admin") || hasRole("rmq");
-  const canChangeResponsable = hasRole("admin") || hasRole("rmq");
+  // Archived = completely frozen for everyone (no edit, no delete, no status change)
+  const canDelete = !isArchived && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus")) && !isLockedStatus;
+  const canChangeStatus = !isArchived && (hasRole("admin") || hasRole("rmq"));
+  const canChangeResponsable = !isArchived && (hasRole("admin") || hasRole("rmq"));
 
-  // Block edit on validated/archived for all non-admin roles (RMQ, responsable_processus, consultant)
-  const isLockedForNonAdmin = !hasRole("admin") && (process?.statut === "valide" || process?.statut === "archive");
-  const effectiveCanEdit = canEdit && !isLockedForNonAdmin;
+  // Block edit on validated/archived for all non-admin roles; archived blocks everyone
+  const isLockedForNonAdmin = !hasRole("admin") && (process?.statut === "valide" || isArchived);
+  const effectiveCanEdit = canEdit && !isArchived && !isLockedForNonAdmin;
 
-  // RMQ: cannot change state of validated process, cannot delete validated process
+  // RMQ: cannot change state of validated process
   const isRmqOnly = hasRole("rmq") && !hasRole("admin");
   const canChangeStatusEffective = canChangeStatus && !(isRmqOnly && (process?.statut === "valide"));
 
