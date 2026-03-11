@@ -325,6 +325,7 @@ export default function Bpmn() {
             onSave={saveDiagram}
             onUndo={handleUndo}
             onGenerate={handleGenerate}
+            onExport={handleExport}
             saving={saving}
             generating={generating}
             canEdit={canEdit}
@@ -332,6 +333,7 @@ export default function Bpmn() {
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
             <BpmnCanvas
+              ref={canvasRef}
               nodes={nodes}
               edges={edges}
               mode={mode}
