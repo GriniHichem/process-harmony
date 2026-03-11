@@ -28,6 +28,7 @@ const statutLabels: Record<string, string> = { planifiee: "Planifiée", realisee
 const emptyForm = { reference: "", date_revue: "", participants: "", elements_entree: "", decisions: "", actions_decidees: "", statut: "planifiee", compte_rendu: "", prochaine_revue: "" };
 
 const RICH_FIELDS = [
+  { key: "decisions", label: "Décisions", placeholder: "Décisions prises lors de la revue..." },
   { key: "compte_rendu", label: "Compte rendu", placeholder: "Compte rendu détaillé de la revue..." },
 ] as const;
 
@@ -172,10 +173,10 @@ export default function RevueDirection() {
                   <ReviewInputItemsView reviewId={viewing.id} />
                 </div>
               </div>
-              {/* Décisions structurées */}
+              {/* Décisions (texte riche) */}
               <div>
                 <Label className="text-xs text-muted-foreground">Décisions</Label>
-                <div className="mt-1"><ReviewDecisionsView reviewId={viewing.id} filterType="decision" /></div>
+                <div className="prose prose-sm max-w-none text-sm mt-1" dangerouslySetInnerHTML={{ __html: viewing.decisions || "—" }} />
               </div>
               {/* Actions décidées structurées */}
               <div>
@@ -268,16 +269,6 @@ export default function RevueDirection() {
                 </div>
               </div>
 
-              {/* Décisions section */}
-              <div className={`p-6 ${activeField === "decisions" ? "" : "hidden"}`}>
-                <div className="max-w-3xl mx-auto">
-                  <h3 className="text-lg font-semibold mb-2">Décisions</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Décisions prises lors de la revue. Vous pouvez les lier aux éléments d'entrée.
-                  </p>
-                  <ReviewDecisionsEditor reviewId={editing?.id} canEdit={canEdit} filterType="decision" />
-                </div>
-              </div>
 
               {/* Actions décidées section */}
               <div className={`p-6 ${activeField === "actions_decidees" ? "" : "hidden"}`}>
