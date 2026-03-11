@@ -20,7 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 type ToolMode = "select" | "connect" | "delete";
 
 export default function Bpmn() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
   const [selectedProcessId, setSelectedProcessId] = useState("");
   const [diagram, setDiagram] = useState<BpmnDiagram | null>(null);

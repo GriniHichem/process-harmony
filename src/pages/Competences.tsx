@@ -31,7 +31,7 @@ const efficaciteColors: Record<string, string> = {
 const efficaciteLabels: Record<string, string> = { non_evaluee: "Non évaluée", efficace: "Efficace", non_efficace: "Non efficace" };
 
 export default function Competences() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const canEdit = hasPermission("competences", "can_edit");
   const qc = useQueryClient();
 

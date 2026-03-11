@@ -41,7 +41,7 @@ interface LinkedUser {
 const emptyForm = { fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe", description_poste: "", group_id: "" };
 
 export default function Acteurs() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [groups, setGroups] = useState<ActeurGroup[]>([]);
   const [loading, setLoading] = useState(true);

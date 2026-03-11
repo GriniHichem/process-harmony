@@ -22,7 +22,7 @@ interface ActeurGroup {
 const emptyForm = { nom: "", description: "" };
 
 export default function GroupesActeurs() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [groups, setGroups] = useState<ActeurGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
