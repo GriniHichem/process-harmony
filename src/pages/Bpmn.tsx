@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Wand2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { BpmnNode, BpmnEdge, BpmnData, BpmnDiagram, BpmnNodeType, NODE_DEFAULTS } from "@/components/bpmn/types";
 import BpmnToolbar from "@/components/bpmn/BpmnToolbar";
