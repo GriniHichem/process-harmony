@@ -47,6 +47,8 @@ interface Props {
   canDelete: boolean;
   userId?: string;
   isOnlyResponsable?: boolean;
+  /** If set, only show enjeux linked to these process IDs */
+  filterProcessIds?: string[];
 }
 
 const impactColors: Record<string, string> = {
