@@ -252,11 +252,7 @@ export default function RevueDirection() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Ajoutez des points à discuter ou liez des éléments existants (processus, indicateurs, risques, audits, etc.).
                   </p>
-                  {editing?.id ? (
-                    <ReviewInputItemsEditor reviewId={editing.id} canEdit={canEdit} />
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">Enregistrez d'abord la revue pour ajouter des éléments d'entrée structurés.</p>
-                  )}
+                  <ReviewInputItemsEditor reviewId={editing?.id} canEdit={canEdit} />
                 </div>
               </div>
 
