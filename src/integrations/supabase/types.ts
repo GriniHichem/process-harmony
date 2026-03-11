@@ -760,6 +760,54 @@ export type Database = {
           },
         ]
       }
+      management_reviews: {
+        Row: {
+          actions_decidees: string
+          compte_rendu: string
+          created_at: string
+          date_revue: string
+          decisions: string
+          elements_entree: string
+          id: string
+          participants: string
+          prochaine_revue: string | null
+          reference: string
+          responsable_id: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          actions_decidees?: string
+          compte_rendu?: string
+          created_at?: string
+          date_revue?: string
+          decisions?: string
+          elements_entree?: string
+          id?: string
+          participants?: string
+          prochaine_revue?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          actions_decidees?: string
+          compte_rendu?: string
+          created_at?: string
+          date_revue?: string
+          decisions?: string
+          elements_entree?: string
+          id?: string
+          participants?: string
+          prochaine_revue?: string | null
+          reference?: string
+          responsable_id?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nonconformities: {
         Row: {
           audit_id: string | null
@@ -1339,6 +1387,119 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      satisfaction_surveys: {
+        Row: {
+          actions_prevues: string
+          analyse_resultats: string
+          created_at: string
+          date_enquete: string
+          id: string
+          nombre_reponses: number
+          process_id: string | null
+          reference: string
+          responsable_id: string | null
+          score_global: number | null
+          statut: string
+          titre: string
+          type_enquete: string
+          updated_at: string
+        }
+        Insert: {
+          actions_prevues?: string
+          analyse_resultats?: string
+          created_at?: string
+          date_enquete?: string
+          id?: string
+          nombre_reponses?: number
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          score_global?: number | null
+          statut?: string
+          titre?: string
+          type_enquete?: string
+          updated_at?: string
+        }
+        Update: {
+          actions_prevues?: string
+          analyse_resultats?: string
+          created_at?: string
+          date_enquete?: string
+          id?: string
+          nombre_reponses?: number
+          process_id?: string | null
+          reference?: string
+          responsable_id?: string | null
+          score_global?: number | null
+          statut?: string
+          titre?: string
+          type_enquete?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "satisfaction_surveys_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          commentaire: string
+          contact: string
+          created_at: string
+          criteres_evaluation: string
+          date_evaluation: string | null
+          domaine: string
+          email: string | null
+          id: string
+          nom: string
+          reference: string
+          score_evaluation: number | null
+          statut: string
+          telephone: string | null
+          type_prestataire: string
+          updated_at: string
+        }
+        Insert: {
+          commentaire?: string
+          contact?: string
+          created_at?: string
+          criteres_evaluation?: string
+          date_evaluation?: string | null
+          domaine?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          reference?: string
+          score_evaluation?: number | null
+          statut?: string
+          telephone?: string | null
+          type_prestataire?: string
+          updated_at?: string
+        }
+        Update: {
+          commentaire?: string
+          contact?: string
+          created_at?: string
+          criteres_evaluation?: string
+          date_evaluation?: string | null
+          domaine?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          reference?: string
+          score_evaluation?: number | null
+          statut?: string
+          telephone?: string | null
+          type_prestataire?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
