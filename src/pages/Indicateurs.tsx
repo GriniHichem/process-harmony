@@ -309,35 +309,37 @@ export default function Indicateurs() {
           </DialogContent>
         </Dialog>
 
-        {/* KPI summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <p className="text-xs text-muted-foreground">Dernière valeur</p>
-              <p className={`text-2xl font-bold ${isAlert ? "text-destructive" : "text-foreground"}`}>
-                {lastValue != null ? lastValue : "—"} {selectedIndicator.unite}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <p className="text-xs text-muted-foreground">Cible</p>
-              <p className="text-2xl font-bold text-primary">{selectedIndicator.cible ?? "—"} {selectedIndicator.unite}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <p className="text-xs text-muted-foreground">Seuil d'alerte</p>
-              <p className="text-2xl font-bold text-warning">{selectedIndicator.seuil_alerte ?? "—"} {selectedIndicator.unite}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 text-center">
-              <p className="text-xs text-muted-foreground">Nb mesures</p>
-              <p className="text-2xl font-bold">{values.length}</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* KPI summary cards - hidden for acteur */}
+        {!isOnlyActeur && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <p className="text-xs text-muted-foreground">Dernière valeur</p>
+                <p className={`text-2xl font-bold ${isAlert ? "text-destructive" : "text-foreground"}`}>
+                  {lastValue != null ? lastValue : "—"} {selectedIndicator.unite}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <p className="text-xs text-muted-foreground">Cible</p>
+                <p className="text-2xl font-bold text-primary">{selectedIndicator.cible ?? "—"} {selectedIndicator.unite}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <p className="text-xs text-muted-foreground">Seuil d'alerte</p>
+                <p className="text-2xl font-bold text-warning">{selectedIndicator.seuil_alerte ?? "—"} {selectedIndicator.unite}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 text-center">
+                <p className="text-xs text-muted-foreground">Nb mesures</p>
+                <p className="text-2xl font-bold">{values.length}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Moyens & Actions */}
         <IndicatorMoyensActions
@@ -347,57 +349,59 @@ export default function Indicateurs() {
           onMoyensUpdate={() => {}}
         />
 
-        {/* Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> Historique des valeurs
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loadingValues ? (
-              <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-            ) : chartData.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12">Aucune mesure enregistrée</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={320}>
-                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                  <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 13 }}
-                    labelStyle={{ color: "hsl(var(--popover-foreground))" }}
-                    formatter={(value: number, _name: string, props: any) => {
-                      const comment = props.payload?.commentaire;
-                      return [
-                        <span key="v">{value} {selectedIndicator.unite}{comment ? ` — ${comment}` : ""}</span>,
-                        "Valeur",
-                      ];
-                    }}
-                  />
-                  <Area type="monotone" dataKey="valeur" fill="url(#colorVal)" stroke="none" />
-                  <Line type="monotone" dataKey="valeur" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} activeDot={{ r: 6 }} />
-                  {selectedIndicator.cible != null && (
-                    <ReferenceLine y={selectedIndicator.cible} stroke="hsl(var(--primary))" strokeDasharray="6 3" label={{ value: "Cible", position: "right", fontSize: 11, fill: "hsl(var(--primary))" }} />
-                  )}
-                  {selectedIndicator.seuil_alerte != null && (
-                    <ReferenceLine y={selectedIndicator.seuil_alerte} stroke="hsl(var(--destructive))" strokeDasharray="4 4" label={{ value: "Seuil", position: "right", fontSize: 11, fill: "hsl(var(--destructive))" }} />
-                  )}
-                </ComposedChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+        {/* Chart - hidden for acteur */}
+        {!isOnlyActeur && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" /> Historique des valeurs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingValues ? (
+                <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+              ) : chartData.length === 0 ? (
+                <p className="text-center text-muted-foreground py-12">Aucune mesure enregistrée</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={320}>
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                    <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 13 }}
+                      labelStyle={{ color: "hsl(var(--popover-foreground))" }}
+                      formatter={(value: number, _name: string, props: any) => {
+                        const comment = props.payload?.commentaire;
+                        return [
+                          <span key="v">{value} {selectedIndicator.unite}{comment ? ` — ${comment}` : ""}</span>,
+                          "Valeur",
+                        ];
+                      }}
+                    />
+                    <Area type="monotone" dataKey="valeur" fill="url(#colorVal)" stroke="none" />
+                    <Line type="monotone" dataKey="valeur" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} activeDot={{ r: 6 }} />
+                    {selectedIndicator.cible != null && (
+                      <ReferenceLine y={selectedIndicator.cible} stroke="hsl(var(--primary))" strokeDasharray="6 3" label={{ value: "Cible", position: "right", fontSize: 11, fill: "hsl(var(--primary))" }} />
+                    )}
+                    {selectedIndicator.seuil_alerte != null && (
+                      <ReferenceLine y={selectedIndicator.seuil_alerte} stroke="hsl(var(--destructive))" strokeDasharray="4 4" label={{ value: "Seuil", position: "right", fontSize: 11, fill: "hsl(var(--destructive))" }} />
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Values table */}
-        {values.length > 0 && (
+        {/* Values table - hidden for acteur */}
+        {!isOnlyActeur && values.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Historique détaillé</CardTitle>

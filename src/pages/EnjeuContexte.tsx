@@ -11,15 +11,17 @@ export default function EnjeuContexte() {
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const [acteurProcessIds, setActeurProcessIds] = useState<string[] | undefined>(undefined);
+  const [acteurId, setActeurId] = useState<string | null>(null);
   const [ready, setReady] = useState(!isOnlyActeur);
 
   useEffect(() => {
     if (!isOnlyActeur || !user) return;
     (async () => {
       const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
-      const acteurId = profileData?.acteur_id;
-      if (acteurId) {
-        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId);
+      const acteurId_ = profileData?.acteur_id;
+      if (acteurId_) {
+        setActeurId(acteurId_);
+        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId_);
         setActeurProcessIds([...new Set((taskData ?? []).map(t => t.process_id))]);
       } else {
         setActeurProcessIds([]);
@@ -42,6 +44,7 @@ export default function EnjeuContexte() {
         userId={user?.id}
         isOnlyResponsable={isOnlyResponsable || isOnlyActeur}
         filterProcessIds={acteurProcessIds}
+        acteurId={isOnlyActeur ? acteurId : undefined}
       />
     </div>
   );

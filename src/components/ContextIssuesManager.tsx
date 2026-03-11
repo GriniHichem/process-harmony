@@ -51,6 +51,8 @@ interface Props {
   isOnlyResponsable?: boolean;
   /** If set, only show enjeux linked to these process IDs */
   filterProcessIds?: string[];
+  /** Acteur ID for restricting expand to issues where they have actions */
+  acteurId?: string | null;
 }
 
 const impactColors: Record<string, string> = {
@@ -88,7 +90,7 @@ type FormType = {
 const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false, domaine: "strategique", process_ids: [] };
 const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
 
-export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds }: Props) {
+export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds, acteurId }: Props) {
   const { acteurs, getActeurLabel } = useActeurs();
   const [issues, setIssues] = useState<ContextIssue[]>([]);
   const [issueProcesses, setIssueProcesses] = useState<Record<string, string[]>>({});
@@ -103,6 +105,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
   const [editingAction, setEditingAction] = useState<ContextIssueAction | null>(null);
   const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+  const [acteurIssueIds, setActeurIssueIds] = useState<Set<string>>(new Set());
 
   const fetchProcesses = useCallback(async () => {
     const { data } = await supabase.from("processes").select("id, code, nom, responsable_id").order("code");
@@ -147,6 +150,15 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
         groupedActions[a.context_issue_id].push(a);
       }
       setActions(groupedActions);
+
+      // For acteur: find which issues have actions assigned to them
+      if (acteurId) {
+        const aIds = new Set<string>();
+        for (const [issueId, issueActions] of Object.entries(groupedActions)) {
+          if (issueActions.some(a => a.responsable === acteurId)) aIds.add(issueId);
+        }
+        setActeurIssueIds(aIds);
+      }
 
       const groupedProcesses: Record<string, string[]> = {};
       for (const link of (cipData ?? []) as any[]) {
@@ -257,6 +269,8 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
   };
 
   const toggleExpand = (id: string) => {
+    // If acteurId is set, only allow expand for issues where they have actions
+    if (acteurId && !acteurIssueIds.has(id)) return;
     setExpandedIssues(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   };
 

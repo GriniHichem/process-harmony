@@ -36,6 +36,7 @@ export default function Risques() {
   const canDelete = hasRole("admin") || hasRole("rmq");
   const canEditActions = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus"));
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
+  const [acteurRiskIds, setActeurRiskIds] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     let processQuery = supabase.from("processes").select("id, nom").order("nom");
@@ -62,13 +63,32 @@ export default function Risques() {
     setProcesses(myProcesses);
 
     let riskQuery = supabase.from("risks_opportunities").select("*").order("criticite", { ascending: false });
-    if (isOnlyResponsable && myProcesses.length > 0) {
+    if ((isOnlyResponsable || isOnlyActeur) && myProcesses.length > 0) {
       riskQuery = riskQuery.in("process_id", myProcesses.map(p => p.id));
-    } else if (isOnlyResponsable) {
+    } else if (isOnlyResponsable || isOnlyActeur) {
       riskQuery = riskQuery.in("process_id", ["__none__"]);
     }
     const rRes = await riskQuery;
-    setRisks((rRes.data ?? []) as Risk[]);
+    const allRisks = (rRes.data ?? []) as Risk[];
+    setRisks(allRisks);
+
+    // For acteur: find which risks have actions/moyens where they are responsible
+    if (isOnlyActeur && user) {
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
+      const acteurId = profileData?.acteur_id;
+      const riskIds = allRisks.map(r => r.id);
+      if (riskIds.length > 0 && acteurId) {
+        const [actionsRes, moyensRes] = await Promise.all([
+          supabase.from("risk_actions").select("risk_id").in("risk_id", riskIds).eq("responsable", acteurId),
+          supabase.from("risk_moyens").select("risk_id").in("risk_id", riskIds).eq("responsable", acteurId),
+        ]);
+        const ids = new Set<string>();
+        (actionsRes.data ?? []).forEach((a: any) => ids.add(a.risk_id));
+        (moyensRes.data ?? []).forEach((m: any) => ids.add(m.risk_id));
+        setActeurRiskIds(ids);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -200,8 +220,11 @@ export default function Risques() {
               <Card key={r.id} className={`transition-shadow ${isExpanded ? "ring-2 ring-primary/30 shadow-md" : ""}`}>
                 <CardContent className="py-4">
                   <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                    className={`flex items-center justify-between ${(!isOnlyActeur || acteurRiskIds.has(r.id)) ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (isOnlyActeur && !acteurRiskIds.has(r.id)) { return; }
+                      setExpandedId(isExpanded ? null : r.id);
+                    }}
                   >
                     <div className="flex items-center gap-3">
                       {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
