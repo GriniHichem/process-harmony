@@ -63,7 +63,7 @@ export default function Actions() {
   };
 
   const fetchActeurs = async () => {
-    const { data } = await supabase.from("acteurs").select("id, nom, prenom").eq("actif", true).order("nom");
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true).order("fonction");
     setActeurs(data ?? []);
   };
 
