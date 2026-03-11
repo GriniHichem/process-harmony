@@ -18,33 +18,30 @@ export type Database = {
         Row: {
           actif: boolean
           created_at: string
+          description_poste: string | null
           fonction: string | null
           id: string
-          nom: string
           organisation: string | null
-          prenom: string
           type_acteur: Database["public"]["Enums"]["acteur_type"]
           updated_at: string
         }
         Insert: {
           actif?: boolean
           created_at?: string
+          description_poste?: string | null
           fonction?: string | null
           id?: string
-          nom: string
           organisation?: string | null
-          prenom?: string
           type_acteur?: Database["public"]["Enums"]["acteur_type"]
           updated_at?: string
         }
         Update: {
           actif?: boolean
           created_at?: string
+          description_poste?: string | null
           fonction?: string | null
           id?: string
-          nom?: string
           organisation?: string | null
-          prenom?: string
           type_acteur?: Database["public"]["Enums"]["acteur_type"]
           updated_at?: string
         }
@@ -1062,6 +1059,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          acteur_id: string | null
           actif: boolean
           created_at: string
           email: string
@@ -1072,6 +1070,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acteur_id?: string | null
           actif?: boolean
           created_at?: string
           email?: string
@@ -1082,6 +1081,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acteur_id?: string | null
           actif?: boolean
           created_at?: string
           email?: string
@@ -1091,7 +1091,15 @@ export type Database = {
           prenom?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       risk_actions: {
         Row: {

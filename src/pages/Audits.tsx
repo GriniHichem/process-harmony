@@ -30,7 +30,7 @@ type Finding = {
   preuve: string | null; statut: string; process_id: string | null;
 };
 
-type Acteur = { id: string; nom: string; prenom: string };
+type Acteur = { id: string; fonction: string | null };
 
 const statusColors: Record<string, string> = {
   planifie: "bg-muted text-muted-foreground",
@@ -87,7 +87,7 @@ export default function Audits() {
   };
 
   const fetchActeurs = async () => {
-    const { data } = await supabase.from("acteurs").select("id, nom, prenom").eq("actif", true);
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true);
     setActeurs(data ?? []);
   };
 
@@ -303,7 +303,7 @@ export default function Audits() {
                     <div><Label className="text-muted-foreground text-xs">Date début</Label><p className="font-medium">{detailAudit.date_audit ?? "—"}</p></div>
                     <div><Label className="text-muted-foreground text-xs">Date fin</Label><p className="font-medium">{detailAudit.date_fin ?? "—"}</p></div>
                     <div><Label className="text-muted-foreground text-xs">Fréquence</Label><p className="font-medium">{detailAudit.frequence ?? "—"}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Auditeur</Label><p className="font-medium">{detailAudit.auditeur_id ? acteurs.find(a => a.id === detailAudit.auditeur_id)?.nom ?? "—" : "—"}</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Auditeur</Label><p className="font-medium">{detailAudit.auditeur_id ? acteurs.find(a => a.id === detailAudit.auditeur_id)?.fonction ?? "—" : "—"}</p></div>
                   </div>
                   {detailAudit.perimetre && <div><Label className="text-muted-foreground text-xs">Périmètre</Label><p className="text-sm">{detailAudit.perimetre}</p></div>}
                   {detailAudit.responsabilites && <div><Label className="text-muted-foreground text-xs">Responsabilités</Label><p className="text-sm whitespace-pre-wrap">{detailAudit.responsabilites}</p></div>}
@@ -453,7 +453,7 @@ export default function Audits() {
                       <Select value={editAudit.auditeur_id ?? ""} onValueChange={(v) => setEditAudit({ ...editAudit, auditeur_id: v || null })}>
                         <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                         <SelectContent>
-                          {acteurs.map(a => <SelectItem key={a.id} value={a.id}>{a.prenom} {a.nom}</SelectItem>)}
+                          {acteurs.map(a => <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>

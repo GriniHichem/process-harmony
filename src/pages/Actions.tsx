@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { Plus, Zap, ChevronDown, ChevronRight, StickyNote, User, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Acteur = { id: string; nom: string; prenom: string };
+type Acteur = { id: string; fonction: string | null };
 type ActionNote = { id: string; action_id: string; contenu: string; avancement: number; date_note: string; created_at: string };
 type Action = { id: string; description: string; type_action: string; statut: string; echeance: string | null; responsable_id: string | null; source_type: string };
 
@@ -63,7 +63,7 @@ export default function Actions() {
   };
 
   const fetchActeurs = async () => {
-    const { data } = await supabase.from("acteurs").select("id, nom, prenom").eq("actif", true).order("nom");
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true).order("fonction");
     setActeurs(data ?? []);
   };
 
@@ -180,7 +180,7 @@ export default function Actions() {
   const getResponsableName = (id: string | null) => {
     if (!id) return null;
     const a = acteurs.find((act) => act.id === id);
-    return a ? `${a.prenom} ${a.nom}` : null;
+    return a ? (a.fonction || "—") : null;
   };
 
   const isOverdue = (a: Action) => a.echeance && new Date(a.echeance) < new Date() && !["cloturee", "verifiee"].includes(a.statut);
@@ -227,7 +227,7 @@ export default function Actions() {
                     <SelectTrigger><SelectValue placeholder="Sélectionner un responsable" /></SelectTrigger>
                     <SelectContent>
                       {acteurs.map((a) => (
-                        <SelectItem key={a.id} value={a.id}>{a.prenom} {a.nom}</SelectItem>
+                        <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -313,7 +313,7 @@ export default function Actions() {
                               <SelectTrigger className="w-52 h-8 text-xs"><SelectValue placeholder="Assigner" /></SelectTrigger>
                               <SelectContent>
                                 {acteurs.map((act) => (
-                                  <SelectItem key={act.id} value={act.id}>{act.prenom} {act.nom}</SelectItem>
+                                  <SelectItem key={act.id} value={act.id}>{act.fonction || "—"}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -442,7 +442,7 @@ export default function Actions() {
                   <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                   <SelectContent>
                     {acteurs.map((act) => (
-                      <SelectItem key={act.id} value={act.id}>{act.prenom} {act.nom}</SelectItem>
+                      <SelectItem key={act.id} value={act.id}>{act.fonction || "—"}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

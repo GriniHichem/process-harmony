@@ -5,15 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Users, Plus, KeyRound } from "lucide-react";
 
+type ActeurRef = { id: string; fonction: string | null };
+
 type UserWithRoles = {
   id: string; nom: string; prenom: string; email: string; fonction: string; actif: boolean;
   roles: string[];
+  acteur_id: string | null;
 };
 
 const allRoles = [
@@ -28,6 +32,7 @@ const allRoles = [
 export default function Utilisateurs() {
   const { hasRole } = useAuth();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [acteursList, setActeursList] = useState<ActeurRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [newUser, setNewUser] = useState({ email: "", password: "", nom: "", prenom: "", fonction: "" });
@@ -50,7 +55,12 @@ export default function Utilisateurs() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchActeurs = async () => {
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true).order("fonction");
+    setActeursList((data ?? []) as ActeurRef[]);
+  };
+
+  useEffect(() => { fetchUsers(); fetchActeurs(); }, []);
 
   const handleToggleRole = async (userId: string, roleKey: string, currentRoles: string[]) => {
     if (!hasRole("admin")) return;
@@ -74,6 +84,13 @@ export default function Utilisateurs() {
     const { error } = await supabase.from("profiles").update({ actif: !currentActive }).eq("id", userId);
     if (error) toast.error(error.message);
     else { toast.success(currentActive ? "Compte désactivé" : "Compte activé"); fetchUsers(); }
+  };
+
+  const handleAssignActeur = async (userId: string, acteurId: string | null) => {
+    const { error } = await supabase.from("profiles").update({ acteur_id: acteurId }).eq("id", userId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Acteur assigné");
+    fetchUsers();
   };
 
   const handleCreateUser = async () => {
@@ -182,6 +199,18 @@ export default function Utilisateurs() {
                       {r.label}
                     </label>
                   ))}
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Acteur :</Label>
+                  <Select value={u.acteur_id ?? "none"} onValueChange={(v) => handleAssignActeur(u.id, v === "none" ? null : v)}>
+                    <SelectTrigger className="h-8 w-60 text-xs"><SelectValue placeholder="Aucun acteur" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Aucun</SelectItem>
+                      {acteursList.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>

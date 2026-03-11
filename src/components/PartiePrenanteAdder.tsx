@@ -9,8 +9,6 @@ import { toast } from "sonner";
 
 interface Acteur {
   id: string;
-  nom: string;
-  prenom: string;
   fonction: string | null;
   organisation: string | null;
   type_acteur: "interne" | "externe";
@@ -32,14 +30,14 @@ export function PartiePrenanteAdder({ existingDescriptions, onAdd }: PartiePrena
   useEffect(() => {
     if (!open) return;
     const fetch = async () => {
-      const { data } = await supabase.from("acteurs").select("id, nom, prenom, fonction, organisation, type_acteur").eq("actif", true).order("nom");
+      const { data } = await supabase.from("acteurs").select("id, fonction, organisation, type_acteur").eq("actif", true).order("fonction");
       if (data) setActeurs(data);
     };
     fetch();
   }, [open]);
 
   const getActeurLabel = (a: Acteur) => {
-    return a.fonction || `${a.prenom} ${a.nom}`.trim();
+    return a.fonction || "—";
   };
 
   const filtered = acteurs.filter((a) => {

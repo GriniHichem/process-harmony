@@ -40,8 +40,7 @@ interface ProcessElement {
 
 interface Acteur {
   id: string;
-  nom: string;
-  prenom: string;
+  fonction: string | null;
 }
 
 const FLOW_ICONS: Record<TaskFlowType, string> = {
@@ -106,7 +105,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   }, [processId]);
 
   const fetchActeurs = useCallback(async () => {
-    const { data } = await supabase.from("acteurs").select("id, nom, prenom").eq("actif", true);
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true);
     if (data) setActeurs(data);
   }, []);
 
@@ -255,7 +254,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   const acteurName = (id: string | null) => {
     if (!id) return "—";
     const a = acteurs.find((a) => a.id === id);
-    return a ? `${a.prenom} ${a.nom}`.trim() : "—";
+    return a ? (a.fonction || "—") : "—";
   };
 
   const resolveElementDescriptions = (codesStr: string | null): string => {
@@ -501,7 +500,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                 <SelectContent>
                   <SelectItem value="none">Non assigné</SelectItem>
                   {acteurs.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{`${a.prenom} ${a.nom}`.trim()}</SelectItem>
+                    <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
