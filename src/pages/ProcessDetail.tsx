@@ -24,12 +24,7 @@ import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
 interface ProcessElement {
-  id: string;
-  code: string;
-  description: string;
-  type: ElementType;
-  ordre: number;
-  process_id: string;
+  id: string; code: string; description: string; type: ElementType; ordre: number; process_id: string;
 }
 
 const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string }[] = [
@@ -53,7 +48,7 @@ const generateNextCode = (prefix: string, existingElements: ProcessElement[]): s
 export default function ProcessDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { role, user } = useAuth();
+  const { hasRole, user } = useAuth();
   const [process, setProcess] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -63,29 +58,19 @@ export default function ProcessDetail() {
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
   const [pdfViewerTitle, setPdfViewerTitle] = useState("");
   const [pdfFullscreen, setPdfFullscreen] = useState(false);
+
   const fetchElements = useCallback(async () => {
     if (!id) return;
-    const { data } = await supabase
-      .from("process_elements")
-      .select("*")
-      .eq("process_id", id)
-      .order("ordre", { ascending: true });
+    const { data } = await supabase.from("process_elements").select("*").eq("process_id", id).order("ordre", { ascending: true });
     if (data) setElements(data as ProcessElement[]);
   }, [id]);
 
   const fetchDocuments = useCallback(async () => {
     if (!id) return;
-    const { data: dpData } = await supabase
-      .from("document_processes")
-      .select("document_id")
-      .eq("process_id", id);
+    const { data: dpData } = await supabase.from("document_processes").select("document_id").eq("process_id", id);
     if (!dpData || dpData.length === 0) { setProcessDocuments([]); return; }
     const docIds = dpData.map((dp: any) => dp.document_id);
-    const { data: docsData } = await supabase
-      .from("documents")
-      .select("id, titre, type_document, version, nom_fichier, chemin_fichier")
-      .in("id", docIds)
-      .eq("archive", false);
+    const { data: docsData } = await supabase.from("documents").select("id, titre, type_document, version, nom_fichier, chemin_fichier").in("id", docIds).eq("archive", false);
     setProcessDocuments(docsData ?? []);
   }, [id]);
 
@@ -99,23 +84,23 @@ export default function ProcessDetail() {
       const { data } = await supabase.from("profiles").select("id, nom, prenom, email").eq("actif", true);
       if (data) setUsers(data);
     };
-    if (id) {
-      fetch();
-      fetchElements();
-      fetchDocuments();
-      fetchUsers();
-    }
+    if (id) { fetch(); fetchElements(); fetchDocuments(); fetchUsers(); }
   }, [id, fetchElements, fetchDocuments]);
 
-  const canEdit = role === "rmq" || role === "consultant" || (role === "responsable_processus" && process?.responsable_id === user?.id);
-  const canDelete = role === "rmq" || role === "responsable_processus";
+  const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("consultant") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
+  const canDelete = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const canChangeStatus = hasRole("admin") || hasRole("rmq");
+  const canChangeResponsable = hasRole("admin") || hasRole("rmq");
+
+  // Block edit on validated/archived for responsable_processus
+  const isLockedForResp = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq") && (process?.statut === "valide" || process?.statut === "archive");
+  const effectiveCanEdit = canEdit && !isLockedForResp;
 
   const handleSave = async () => {
     if (!process) return;
     setSaving(true);
     const { error } = await supabase.from("processes").update({
-      nom: process.nom,
-      description: process.description,
+      nom: process.nom, description: process.description,
       type_processus: process.type_processus,
       statut: process.statut,
       responsable_id: process.responsable_id || null,
@@ -131,13 +116,7 @@ export default function ProcessDetail() {
     const typeElements = elements.filter(e => e.type === type);
     const maxOrdre = typeElements.reduce((max, e) => Math.max(max, e.ordre), 0);
     const code = generateNextCode(prefix, typeElements);
-    const { error } = await supabase.from("process_elements").insert({
-      process_id: id,
-      type,
-      code,
-      description,
-      ordre: maxOrdre + 1,
-    });
+    const { error } = await supabase.from("process_elements").insert({ process_id: id, type, code, description, ordre: maxOrdre + 1 });
     if (error) { toast.error(error.message); throw error; }
     toast.success("Élément ajouté");
     await fetchElements();
@@ -175,7 +154,7 @@ export default function ProcessDetail() {
         <Button variant="outline" onClick={() => exportProcessPdf(id!)}>
           <FileDown className="mr-2 h-4 w-4" /> Exporter PDF
         </Button>
-        {canEdit && (
+        {effectiveCanEdit && (
           <Button onClick={handleSave} disabled={saving}><Save className="mr-2 h-4 w-4" />{saving ? "..." : "Enregistrer"}</Button>
         )}
       </div>
@@ -184,7 +163,6 @@ export default function ProcessDetail() {
         <TabsList>
           <TabsTrigger value="general">Informations générales</TabsTrigger>
           <TabsTrigger value="elements">Éléments</TabsTrigger>
-          
           <TabsTrigger value="tasks">Activités</TabsTrigger>
         </TabsList>
 
@@ -192,10 +170,10 @@ export default function ProcessDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Informations générales</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2"><Label>Intitulé</Label><Input value={process.nom} onChange={(e) => updateField("nom", e.target.value)} disabled={!canEdit} /></div>
+              <div className="space-y-2"><Label>Intitulé</Label><Input value={process.nom} onChange={(e) => updateField("nom", e.target.value)} disabled={!effectiveCanEdit} /></div>
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={process.type_processus} onValueChange={(v) => updateField("type_processus", v)} disabled={!canEdit}>
+                <Select value={process.type_processus} onValueChange={(v) => updateField("type_processus", v)} disabled={!effectiveCanEdit}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pilotage">Management</SelectItem>
@@ -206,7 +184,7 @@ export default function ProcessDetail() {
               </div>
               <div className="space-y-2">
                 <Label>Statut</Label>
-                <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={role !== "rmq"}>
+                <Select value={process.statut} onValueChange={(v) => updateField("statut", v)} disabled={!canChangeStatus}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="brouillon">Brouillon</SelectItem>
@@ -218,7 +196,7 @@ export default function ProcessDetail() {
               </div>
               <div className="space-y-2">
                 <Label>Responsable</Label>
-                <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={role !== "rmq"}>
+                <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={!canChangeResponsable}>
                   <SelectTrigger><SelectValue placeholder="Non assigné" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Non assigné</SelectItem>
@@ -228,7 +206,7 @@ export default function ProcessDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Description</Label><Textarea value={process.description ?? ""} onChange={(e) => updateField("description", e.target.value)} disabled={!canEdit} rows={3} /></div>
+              <div className="space-y-2"><Label>Description</Label><Textarea value={process.description ?? ""} onChange={(e) => updateField("description", e.target.value)} disabled={!effectiveCanEdit} rows={3} /></div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -239,41 +217,27 @@ export default function ProcessDetail() {
               <Card key={type}>
                 <CardContent className="pt-6">
                   {type === "interaction" ? (
-                    <ProcessInteractionManager
-                      processId={id!}
-                      processElements={elements}
-                      canEdit={canEdit}
-                      canDelete={canDelete}
-                      onRefreshElements={fetchElements}
-                    />
+                    <ProcessInteractionManager processId={id!} processElements={elements} canEdit={effectiveCanEdit} canDelete={canDelete} onRefreshElements={fetchElements} />
                   ) : (
                     <>
                       <ProcessElementList
                         title={title}
                         elements={elements.filter(e => e.type === type)}
-                        canEdit={canEdit}
+                        canEdit={effectiveCanEdit}
                         canDelete={canDelete}
                         multiline={type === "finalite"}
                         onAdd={(desc) => handleAddElement(type, prefix, desc)}
                         onUpdate={handleUpdateElement}
                         onRemove={handleRemoveElement}
                         customAdder={type === "partie_prenante" ? (
-                          <PartiePrenanteAdder
-                            existingDescriptions={elements.filter(e => e.type === "partie_prenante").map(e => e.description)}
-                            onAdd={(desc) => handleAddElement("partie_prenante", "PP", desc)}
-                          />
+                          <PartiePrenanteAdder existingDescriptions={elements.filter(e => e.type === "partie_prenante").map(e => e.description)} onAdd={(desc) => handleAddElement("partie_prenante", "PP", desc)} />
                         ) : undefined}
                       />
                       {type === "ressource" && processDocuments.length > 0 && (
                         <div className="mt-4 space-y-2">
-                          <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                            <FileText className="h-3.5 w-3.5" /> Documents associés
-                          </h4>
+                          <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> Documents associés</h4>
                           {processDocuments.map((doc: any) => {
-                            const typeLabels: Record<string, string> = {
-                              procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
-                              enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve",
-                            };
+                            const typeLabels: Record<string, string> = { procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire", enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit", preuve: "Preuve" };
                             return (
                               <div key={doc.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
                                 <div className="flex items-center gap-2">
@@ -284,28 +248,17 @@ export default function ProcessDetail() {
                                 <div className="flex items-center gap-2">
                                   {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
                                   {doc.chemin_fichier && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
+                                    <Button variant="ghost" size="icon" className="h-7 w-7"
                                       onClick={async () => {
                                         const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
-                                        if (!data) {
-                                          toast.error("Impossible d'accéder au fichier");
-                                          return;
-                                        }
+                                        if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
                                         const isPdf = doc.nom_fichier?.toLowerCase().endsWith(".pdf");
                                         if (isPdf) {
                                           const blobUrl = URL.createObjectURL(data);
-                                          setPdfViewerTitle(doc.titre);
-                                          setPdfViewerUrl(blobUrl);
+                                          setPdfViewerTitle(doc.titre); setPdfViewerUrl(blobUrl);
                                         } else {
                                           const blobUrl = URL.createObjectURL(data);
-                                          const a = document.createElement("a");
-                                          a.href = blobUrl;
-                                          a.download = doc.nom_fichier || "document";
-                                          a.click();
-                                          URL.revokeObjectURL(blobUrl);
+                                          const a = document.createElement("a"); a.href = blobUrl; a.download = doc.nom_fichier || "document"; a.click(); URL.revokeObjectURL(blobUrl);
                                         }
                                       }}
                                       title={doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Lire" : "Télécharger"}
@@ -327,38 +280,22 @@ export default function ProcessDetail() {
           </div>
         </TabsContent>
 
-
         <TabsContent value="tasks">
           <Card>
             <CardContent className="pt-6">
-              <ProcessTasksTable
-                processId={id!}
-                canEdit={canEdit}
-                canDelete={canDelete}
-                processElements={elements}
+              <ProcessTasksTable processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
                 onAddElement={async (type: ElementType, description: string) => {
                   const section = ELEMENT_SECTIONS.find(s => s.type === type);
-                  if (section) {
-                    await handleAddElement(type, section.prefix, description);
-                  }
+                  if (section) await handleAddElement(type, section.prefix, description);
                 }}
               />
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
 
       <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
-        <DialogContent
-          className={cn(
-            "flex flex-col transition-all duration-300",
-            pdfFullscreen
-              ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0"
-              : "max-w-5xl w-[90vw] h-[85vh]"
-          )}
-          aria-describedby={undefined}
-        >
+        <DialogContent className={cn("flex flex-col transition-all duration-300", pdfFullscreen ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0" : "max-w-5xl w-[90vw] h-[85vh]")} aria-describedby={undefined}>
           <DialogHeader>
             <div className="flex items-center justify-between pr-8">
               <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
@@ -368,9 +305,7 @@ export default function ProcessDetail() {
             </div>
           </DialogHeader>
           <div className="flex-1 min-h-0">
-            {pdfViewerUrl && (
-              <iframe src={pdfViewerUrl} className="w-full h-full rounded-md border" title={pdfViewerTitle} />
-            )}
+            {pdfViewerUrl && <iframe src={pdfViewerUrl} className="w-full h-full rounded-md border" title="PDF Viewer" />}
           </div>
         </DialogContent>
       </Dialog>

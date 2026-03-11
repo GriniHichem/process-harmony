@@ -2,100 +2,206 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Users, Shield } from "lucide-react";
+import { Users, Plus, KeyRound } from "lucide-react";
 
-type UserWithRole = { id: string; nom: string; prenom: string; email: string; fonction: string; actif: boolean; role: string | null };
-
-const roleLabels: Record<string, string> = {
-  admin: "Admin",
-  rmq: "RMQ",
-  responsable_processus: "Resp. processus",
-  consultant: "Consultant",
-  auditeur: "Auditeur",
+type UserWithRoles = {
+  id: string; nom: string; prenom: string; email: string; fonction: string; actif: boolean;
+  roles: string[];
 };
 
+const allRoles = [
+  { key: "admin", label: "Admin" },
+  { key: "rmq", label: "RMQ" },
+  { key: "responsable_processus", label: "Resp. processus" },
+  { key: "consultant", label: "Consultant" },
+  { key: "auditeur", label: "Auditeur" },
+  { key: "acteur", label: "Acteur" },
+];
+
 export default function Utilisateurs() {
-  const { role } = useAuth();
-  const [users, setUsers] = useState<UserWithRole[]>([]);
+  const { hasRole } = useAuth();
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ email: "", password: "", nom: "", prenom: "", fonction: "" });
+  const [creating, setCreating] = useState(false);
+
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*").order("nom");
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-    const roleMap = new Map((roles ?? []).map((r) => [r.user_id, r.role]));
-    setUsers((profiles ?? []).map((p) => ({ ...p, role: roleMap.get(p.id) ?? null })) as UserWithRole[]);
+    const roleMap = new Map<string, string[]>();
+    (roles ?? []).forEach((r) => {
+      const list = roleMap.get(r.user_id) || [];
+      list.push(r.role);
+      roleMap.set(r.user_id, list);
+    });
+    setUsers((profiles ?? []).map((p) => ({ ...p, roles: roleMap.get(p.id) ?? [] })) as UserWithRoles[]);
     setLoading(false);
   };
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    if (role !== "rmq" && role !== "admin") return;
-    const { data: existing } = await supabase.from("user_roles").select("id").eq("user_id", userId).single();
-    let error;
-    if (existing) {
-      ({ error } = await supabase.from("user_roles").update({ role: newRole as any }).eq("user_id", userId));
+  const handleToggleRole = async (userId: string, roleKey: string, currentRoles: string[]) => {
+    if (!hasRole("admin")) return;
+    const has = currentRoles.includes(roleKey);
+    if (has) {
+      // Remove role
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", roleKey as any);
+      if (error) { toast.error(error.message); return; }
     } else {
-      ({ error } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole as any }));
+      // Max 2 roles
+      if (currentRoles.length >= 2) { toast.error("Maximum 2 rôles par utilisateur"); return; }
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: roleKey as any });
+      if (error) { toast.error(error.message); return; }
     }
-    if (error) toast.error(error.message);
-    else { toast.success("Rôle mis à jour"); fetchUsers(); }
+    toast.success("Rôles mis à jour");
+    fetchUsers();
   };
 
   const toggleActive = async (userId: string, currentActive: boolean) => {
-    if (role !== "rmq" && role !== "admin") return;
+    if (!hasRole("admin")) return;
     const { error } = await supabase.from("profiles").update({ actif: !currentActive }).eq("id", userId);
     if (error) toast.error(error.message);
     else { toast.success(currentActive ? "Compte désactivé" : "Compte activé"); fetchUsers(); }
   };
 
-  if (role !== "rmq" && role !== "admin") {
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.password) { toast.error("Email et mot de passe requis"); return; }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: { email: newUser.email, password: newUser.password, nom: newUser.nom, prenom: newUser.prenom, fonction: newUser.fonction },
+      });
+      if (error) { toast.error(error.message || "Erreur"); setCreating(false); return; }
+      if (data?.error) { toast.error(data.error); setCreating(false); return; }
+      toast.success("Utilisateur créé");
+      setCreateOpen(false);
+      setNewUser({ email: "", password: "", nom: "", prenom: "", fonction: "" });
+      fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    }
+    setCreating(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUserId || !resetPassword) { toast.error("Mot de passe requis"); return; }
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+        body: { user_id: resetUserId, new_password: resetPassword },
+      });
+      if (error) { toast.error(error.message || "Erreur"); setResetting(false); return; }
+      if (data?.error) { toast.error(data.error); setResetting(false); return; }
+      toast.success("Mot de passe réinitialisé");
+      setResetUserId(null);
+      setResetPassword("");
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    }
+    setResetting(false);
+  };
+
+  if (!hasRole("admin")) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Utilisateurs</h1>
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé au RMQ ou Admin</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé à l'administrateur</CardContent></Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl font-bold">Gestion des utilisateurs</h1><p className="text-muted-foreground">Administration des comptes et rôles</p></div>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Gestion des utilisateurs</h1><p className="text-muted-foreground">Administration des comptes et rôles</p></div>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="mr-2 h-4 w-4" /> Nouvel utilisateur</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Créer un utilisateur</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Prénom</Label><Input value={newUser.prenom} onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Nom</Label><Input value={newUser.nom} onChange={(e) => setNewUser({ ...newUser, nom: e.target.value })} /></div>
+              </div>
+              <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Mot de passe *</Label><Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Fonction</Label><Input value={newUser.fonction} onChange={(e) => setNewUser({ ...newUser, fonction: e.target.value })} /></div>
+              <Button onClick={handleCreateUser} className="w-full" disabled={creating}>{creating ? "Création..." : "Créer"}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
       ) : (
         <div className="grid gap-3">
           {users.map((u) => (
             <Card key={u.id}>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                    {u.prenom?.[0]}{u.nom?.[0]}
+              <CardContent className="py-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
+                      {u.prenom?.[0]}{u.nom?.[0]}
+                    </div>
+                    <div>
+                      <p className="font-medium">{u.prenom} {u.nom}</p>
+                      <p className="text-xs text-muted-foreground">{u.email} {u.fonction ? `• ${u.fonction}` : ""}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">{u.prenom} {u.nom}</p>
-                    <p className="text-xs text-muted-foreground">{u.email} {u.fonction ? `• ${u.fonction}` : ""}</p>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Réinitialiser mot de passe" onClick={() => setResetUserId(u.id)}>
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Badge className="cursor-pointer" variant={u.actif ? "default" : "destructive"} onClick={() => toggleActive(u.id, u.actif)}>
+                      {u.actif ? "Actif" : "Inactif"}
+                    </Badge>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Select value={u.role ?? ""} onValueChange={(v) => handleRoleChange(u.id, v)}>
-                    <SelectTrigger className="w-[170px]"><SelectValue placeholder="Aucun rôle" /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(roleLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Badge className="cursor-pointer" variant={u.actif ? "default" : "destructive"} onClick={() => toggleActive(u.id, u.actif)}>
-                    {u.actif ? "Actif" : "Inactif"}
-                  </Badge>
+                <div className="flex flex-wrap gap-3">
+                  {allRoles.map((r) => (
+                    <label key={r.key} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={u.roles.includes(r.key)}
+                        onCheckedChange={() => handleToggleRole(u.id, r.key, u.roles)}
+                      />
+                      {r.label}
+                    </label>
+                  ))}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Reset password dialog */}
+      <Dialog open={!!resetUserId} onOpenChange={(o) => { if (!o) { setResetUserId(null); setResetPassword(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Réinitialiser le mot de passe</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nouveau mot de passe</Label>
+              <Input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Nouveau mot de passe" />
+            </div>
+            <Button onClick={handleResetPassword} className="w-full" disabled={resetting}>{resetting ? "Réinitialisation..." : "Réinitialiser"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
