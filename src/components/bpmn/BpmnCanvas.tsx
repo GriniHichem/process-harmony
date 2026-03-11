@@ -294,8 +294,46 @@ export default function BpmnCanvas({
               strokeDasharray="4 2" />
             <line x1={node.x} y1={node.y} x2={node.x} y2={node.y + h}
               stroke="hsl(var(--muted-foreground))" strokeWidth={2} />
-            <text x={node.x + 8} y={node.y + h/2 + 4} className="text-[11px] fill-muted-foreground">
-              {node.label.length > 20 ? node.label.slice(0, 20) + "…" : node.label}
+            <text x={node.x + 8} y={node.y + h/2 + 4} className="text-[10px] fill-muted-foreground">
+              {node.label.length > 22 ? node.label.slice(0, 22) + "…" : node.label}
+            </text>
+          </g>
+        );
+
+      case "data-object":
+        return (
+          <g key={node.id} {...commonEvents}>
+            {/* Folded-corner document shape */}
+            <path
+              d={`M${node.x},${node.y} L${node.x + w - 10},${node.y} L${node.x + w},${node.y + 10} L${node.x + w},${node.y + h} L${node.x},${node.y + h} Z`}
+              fill="hsl(45, 93%, 95%)" stroke={selStroke ?? "hsl(45, 93%, 45%)"} strokeWidth={selWidth}
+            />
+            <path
+              d={`M${node.x + w - 10},${node.y} L${node.x + w - 10},${node.y + 10} L${node.x + w},${node.y + 10}`}
+              fill="none" stroke={selStroke ?? "hsl(45, 93%, 45%)"} strokeWidth={1}
+            />
+            <text x={node.x + w/2} y={node.y + h + 14} textAnchor="middle" className="text-[9px] fill-muted-foreground">
+              {node.label.length > 18 ? node.label.slice(0, 18) + "…" : node.label}
+            </text>
+          </g>
+        );
+
+      case "data-store":
+        return (
+          <g key={node.id} {...commonEvents}>
+            {/* Cylinder shape */}
+            <ellipse cx={node.x + w/2} cy={node.y + 8} rx={w/2} ry={8}
+              fill="hsl(210, 30%, 94%)" stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <rect x={node.x} y={node.y + 8} width={w} height={h - 16}
+              fill="hsl(210, 30%, 94%)" stroke="none" />
+            <line x1={node.x} y1={node.y + 8} x2={node.x} y2={node.y + h - 8}
+              stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <line x1={node.x + w} y1={node.y + 8} x2={node.x + w} y2={node.y + h - 8}
+              stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <ellipse cx={node.x + w/2} cy={node.y + h - 8} rx={w/2} ry={8}
+              fill="hsl(210, 30%, 94%)" stroke={selStroke ?? "hsl(210, 30%, 50%)"} strokeWidth={selWidth} />
+            <text x={node.x + w/2} y={node.y + h + 14} textAnchor="middle" className="text-[9px] fill-muted-foreground">
+              {node.label.length > 18 ? node.label.slice(0, 18) + "…" : node.label}
             </text>
           </g>
         );
