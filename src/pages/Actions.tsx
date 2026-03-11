@@ -442,7 +442,7 @@ export default function Actions() {
                   <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                   <SelectContent>
                     {acteurs.map((act) => (
-                      <SelectItem key={act.id} value={act.id}>{act.prenom} {act.nom}</SelectItem>
+                      <SelectItem key={act.id} value={act.id}>{act.fonction || "—"}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

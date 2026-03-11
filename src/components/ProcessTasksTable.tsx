@@ -500,7 +500,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                 <SelectContent>
                   <SelectItem value="none">Non assigné</SelectItem>
                   {acteurs.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{`${a.prenom} ${a.nom}`.trim()}</SelectItem>
+                    <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

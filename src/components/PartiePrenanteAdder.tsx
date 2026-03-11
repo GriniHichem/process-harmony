@@ -37,7 +37,7 @@ export function PartiePrenanteAdder({ existingDescriptions, onAdd }: PartiePrena
   }, [open]);
 
   const getActeurLabel = (a: Acteur) => {
-    return a.fonction || `${a.prenom} ${a.nom}`.trim();
+    return a.fonction || "—";
   };
 
   const filtered = acteurs.filter((a) => {

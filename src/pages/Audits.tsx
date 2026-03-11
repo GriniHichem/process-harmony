@@ -453,7 +453,7 @@ export default function Audits() {
                       <Select value={editAudit.auditeur_id ?? ""} onValueChange={(v) => setEditAudit({ ...editAudit, auditeur_id: v || null })}>
                         <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                         <SelectContent>
-                          {acteurs.map(a => <SelectItem key={a.id} value={a.id}>{a.prenom} {a.nom}</SelectItem>)}
+                          {acteurs.map(a => <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
