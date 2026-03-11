@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Check, X, Wrench, ClipboardList, CalendarClock, DollarSign } from "lucide-react";
 import { format } from "date-fns";
+import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurSelect } from "@/components/ActeurSelect";
 
 interface IndicatorMoyen {
   id: string;
