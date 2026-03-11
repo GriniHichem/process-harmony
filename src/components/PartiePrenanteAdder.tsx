@@ -30,7 +30,7 @@ export function PartiePrenanteAdder({ existingDescriptions, onAdd }: PartiePrena
   useEffect(() => {
     if (!open) return;
     const fetch = async () => {
-      const { data } = await supabase.from("acteurs").select("id, nom, prenom, fonction, organisation, type_acteur").eq("actif", true).order("nom");
+      const { data } = await supabase.from("acteurs").select("id, fonction, organisation, type_acteur").eq("actif", true).order("fonction");
       if (data) setActeurs(data);
     };
     fetch();
