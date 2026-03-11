@@ -29,7 +29,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function Documents() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
