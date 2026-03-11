@@ -10,11 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, Eye, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
+import ParticipantSelector, { formatParticipantsDisplay, parseParticipants } from "@/components/ParticipantSelector";
 
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -25,12 +25,16 @@ const statutLabels: Record<string, string> = { planifiee: "Planifiée", realisee
 
 const emptyForm = { reference: "", date_revue: "", participants: "", elements_entree: "", decisions: "", actions_decidees: "", statut: "planifiee", compte_rendu: "", prochaine_revue: "" };
 
-const FIELDS = [
-  { key: "participants", label: "Participants", placeholder: "Noms et fonctions des participants..." },
+const RICH_FIELDS = [
   { key: "elements_entree", label: "Éléments d'entrée", placeholder: "État des actions, performance des processus, résultats d'audit..." },
   { key: "decisions", label: "Décisions", placeholder: "Décisions prises lors de la revue..." },
   { key: "actions_decidees", label: "Actions décidées", placeholder: "Actions à mettre en œuvre..." },
   { key: "compte_rendu", label: "Compte rendu", placeholder: "Compte rendu détaillé de la revue..." },
+] as const;
+
+const ALL_SECTIONS = [
+  { key: "participants", label: "Participants", isRich: false },
+  ...RICH_FIELDS.map(f => ({ ...f, isRich: true })),
 ] as const;
 
 export default function RevueDirection() {
@@ -42,7 +46,7 @@ export default function RevueDirection() {
   const [editing, setEditing] = useState<any>(null);
   const [viewing, setViewing] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
-  const [activeField, setActiveField] = useState<string>("elements_entree");
+  const [activeField, setActiveField] = useState<string>("participants");
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["management_reviews"],
@@ -73,11 +77,11 @@ export default function RevueDirection() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["management_reviews"] }); toast({ title: "Revue supprimée" }); },
   });
 
-  const openNew = () => { setEditing(null); setForm(emptyForm); setActiveField("elements_entree"); setDialog(true); };
+  const openNew = () => { setEditing(null); setForm(emptyForm); setActiveField("participants"); setDialog(true); };
   const openEdit = (r: any) => {
     setEditing(r);
     setForm({ reference: r.reference, date_revue: r.date_revue || "", participants: r.participants, elements_entree: r.elements_entree, decisions: r.decisions, actions_decidees: r.actions_decidees, statut: r.statut, compte_rendu: r.compte_rendu, prochaine_revue: r.prochaine_revue || "" });
-    setActiveField("elements_entree");
+    setActiveField("participants");
     setDialog(true);
   };
 
@@ -107,7 +111,7 @@ export default function RevueDirection() {
               <TableRow key={r.id}>
                 <TableCell className="font-mono text-xs">{r.reference}</TableCell>
                 <TableCell>{r.date_revue ? format(new Date(r.date_revue), "dd/MM/yyyy") : "—"}</TableCell>
-                <TableCell className="max-w-[200px] truncate">{r.participants?.replace(/<[^>]*>/g, '') || "—"}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{formatParticipantsDisplay(r.participants)}</TableCell>
                 <TableCell><Badge className={statutColors[r.statut]}>{statutLabels[r.statut]}</Badge></TableCell>
                 <TableCell>{r.prochaine_revue ? format(new Date(r.prochaine_revue), "dd/MM/yyyy") : "—"}</TableCell>
                 <TableCell>
@@ -135,7 +139,20 @@ export default function RevueDirection() {
                 <div><Label className="text-xs text-muted-foreground">Date</Label><p className="text-sm">{viewing.date_revue ? format(new Date(viewing.date_revue), "dd/MM/yyyy") : "—"}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Statut</Label><Badge className={statutColors[viewing.statut]}>{statutLabels[viewing.statut]}</Badge></div>
               </div>
-              {FIELDS.map(f => (
+              {/* Participants display */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Participants</Label>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {parseParticipants(viewing.participants).length === 0 ? (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  ) : parseParticipants(viewing.participants).map((p, i) => (
+                    <Badge key={i} variant={p.type === "user" ? "default" : "secondary"} className="text-xs">
+                      {p.name} {p.fonction ? `(${p.fonction})` : ""} {p.type === "guest" ? "[Invité]" : ""}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              {RICH_FIELDS.map(f => (
                 <div key={f.key}>
                   <Label className="text-xs text-muted-foreground">{f.label}</Label>
                   <div className="prose prose-sm max-w-none text-sm mt-1" dangerouslySetInnerHTML={{ __html: viewing[f.key] || "—" }} />
@@ -177,7 +194,7 @@ export default function RevueDirection() {
           <div className="flex-1 flex overflow-hidden">
             {/* Section selector */}
             <div className="w-56 border-r border-border bg-muted/20 py-2 flex-shrink-0 overflow-y-auto">
-              {FIELDS.map(f => (
+              {ALL_SECTIONS.map(f => (
                 <button
                   key={f.key}
                   type="button"
@@ -194,8 +211,23 @@ export default function RevueDirection() {
             </div>
 
             {/* Editor area */}
-            <div className="flex-1 overflow-hidden">
-              {FIELDS.map(f => (
+            <div className="flex-1 overflow-y-auto">
+              {/* Participants section */}
+              <div className={`p-6 ${activeField === "participants" ? "" : "hidden"}`}>
+                <div className="max-w-2xl mx-auto">
+                  <h3 className="text-lg font-semibold mb-4">Participants</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Sélectionnez les utilisateurs participant à la revue ou ajoutez des invités externes.
+                  </p>
+                  <ParticipantSelector
+                    value={form.participants}
+                    onChange={v => setForm(prev => ({ ...prev, participants: v }))}
+                  />
+                </div>
+              </div>
+
+              {/* Rich text sections */}
+              {RICH_FIELDS.map(f => (
                 <div key={f.key} className={`h-full ${activeField === f.key ? "" : "hidden"}`}>
                   <RichTextEditor
                     value={(form as any)[f.key]}
