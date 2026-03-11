@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, FileText, Target, X } from "lucide-react";
+import { Plus, Edit, Trash2, FileText, Target, X, Download } from "lucide-react";
+import { exportPolitiqueQualitePdf, exportObjectifsQualitePdf } from "@/lib/exportStrategicPdf";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -121,7 +122,10 @@ export default function PolitiqueQualite() {
         <TabsContent value="politique" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Politique qualité</h2>
-            {canEdit && <Button onClick={openNewPolicy}><Plus className="h-4 w-4 mr-1" />Nouvelle version</Button>}
+            <div className="flex gap-2">
+              {policies.length > 0 && <Button variant="outline" onClick={exportPolitiqueQualitePdf}><Download className="h-4 w-4 mr-1" />Exporter PDF</Button>}
+              {canEdit && <Button onClick={openNewPolicy}><Plus className="h-4 w-4 mr-1" />Nouvelle version</Button>}
+            </div>
           </div>
 
           {policies.length === 0 ? (
@@ -164,7 +168,10 @@ export default function PolitiqueQualite() {
         <TabsContent value="objectifs" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Objectifs qualité</h2>
-            {canEdit && <Button onClick={openNewObj}><Plus className="h-4 w-4 mr-1" />Nouvel objectif</Button>}
+            <div className="flex gap-2">
+              {objectives.length > 0 && <Button variant="outline" onClick={exportObjectifsQualitePdf}><Download className="h-4 w-4 mr-1" />Exporter PDF</Button>}
+              {canEdit && <Button onClick={openNewObj}><Plus className="h-4 w-4 mr-1" />Nouvel objectif</Button>}
+            </div>
           </div>
           <Card>
             <Table>

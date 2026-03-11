@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Eye, X } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, X, Download } from "lucide-react";
+import { exportRevueDirectionPdf } from "@/lib/exportStrategicPdf";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -131,6 +132,7 @@ export default function RevueDirection() {
                 <TableCell>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => { setViewing(r); setViewDialog(true); }}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => exportRevueDirectionPdf(r.id)} title="Exporter PDF"><Download className="h-4 w-4" /></Button>
                     {canEdit && <>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Edit className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(r.id)}><Trash2 className="h-4 w-4" /></Button>
