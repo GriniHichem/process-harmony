@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from "react";
 import { BpmnNode, BpmnEdge, BpmnNodeType, NODE_DEFAULTS } from "./types";
 
 type ToolMode = "select" | "connect" | "delete";
