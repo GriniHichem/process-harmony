@@ -285,9 +285,26 @@ export default function Bpmn() {
               </Select>
             </div>
             {selectedProcessId && diagram && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">v{diagram.version}</Badge>
-                <Badge variant="secondary">{diagram.statut}</Badge>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="inclure-bpmn-pdf"
+                    checked={inclureBpmnPdf}
+                    onCheckedChange={async (checked) => {
+                      setInclureBpmnPdf(checked);
+                      await supabase.from("processes").update({ inclure_bpmn_pdf: checked } as any).eq("id", selectedProcessId);
+                      toast.success(checked ? "Le diagramme BPMN sera inclus dans le PDF" : "Le diagramme BPMN ne sera plus inclus dans le PDF");
+                    }}
+                    disabled={!canEdit}
+                  />
+                  <Label htmlFor="inclure-bpmn-pdf" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                    Inclure dans le PDF
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">v{diagram.version}</Badge>
+                  <Badge variant="secondary">{diagram.statut}</Badge>
+                </div>
               </div>
             )}
           </div>
