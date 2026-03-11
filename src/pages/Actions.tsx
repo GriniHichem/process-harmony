@@ -52,9 +52,9 @@ export default function Actions() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editAction, setEditAction] = useState<{ id: string; description: string; type_action: string; echeance: string; responsable_id: string } | null>(null);
 
-  const canCreate = role === "rmq" || role === "responsable_processus" || role === "auditeur" || role === "admin";
-  const canEdit = role === "rmq" || role === "responsable_processus" || role === "admin";
-  const canDelete = role === "rmq" || role === "admin";
+  const canCreate = hasRole("rmq") || hasRole("responsable_processus") || hasRole("auditeur") || hasRole("admin");
+  const canEdit = hasRole("rmq") || hasRole("responsable_processus") || hasRole("admin");
+  const canDelete = hasRole("rmq") || hasRole("admin");
 
   const fetchActions = async () => {
     const { data } = await supabase.from("actions").select("*").order("echeance", { ascending: true });

@@ -27,7 +27,7 @@ export default function Bpmn() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [history, setHistory] = useState<BpmnData[]>([]);
 
-  const canEdit = role === "rmq" || role === "responsable_processus" || role === "consultant";
+  const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
 
   useEffect(() => {
     supabase.from("processes").select("id, nom").order("nom").then(({ data }) => {

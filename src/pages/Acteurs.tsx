@@ -36,8 +36,8 @@ export default function Acteurs() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const canEdit = role === "rmq" || role === "admin" || role === "responsable_processus" || role === "consultant";
-  const canDelete = role === "rmq" || role === "admin";
+  const canEdit = hasRole("rmq") || hasRole("admin") || hasRole("responsable_processus") || hasRole("consultant");
+  const canDelete = hasRole("rmq") || hasRole("admin");
 
   const fetchActeurs = async () => {
     const { data } = await supabase.from("acteurs").select("*").order("nom");

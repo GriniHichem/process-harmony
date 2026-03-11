@@ -31,9 +31,9 @@ export default function Risques() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editRisk, setEditRisk] = useState<{ id: string; type: string; description: string; probabilite: string; impact: string; process_id: string } | null>(null);
 
-  const canCreate = role === "admin" || role === "rmq" || role === "responsable_processus" || role === "consultant";
-  const canDelete = role === "admin" || role === "rmq";
-  const canEditActions = role === "admin" || role === "rmq" || role === "responsable_processus";
+  const canCreate = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const canDelete = hasRole("admin") || hasRole("rmq");
+  const canEditActions = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
 
   const fetchData = async () => {
     const [rRes, pRes] = await Promise.all([
