@@ -64,9 +64,12 @@ function formatDate(d: string | null) {
 }
 
 interface ItemCardProps {
+  itemId: string;
+  elementType: string;
   description: string;
   statut: string;
   responsable: string | null;
+  responsableActeurId: string | null;
   datePrevue: string | null;
   deadline: string | null;
   budget?: number | null;
