@@ -38,7 +38,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function Actions() {
-  const { hasRole, hasPermission } = useAuth();
+  const { hasRole, hasPermission, user, profile } = useAuth();
   const [actions, setActions] = useState<Action[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,6 +154,7 @@ export default function Actions() {
       action_id: actionId,
       contenu: note.contenu,
       avancement,
+      created_by: user?.id ?? null,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Note ajoutée");
@@ -377,7 +378,7 @@ export default function Actions() {
                         )}
 
                         {/* Add note form */}
-                        {canCreate && (
+                        {(canCreate || (profile?.acteur_id && a.responsable_id === profile.acteur_id)) && (
                           <div className="flex gap-2 items-end pt-2 border-t">
                             <div className="flex-1 space-y-1">
                               <Label className="text-xs">Note</Label>

@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Check, X, Wrench, ClipboardList, CalendarClock, D
 import { format } from "date-fns";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ActeurSelect } from "@/components/ActeurSelect";
+import { ElementNotes } from "@/components/ElementNotes";
 
 interface IndicatorMoyen {
   id: string;
@@ -64,9 +65,12 @@ const TYPE_MOYEN_LABELS: Record<string, string> = {
 };
 
 function ItemCard({
+  itemId,
+  elementType,
   description,
   statut,
   responsable,
+  responsableActeurId,
   datePrevue,
   deadline,
   budget,
@@ -75,9 +79,12 @@ function ItemCard({
   onEdit,
   onDelete,
 }: {
+  itemId: string;
+  elementType: string;
   description: string;
   statut: string;
   responsable: string | null;
+  responsableActeurId: string | null;
   datePrevue: string | null;
   deadline: string | null;
   budget?: number | null;
@@ -127,6 +134,7 @@ function ItemCard({
           </div>
         )}
       </div>
+      <ElementNotes elementType={elementType} elementId={itemId} responsableActeurId={responsableActeurId} />
     </div>
   );
 }
@@ -284,9 +292,12 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
               {moyens.map((m) => (
                  <ItemCard
                   key={m.id}
+                  itemId={m.id}
+                  elementType="indicator_moyen"
                   description={m.description}
                   statut={m.statut}
                   responsable={getActeurLabel(m.responsable)}
+                  responsableActeurId={m.responsable}
                   datePrevue={m.date_prevue}
                   deadline={m.deadline}
                   budget={m.budget}
@@ -323,9 +334,12 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
               {actions.map((a) => (
                 <ItemCard
                   key={a.id}
+                  itemId={a.id}
+                  elementType="indicator_action"
                   description={a.description}
                   statut={a.statut}
                   responsable={getActeurLabel(a.responsable)}
+                  responsableActeurId={a.responsable}
                   datePrevue={a.date_prevue}
                   deadline={a.deadline}
                   canEdit={canEdit}

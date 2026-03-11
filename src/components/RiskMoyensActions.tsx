@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ActeurSelect } from "@/components/ActeurSelect";
+import { ElementNotes } from "@/components/ElementNotes";
 
 interface RiskAction {
   id: string;
@@ -63,9 +64,12 @@ function formatDate(d: string | null) {
 }
 
 interface ItemCardProps {
+  itemId: string;
+  elementType: string;
   description: string;
   statut: string;
   responsable: string | null;
+  responsableActeurId: string | null;
   datePrevue: string | null;
   deadline: string | null;
   budget?: number | null;
@@ -75,7 +79,7 @@ interface ItemCardProps {
   onDelete: () => void;
 }
 
-function ItemCard({ description, statut, responsable, datePrevue, deadline, budget, typeMoyen, canEdit, onEdit, onDelete }: ItemCardProps) {
+function ItemCard({ itemId, elementType, description, statut, responsable, responsableActeurId, datePrevue, deadline, budget, typeMoyen, canEdit, onEdit, onDelete }: ItemCardProps) {
   const isOverdue = deadline && new Date(deadline) < new Date() && statut !== "realisee";
   const cardStyle = getCardStyle(statut, deadline);
   const badgeVariant = getStatusBadgeVariant(statut, deadline);
@@ -130,6 +134,7 @@ function ItemCard({ description, statut, responsable, datePrevue, deadline, budg
             </AlertDialog>
           </div>
         )}
+        <ElementNotes elementType={elementType} elementId={itemId} responsableActeurId={responsableActeurId} />
       </CardContent>
     </Card>
   );
@@ -279,7 +284,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
         ) : (
           <div className="space-y-2">
             {moyens.map((m) => (
-              <ItemCard key={m.id} description={m.description} statut={m.statut} responsable={getActeurLabel(m.responsable)} datePrevue={m.date_prevue} deadline={m.deadline} budget={m.budget} typeMoyen={m.type_moyen} canEdit={canEdit} onEdit={() => openEditMoyen(m)} onDelete={() => handleDeleteMoyen(m.id)} />
+              <ItemCard key={m.id} itemId={m.id} elementType="risk_moyen" description={m.description} statut={m.statut} responsable={getActeurLabel(m.responsable)} responsableActeurId={m.responsable} datePrevue={m.date_prevue} deadline={m.deadline} budget={m.budget} typeMoyen={m.type_moyen} canEdit={canEdit} onEdit={() => openEditMoyen(m)} onDelete={() => handleDeleteMoyen(m.id)} />
             ))}
           </div>
         )}
@@ -321,7 +326,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
         ) : (
           <div className="space-y-2">
             {actions.map((a) => (
-              <ItemCard key={a.id} description={a.description} statut={a.statut} responsable={getActeurLabel(a.responsable)} datePrevue={a.date_prevue} deadline={a.deadline} canEdit={canEdit} onEdit={() => openEditAction(a)} onDelete={() => handleDeleteAction(a.id)} />
+              <ItemCard key={a.id} itemId={a.id} elementType="risk_action" description={a.description} statut={a.statut} responsable={getActeurLabel(a.responsable)} responsableActeurId={a.responsable} datePrevue={a.date_prevue} deadline={a.deadline} canEdit={canEdit} onEdit={() => openEditAction(a)} onDelete={() => handleDeleteAction(a.id)} />
             ))}
           </div>
         )}
