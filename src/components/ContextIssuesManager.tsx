@@ -407,18 +407,23 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
             <div className="space-y-1">
               <Label>Processus concerné(s)</Label>
               <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
-                {processes.map(p => (
-                  <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
-                    <input
-                      type="checkbox"
-                      checked={form.process_ids.includes(p.id)}
-                      onChange={() => toggleProcessId(p.id)}
-                      className="rounded"
-                    />
-                    <span className="font-mono text-xs text-muted-foreground">{p.code}</span>
-                    <span>{p.nom}</span>
-                  </label>
-                ))}
+                {processes.map(p => {
+                  const isMyProcess = !isOnlyResponsable || (userId && (p as any).responsable_id === userId);
+                  const isAlreadyLinked = form.process_ids.includes(p.id);
+                  return (
+                    <label key={p.id} className={`flex items-center gap-2 text-sm rounded px-1 py-0.5 ${isMyProcess ? "cursor-pointer hover:bg-muted/50" : "opacity-50 cursor-not-allowed"}`}>
+                      <input
+                        type="checkbox"
+                        checked={isAlreadyLinked}
+                        onChange={() => isMyProcess && toggleProcessId(p.id)}
+                        disabled={!isMyProcess}
+                        className="rounded"
+                      />
+                      <span className="font-mono text-xs text-muted-foreground">{p.code}</span>
+                      <span>{p.nom}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           </div>
