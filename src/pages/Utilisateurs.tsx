@@ -273,7 +273,7 @@ export default function Utilisateurs() {
 
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">Acteur :</Label>
-                  <Select value={u.acteur_id ?? "none"} onValueChange={(v) => handleAssignActeur(u.id, v === "none" ? null : v)}>
+                  <Select value={u.acteur_id ?? "none"} onValueChange={(v) => handleAssignActeur(u.id, v === "none" ? null : v)} disabled={!canEdit}>
                     <SelectTrigger className="h-8 w-60 text-xs"><SelectValue placeholder="Aucun acteur" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Aucun</SelectItem>
