@@ -85,8 +85,11 @@ export default function Utilisateurs() {
 
   useEffect(() => { fetchUsers(); fetchActeurs(); }, []);
 
+  const canEdit = hasPermission("utilisateurs", "can_edit");
+  const canDelete = hasPermission("utilisateurs", "can_delete");
+
   const handleToggleRole = async (userId: string, roleKey: string, currentRoles: string[]) => {
-    if (!hasRole("admin")) return;
+    if (!canEdit) return;
     const has = currentRoles.includes(roleKey);
     if (has) {
       const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", roleKey as any);
@@ -101,7 +104,7 @@ export default function Utilisateurs() {
   };
 
   const handleToggleCustomRole = async (userId: string, customRoleId: string, currentCustomRoleIds: string[]) => {
-    if (!hasRole("admin")) return;
+    if (!canEdit) return;
     const has = currentCustomRoleIds.includes(customRoleId);
     if (has) {
       const { error } = await supabase.from("user_custom_roles").delete().eq("user_id", userId).eq("custom_role_id", customRoleId);
@@ -115,7 +118,7 @@ export default function Utilisateurs() {
   };
 
   const toggleActive = async (userId: string, currentActive: boolean) => {
-    if (!hasRole("admin")) return;
+    if (!canEdit) return;
     const { error } = await supabase.from("profiles").update({ actif: !currentActive }).eq("id", userId);
     if (error) toast.error(error.message);
     else { toast.success(currentActive ? "Compte désactivé" : "Compte activé"); fetchUsers(); }
@@ -165,11 +168,11 @@ export default function Utilisateurs() {
     setResetting(false);
   };
 
-  if (!hasRole("admin")) {
+  if (!hasPermission("utilisateurs", "can_read")) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Utilisateurs</h1>
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé à l'administrateur</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Accès non autorisé</CardContent></Card>
       </div>
     );
   }
@@ -178,24 +181,26 @@ export default function Utilisateurs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold">Gestion des utilisateurs</h1><p className="text-muted-foreground">Administration des comptes et rôles</p></div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Nouvel utilisateur</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Créer un utilisateur</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Prénom</Label><Input value={newUser.prenom} onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Nom</Label><Input value={newUser.nom} onChange={(e) => setNewUser({ ...newUser, nom: e.target.value })} /></div>
+        {canEdit && (
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" /> Nouvel utilisateur</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Créer un utilisateur</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label>Prénom</Label><Input value={newUser.prenom} onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Nom</Label><Input value={newUser.nom} onChange={(e) => setNewUser({ ...newUser, nom: e.target.value })} /></div>
+                </div>
+                <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Mot de passe *</Label><Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Fonction</Label><Input value={newUser.fonction} onChange={(e) => setNewUser({ ...newUser, fonction: e.target.value })} /></div>
+                <Button onClick={handleCreateUser} className="w-full" disabled={creating}>{creating ? "Création..." : "Créer"}</Button>
               </div>
-              <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Mot de passe *</Label><Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Fonction</Label><Input value={newUser.fonction} onChange={(e) => setNewUser({ ...newUser, fonction: e.target.value })} /></div>
-              <Button onClick={handleCreateUser} className="w-full" disabled={creating}>{creating ? "Création..." : "Créer"}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {loading ? (
@@ -215,14 +220,19 @@ export default function Utilisateurs() {
                       <p className="text-xs text-muted-foreground">{u.email} {u.fonction ? `• ${u.fonction}` : ""}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Réinitialiser mot de passe" onClick={() => setResetUserId(u.id)}>
-                      <KeyRound className="h-4 w-4" />
-                    </Button>
-                    <Badge className="cursor-pointer" variant={u.actif ? "default" : "destructive"} onClick={() => toggleActive(u.id, u.actif)}>
-                      {u.actif ? "Actif" : "Inactif"}
-                    </Badge>
-                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Réinitialiser mot de passe" onClick={() => setResetUserId(u.id)}>
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
+                      <Badge className="cursor-pointer" variant={u.actif ? "default" : "destructive"} onClick={() => toggleActive(u.id, u.actif)}>
+                        {u.actif ? "Actif" : "Inactif"}
+                      </Badge>
+                    </div>
+                  )}
+                  {!canEdit && (
+                    <Badge variant={u.actif ? "default" : "destructive"}>{u.actif ? "Actif" : "Inactif"}</Badge>
+                  )}
                 </div>
 
                 {/* Standard roles */}
@@ -234,6 +244,7 @@ export default function Utilisateurs() {
                         <Checkbox
                           checked={u.roles.includes(r.key)}
                           onCheckedChange={() => handleToggleRole(u.id, r.key, u.roles)}
+                          disabled={!canEdit}
                         />
                         {r.label}
                       </label>
@@ -251,6 +262,7 @@ export default function Utilisateurs() {
                           <Checkbox
                             checked={u.customRoleIds.includes(cr.id)}
                             onCheckedChange={() => handleToggleCustomRole(u.id, cr.id, u.customRoleIds)}
+                            disabled={!canEdit}
                           />
                           {cr.nom}
                         </label>
@@ -261,7 +273,7 @@ export default function Utilisateurs() {
 
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">Acteur :</Label>
-                  <Select value={u.acteur_id ?? "none"} onValueChange={(v) => handleAssignActeur(u.id, v === "none" ? null : v)}>
+                  <Select value={u.acteur_id ?? "none"} onValueChange={(v) => handleAssignActeur(u.id, v === "none" ? null : v)} disabled={!canEdit}>
                     <SelectTrigger className="h-8 w-60 text-xs"><SelectValue placeholder="Aucun acteur" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Aucun</SelectItem>
