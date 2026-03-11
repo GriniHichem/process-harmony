@@ -168,7 +168,10 @@ export default function PolitiqueQualite() {
         <TabsContent value="objectifs" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Objectifs qualité</h2>
-            {canEdit && <Button onClick={openNewObj}><Plus className="h-4 w-4 mr-1" />Nouvel objectif</Button>}
+            <div className="flex gap-2">
+              {objectives.length > 0 && <Button variant="outline" onClick={exportObjectifsQualitePdf}><Download className="h-4 w-4 mr-1" />Exporter PDF</Button>}
+              {canEdit && <Button onClick={openNewObj}><Plus className="h-4 w-4 mr-1" />Nouvel objectif</Button>}
+            </div>
           </div>
           <Card>
             <Table>
