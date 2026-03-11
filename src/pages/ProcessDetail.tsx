@@ -280,6 +280,7 @@ export default function ProcessDetail() {
           <TabsTrigger value="general">Informations générales</TabsTrigger>
           <TabsTrigger value="elements">Éléments</TabsTrigger>
           <TabsTrigger value="tasks">Activités</TabsTrigger>
+          {process.statut === "archive" && <TabsTrigger value="archive">Objets liés</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="general">
