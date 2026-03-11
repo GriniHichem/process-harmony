@@ -173,15 +173,29 @@ export default function EvaluationProcessus() {
           </Table>
 
           {/* Score total + result */}
-          <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
+          <div className={`flex items-center justify-between rounded-lg border p-4 ${
+            resultat === "processus" ? "bg-primary/10 border-primary/30" :
+            resultat === "zone_orange" ? "bg-orange-100 border-orange-300 dark:bg-orange-950/30 dark:border-orange-700" :
+            "bg-muted/30"
+          }`}>
             <div>
               <span className="text-sm text-muted-foreground">Score total :</span>
               <span className="ml-2 text-2xl font-bold text-foreground">{scoreTotal}</span>
               <span className="text-sm text-muted-foreground"> / 20 (min 5)</span>
             </div>
-            <Badge variant={resultat === "processus" ? "default" : "secondary"} className="text-base px-4 py-1">
-              {resultat === "processus" ? "➡ Processus" : "➡ Activité"}
-            </Badge>
+            <div className="text-right">
+              <Badge
+                variant={resultat === "processus" ? "default" : "secondary"}
+                className={`text-base px-4 py-1 ${resultat === "zone_orange" ? "bg-orange-500 text-white hover:bg-orange-600" : ""}`}
+              >
+                {resultat === "processus" ? "➡ Processus" : resultat === "zone_orange" ? "⚠ Zone de décision" : "➡ Activité"}
+              </Badge>
+              {resultat === "zone_orange" && (
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 max-w-[280px]">
+                  Score entre 12 et 15 : peut être un processus ou une activité selon la décision de la direction.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Action buttons */}
