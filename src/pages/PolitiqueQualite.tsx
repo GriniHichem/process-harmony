@@ -33,7 +33,7 @@ const statutPolicyLabels: Record<string, string> = { brouillon: "Brouillon", val
 
 export default function PolitiqueQualite() {
   const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const canEdit = hasPermission("politique_qualite", "can_edit");
   const qc = useQueryClient();
 
   const [policyDialog, setPolicyDialog] = useState(false);

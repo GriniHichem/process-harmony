@@ -32,7 +32,7 @@ const efficaciteLabels: Record<string, string> = { non_evaluee: "Non évaluée",
 
 export default function Competences() {
   const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const canEdit = hasPermission("competences", "can_edit");
   const qc = useQueryClient();
 
   const [compDialog, setCompDialog] = useState(false);

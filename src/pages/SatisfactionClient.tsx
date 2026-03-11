@@ -28,7 +28,7 @@ const emptyForm = { reference: "", titre: "", date_enquete: "", type_enquete: "q
 
 export default function SatisfactionClient() {
   const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const canEdit = hasPermission("satisfaction_client", "can_edit");
   const qc = useQueryClient();
   const [dialog, setDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);

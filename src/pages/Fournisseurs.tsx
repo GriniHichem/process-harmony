@@ -27,7 +27,7 @@ const emptyForm = { reference: "", nom: "", type_prestataire: "fournisseur", dom
 
 export default function Fournisseurs() {
   const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const canEdit = hasPermission("fournisseurs", "can_edit");
   const qc = useQueryClient();
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState<any>(null);

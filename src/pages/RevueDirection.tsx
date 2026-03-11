@@ -43,7 +43,7 @@ const ALL_SECTIONS = [
 
 export default function RevueDirection() {
   const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const canEdit = hasPermission("revue_direction", "can_edit");
   const qc = useQueryClient();
   const [dialog, setDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
