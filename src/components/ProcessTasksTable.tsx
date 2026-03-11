@@ -105,7 +105,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   }, [processId]);
 
   const fetchActeurs = useCallback(async () => {
-    const { data } = await supabase.from("acteurs").select("id, nom, prenom").eq("actif", true);
+    const { data } = await supabase.from("acteurs").select("id, fonction").eq("actif", true);
     if (data) setActeurs(data);
   }, []);
 
