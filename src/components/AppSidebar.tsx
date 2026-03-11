@@ -41,6 +41,7 @@ const auditItems = [
 
 const adminItems = [
   { title: "Utilisateurs", url: "/utilisateurs", icon: Users },
+  { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen },
 ];
 
 type NavItem = { title: string; url: string; icon: any };
