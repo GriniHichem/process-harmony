@@ -117,6 +117,10 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
 
+  useImperativeHandle(ref, () => ({
+    getSvgElement: () => svgRef.current,
+  }));
+
   const getSvgPoint = useCallback((e: React.MouseEvent) => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
