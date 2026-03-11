@@ -272,9 +272,15 @@ export default function Bpmn() {
           <CardContent className="py-12 text-center space-y-4">
             <p className="text-muted-foreground">Aucun diagramme BPMN pour ce processus</p>
             {canEdit && (
-              <Button onClick={createDiagram}>
-                <Plus className="mr-2 h-4 w-4" /> Créer un diagramme
-              </Button>
+              <div className="flex justify-center gap-3">
+                <Button onClick={createDiagram}>
+                  <Plus className="mr-2 h-4 w-4" /> Créer un diagramme vide
+                </Button>
+                <Button variant="outline" onClick={doGenerate} disabled={generating}>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  {generating ? "Génération..." : "Générer depuis les activités"}
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>
