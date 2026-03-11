@@ -154,6 +154,7 @@ export default function Actions() {
       action_id: actionId,
       contenu: note.contenu,
       avancement,
+      created_by: user?.id ?? null,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Note ajoutée");
