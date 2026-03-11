@@ -78,7 +78,18 @@ export default function RevueDirection() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["management_reviews"] }); toast({ title: "Revue supprimée" }); },
   });
 
-  const openNew = () => { setEditing(null); setForm(emptyForm); setActiveField("participants"); setDialog(true); };
+  const openNew = async () => {
+    // Auto-create a draft review so we have an ID for structured input items
+    const { data, error } = await supabase.from("management_reviews").insert({ reference: "", statut: "planifiee" }).select().single();
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+    setEditing(data);
+    setForm({ reference: data.reference, date_revue: data.date_revue || "", participants: data.participants, elements_entree: data.elements_entree, decisions: data.decisions, actions_decidees: data.actions_decidees, statut: data.statut, compte_rendu: data.compte_rendu, prochaine_revue: data.prochaine_revue || "" });
+    setActiveField("participants");
+    setDialog(true);
+  };
   const openEdit = (r: any) => {
     setEditing(r);
     setForm({ reference: r.reference, date_revue: r.date_revue || "", participants: r.participants, elements_entree: r.elements_entree, decisions: r.decisions, actions_decidees: r.actions_decidees, statut: r.statut, compte_rendu: r.compte_rendu, prochaine_revue: r.prochaine_revue || "" });
@@ -241,11 +252,7 @@ export default function RevueDirection() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Ajoutez des points à discuter ou liez des éléments existants (processus, indicateurs, risques, audits, etc.).
                   </p>
-                  {editing?.id ? (
-                    <ReviewInputItemsEditor reviewId={editing.id} canEdit={canEdit} />
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">Enregistrez d'abord la revue pour ajouter des éléments d'entrée structurés.</p>
-                  )}
+                  <ReviewInputItemsEditor reviewId={editing?.id} canEdit={canEdit} />
                 </div>
               </div>
 
