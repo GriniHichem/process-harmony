@@ -48,15 +48,34 @@ export default function Processus() {
   const [newProcess, setNewProcess] = useState({ code: "", nom: "", type_processus: "realisation" as const, finalite: "", responsable_id: "" });
 
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
+  const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant") && !hasRole("auditeur");
 
   const fetchProcesses = async () => {
-    let query = supabase.from("processes").select("*").order("code");
-    // Filter for responsable_processus only
-    if (isOnlyResponsable && user) {
-      query = query.eq("responsable_id", user.id);
+    if (isOnlyActeur && user) {
+      // Get the user's acteur_id from profile
+      const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
+      const acteurId = profileData?.acteur_id;
+      if (acteurId) {
+        // Find processes where this acteur is a task responsable
+        const { data: taskData } = await supabase.from("process_tasks").select("process_id").eq("responsable_id", acteurId);
+        const processIds = [...new Set((taskData ?? []).map(t => t.process_id))];
+        if (processIds.length > 0) {
+          const { data } = await supabase.from("processes").select("*").in("id", processIds).order("code");
+          setProcesses((data ?? []) as Process[]);
+        } else {
+          setProcesses([]);
+        }
+      } else {
+        setProcesses([]);
+      }
+    } else {
+      let query = supabase.from("processes").select("*").order("code");
+      if (isOnlyResponsable && user) {
+        query = query.eq("responsable_id", user.id);
+      }
+      const { data } = await query;
+      setProcesses((data ?? []) as Process[]);
     }
-    const { data } = await query;
-    setProcesses((data ?? []) as Process[]);
     setLoading(false);
   };
 

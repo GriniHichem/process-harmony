@@ -73,8 +73,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { profile, roles, hasRole, signOut } = useAuth();
 
-  const isActeurOnly = roles.length > 0 && roles.every((r) => r === "acteur");
-  const showProcessMenu = !isActeurOnly;
+  const showProcessMenu = true; // All roles can see processus menu
   const showQualityMenu = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
   const showAuditMenu = hasRole("admin") || hasRole("rmq") || hasRole("auditeur");
   const showAdminMenu = hasRole("admin");
