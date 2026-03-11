@@ -578,4 +578,6 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
       </div>
     </div>
   );
-}
+});
+
+export default BpmnCanvas;
