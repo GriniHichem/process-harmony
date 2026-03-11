@@ -1,106 +1,86 @@
 
 
-# Plan d'implémentation — Application de gestion ISO 9001
+# Plan: Génération algorithmique de diagrammes BPMN
 
-## Phase 1 : Fondations
+## Objectif
+Générer automatiquement un diagramme BPMN à partir des données existantes du processus (activités/tâches, flux conditionnels/parallèles/inclusifs, entrées/sorties) via un algorithme déterministe -- sans IA.
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+## Données source disponibles
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+Les `process_tasks` contiennent tout le nécessaire :
+- `code` : hiérarchie (1.0, 1.1, 1.2 pour les branches)
+- `type_flux` : sequentiel, conditionnel, parallele, inclusif
+- `condition` : texte de la condition (si/sinon)
+- `parent_code` : code parent pour les branches
+- `entrees` / `sorties` : codes des éléments DE/DS liés
+- `ordre` : ordre séquentiel
 
-## Phase 2 : Modules principaux
+Les `process_elements` fournissent les labels des entrées/sorties pour les annotations.
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+## Algorithme de génération
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+```text
+1. Fetch process_tasks (triées par ordre) + process_elements
+2. Grouper les tâches :
+   - Tâches racines (parent_code = null) → flux principal
+   - Tâches enfants → branches sous leur parent
+3. Parcours séquentiel des tâches racines :
+   - Tâche séquentielle → noeud "task"
+   - Tâche conditionnelle (parent a des enfants conditionnel) →
+     gateway-exclusive (XOR) + branches task + gateway-exclusive merge
+   - Tâche parallèle → gateway-parallel (AND) + branches + merge
+   - Tâche inclusif → gateway-inclusive (OR) + branches + merge
+4. Layout automatique :
+   - X : progression horizontale (espacement 200px)
+   - Y : branches décalées verticalement (±100px par branche)
+   - Start au début, End à la fin
+5. Annotations : entrées/sorties ajoutées comme noeuds "annotation"
+   reliés par edges en pointillé aux tâches correspondantes
+```
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+## Détail du mapping
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+| Donnée source | Noeud BPMN généré |
+|---|---|
+| Début du flux | `start` |
+| Tâche séquentielle | `task` |
+| Groupe conditionnel | `gateway-exclusive` → N `task` branches → `gateway-exclusive` merge |
+| Groupe parallèle | `gateway-parallel` → N `task` branches → `gateway-parallel` merge |
+| Groupe inclusif | `gateway-inclusive` → N `task` branches → `gateway-inclusive` merge |
+| Fin du flux | `end` |
+| Entrées/Sorties significatives | `annotation` (optionnel) |
 
-## Phase 3 : Modules qualité
+## Fichiers à modifier
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+### 1. Nouveau fichier : `src/lib/generateBpmnFromTasks.ts`
+- Fonction pure `generateBpmnFromTasks(tasks, elements) → BpmnData`
+- Logique :
+  - Trier les tâches par `ordre`
+  - Identifier les groupes de branches (tâches partageant le même `parent_code`)
+  - Pour chaque tâche racine séquentielle : créer un noeud task, connecter au précédent
+  - Pour chaque groupe de branches : créer gateway split + N noeuds task (avec label condition) + gateway merge
+  - Positionner avec layout horizontal automatique, branches en éventail vertical
+  - Ajouter start/end, connecter les edges
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+### 2. Modifier : `src/pages/Bpmn.tsx`
+- Ajouter un bouton "Générer depuis les activités" (icône Wand2)
+- Au clic : fetch `process_tasks` + `process_elements` pour le processus sélectionné
+- Appeler `generateBpmnFromTasks()` → injecter le résultat dans le diagramme
+- Si un diagramme existe déjà : confirmation avant remplacement
+- Le résultat est modifiable normalement après génération
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+### 3. Modifier : `src/components/bpmn/BpmnToolbar.tsx`
+- Ajouter le bouton "Générer" dans la toolbar (à côté de Sauvegarder)
 
-## Phase 4 : Modules audit & amélioration
+## Exemple de résultat
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+Pour un processus avec :
+- Tâche 1.0 (séquentiel) "Réception commande"
+- Tâche 2.0 (conditionnel) avec branches 2.1 "Traiter standard" / 2.2 "Traiter urgent"
+- Tâche 3.0 (séquentiel) "Expédition"
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
-
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
-
-## Phase 5 : Tableaux de bord & Reporting
-
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
-
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
-
-## Contrôle d'accès (transversal)
-
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
+```text
+[Start] → [Réception commande] → <XOR> → [Traiter standard] → <XOR merge> → [Expédition] → [End]
+                                       → [Traiter urgent]   ↗
+```
 
