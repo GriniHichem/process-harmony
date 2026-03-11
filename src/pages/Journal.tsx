@@ -66,7 +66,7 @@ function getChangeSummary(log: LogEntry): string | null {
 }
 
 export default function Journal() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [profiles, setProfiles] = useState<Record<string, { nom: string; prenom: string; email: string }>>({});
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,7 @@ export default function Journal() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
 
-  const canView = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("auditeur") || hasRole("acteur");
+  const canView = hasPermission("journal", "can_read");
 
   useEffect(() => {
     if (!canView) { setLoading(false); return; }
