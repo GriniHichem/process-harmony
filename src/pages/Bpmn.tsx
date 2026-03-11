@@ -292,7 +292,9 @@ export default function Bpmn() {
             onFitView={() => { setZoom(1); }}
             onSave={saveDiagram}
             onUndo={handleUndo}
+            onGenerate={handleGenerate}
             saving={saving}
+            generating={generating}
             canEdit={canEdit}
           />
 
