@@ -62,7 +62,7 @@ const findingTypeLabels: Record<string, string> = {
 };
 
 export default function Audits() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [audits, setAudits] = useState<Audit[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);

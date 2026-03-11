@@ -27,7 +27,7 @@ interface Acteur {
 const emptyForm = { nom: "", prenom: "", fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe" };
 
 export default function Acteurs() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

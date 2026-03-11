@@ -23,7 +23,7 @@ type IndicatorValue = { id: string; indicator_id: string; valeur: number; date_m
 const TYPE_LABELS: Record<IndicatorType, string> = { activite: "Activité", resultat: "Résultat", perception: "Perception", interne: "Interne" };
 
 export default function Indicateurs() {
-  const { role, user } = useAuth();
+  const { hasRole, user } = useAuth();
   const [indicators, setIndicators] = useState<Indicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);

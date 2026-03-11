@@ -18,7 +18,7 @@ import { RiskIncidents } from "@/components/RiskIncidents";
 type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
 
 export default function Risques() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [risks, setRisks] = useState<Risk[]>([]);
   const [processes, setProcesses] = useState<{id: string; nom: string}[]>([]);
   const [loading, setLoading] = useState(true);

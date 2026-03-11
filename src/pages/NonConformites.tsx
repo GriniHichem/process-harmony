@@ -54,7 +54,7 @@ const workflowSteps = [
 ];
 
 export default function NonConformites() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [ncs, setNcs] = useState<NC[]>([]);
   const [audits, setAudits] = useState<Audit[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);

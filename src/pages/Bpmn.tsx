@@ -16,7 +16,7 @@ import BpmnPropertiesPanel from "@/components/bpmn/BpmnPropertiesPanel";
 type ToolMode = "select" | "connect" | "delete";
 
 export default function Bpmn() {
-  const { role } = useAuth();
+  const { hasRole } = useAuth();
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
   const [selectedProcessId, setSelectedProcessId] = useState("");
   const [diagram, setDiagram] = useState<BpmnDiagram | null>(null);
