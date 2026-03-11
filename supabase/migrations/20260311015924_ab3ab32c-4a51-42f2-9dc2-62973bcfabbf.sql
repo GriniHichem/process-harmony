@@ -1,0 +1,1 @@
+ALTER TABLE public.process_versions ALTER COLUMN version TYPE numeric USING version::numeric;
