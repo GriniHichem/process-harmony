@@ -181,24 +181,26 @@ export default function Utilisateurs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold">Gestion des utilisateurs</h1><p className="text-muted-foreground">Administration des comptes et rôles</p></div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Nouvel utilisateur</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Créer un utilisateur</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Prénom</Label><Input value={newUser.prenom} onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Nom</Label><Input value={newUser.nom} onChange={(e) => setNewUser({ ...newUser, nom: e.target.value })} /></div>
+        {canEdit && (
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" /> Nouvel utilisateur</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Créer un utilisateur</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label>Prénom</Label><Input value={newUser.prenom} onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Nom</Label><Input value={newUser.nom} onChange={(e) => setNewUser({ ...newUser, nom: e.target.value })} /></div>
+                </div>
+                <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Mot de passe *</Label><Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Fonction</Label><Input value={newUser.fonction} onChange={(e) => setNewUser({ ...newUser, fonction: e.target.value })} /></div>
+                <Button onClick={handleCreateUser} className="w-full" disabled={creating}>{creating ? "Création..." : "Créer"}</Button>
               </div>
-              <div className="space-y-2"><Label>Email *</Label><Input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Mot de passe *</Label><Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Fonction</Label><Input value={newUser.fonction} onChange={(e) => setNewUser({ ...newUser, fonction: e.target.value })} /></div>
-              <Button onClick={handleCreateUser} className="w-full" disabled={creating}>{creating ? "Création..." : "Créer"}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {loading ? (
