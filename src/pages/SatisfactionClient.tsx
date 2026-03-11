@@ -27,8 +27,8 @@ const typeLabels: Record<string, string> = { questionnaire: "Questionnaire", ent
 const emptyForm = { reference: "", titre: "", date_enquete: "", type_enquete: "questionnaire", score_global: "", nombre_reponses: 0, analyse_resultats: "", actions_prevues: "", statut: "planifiee" };
 
 export default function SatisfactionClient() {
-  const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const { hasRole, hasPermission } = useAuth();
+  const canEdit = hasPermission("satisfaction_client", "can_edit");
   const qc = useQueryClient();
   const [dialog, setDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);

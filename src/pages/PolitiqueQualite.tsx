@@ -32,8 +32,8 @@ const statutObjLabels: Record<string, string> = { en_cours: "En cours", atteint:
 const statutPolicyLabels: Record<string, string> = { brouillon: "Brouillon", valide: "Validé", archive: "Archivé" };
 
 export default function PolitiqueQualite() {
-  const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const { hasRole, hasPermission } = useAuth();
+  const canEdit = hasPermission("politique_qualite", "can_edit");
   const qc = useQueryClient();
 
   const [policyDialog, setPolicyDialog] = useState(false);

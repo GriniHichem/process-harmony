@@ -22,7 +22,7 @@ interface ActeurGroup {
 const emptyForm = { nom: "", description: "" };
 
 export default function GroupesActeurs() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [groups, setGroups] = useState<ActeurGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -30,7 +30,7 @@ export default function GroupesActeurs() {
   const [form, setForm] = useState(emptyForm);
   const [acteurCounts, setActeurCounts] = useState<Record<string, number>>({});
 
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const canEdit = hasPermission("groupes_acteurs", "can_edit");
 
   const fetchGroups = async () => {
     const { data } = await supabase.from("acteur_groups").select("*").order("nom");

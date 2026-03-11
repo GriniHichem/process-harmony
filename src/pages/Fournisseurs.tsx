@@ -26,8 +26,8 @@ const typeLabels: Record<string, string> = { fournisseur: "Fournisseur", sous_tr
 const emptyForm = { reference: "", nom: "", type_prestataire: "fournisseur", domaine: "", contact: "", email: "", telephone: "", statut: "actif", date_evaluation: "", score_evaluation: "", criteres_evaluation: "", commentaire: "" };
 
 export default function Fournisseurs() {
-  const { hasRole } = useAuth();
-  const canEdit = hasRole("admin") || hasRole("rmq");
+  const { hasRole, hasPermission } = useAuth();
+  const canEdit = hasPermission("fournisseurs", "can_edit");
   const qc = useQueryClient();
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState<any>(null);

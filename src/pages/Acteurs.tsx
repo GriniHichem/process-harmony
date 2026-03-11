@@ -41,7 +41,7 @@ interface LinkedUser {
 const emptyForm = { fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe", description_poste: "", group_id: "" };
 
 export default function Acteurs() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [groups, setGroups] = useState<ActeurGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,9 +53,9 @@ export default function Acteurs() {
   const [form, setForm] = useState(emptyForm);
   const [linkedUsers, setLinkedUsers] = useState<Record<string, LinkedUser[]>>({});
 
-  const canEdit = hasRole("rmq") || hasRole("admin");
-  const canDelete = hasRole("rmq") || hasRole("admin");
-  const canViewImplications = hasRole("rmq") || hasRole("admin") || hasRole("auditeur");
+  const canEdit = hasPermission("acteurs", "can_edit");
+  const canDelete = hasPermission("acteurs", "can_delete");
+  const canViewImplications = hasPermission("acteurs", "can_read_detail");
   const [implicationActeur, setImplicationActeur] = useState<{ id: string; label: string } | null>(null);
 
   const fetchActeurs = async () => {

@@ -24,7 +24,7 @@ type IndicatorValue = { id: string; indicator_id: string; valeur: number; date_m
 const TYPE_LABELS: Record<IndicatorType, string> = { activite: "Activité", resultat: "Résultat", perception: "Perception", interne: "Interne" };
 
 export default function Indicateurs() {
-  const { hasRole, user } = useAuth();
+  const { hasRole, hasPermission, user } = useAuth();
   const [indicators, setIndicators] = useState<Indicator[]>([]);
   const [loading, setLoading] = useState(true);
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
@@ -42,8 +42,8 @@ export default function Indicateurs() {
 
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
   const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
-  const canCreate = !isOnlyActeur && (hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus"));
-  const canDelete = hasRole("admin") || hasRole("rmq");
+  const canCreate = hasPermission("indicateurs", "can_edit");
+  const canDelete = hasPermission("indicateurs", "can_delete");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
   const [acteurProcessIds, setActeurProcessIds] = useState<string[]>([]);
   const [acteurIndicatorIds, setActeurIndicatorIds] = useState<Set<string>>(new Set());

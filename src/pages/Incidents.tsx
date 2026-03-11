@@ -37,7 +37,7 @@ const STATUT_CARD_COLORS: Record<string, string> = {
 };
 
 export default function Incidents() {
-  const { hasRole, user } = useAuth();
+  const { hasRole, hasPermission, user } = useAuth();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [risks, setRisks] = useState<{ id: string; description: string; type: string }[]>([]);
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
@@ -49,7 +49,7 @@ export default function Incidents() {
   const [filterGravite, setFilterGravite] = useState("all");
   const [searchText, setSearchText] = useState("");
 
-  const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus");
+  const canEdit = hasPermission("incidents", "can_edit");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const emptyForm = { description: "", date_incident: new Date().toISOString().split("T")[0], gravite: "mineure", statut: "ouvert", responsable: "", actions_correctives: "", risk_id: "", process_id: "" };

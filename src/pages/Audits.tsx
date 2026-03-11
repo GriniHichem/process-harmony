@@ -62,7 +62,7 @@ const findingTypeLabels: Record<string, string> = {
 };
 
 export default function Audits() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [audits, setAudits] = useState<Audit[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,8 +77,8 @@ export default function Audits() {
     frequence: "", methodes: "", responsabilites: "", programme: "",
   });
 
-  const canCreate = hasRole("rmq") || hasRole("auditeur") || hasRole("admin");
-  const canEdit = hasRole("rmq") || hasRole("auditeur") || hasRole("admin");
+  const canCreate = hasPermission("audits", "can_edit");
+  const canEdit = hasPermission("audits", "can_edit");
 
   const fetchAudits = async () => {
     const { data } = await supabase.from("audits").select("*").order("date_audit", { ascending: false });

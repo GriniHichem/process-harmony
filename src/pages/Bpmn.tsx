@@ -20,7 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 type ToolMode = "select" | "connect" | "delete";
 
 export default function Bpmn() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
   const [selectedProcessId, setSelectedProcessId] = useState("");
   const [diagram, setDiagram] = useState<BpmnDiagram | null>(null);
@@ -33,7 +33,7 @@ export default function Bpmn() {
   const [history, setHistory] = useState<BpmnData[]>([]);
   const [generating, setGenerating] = useState(false);
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
-  const canEdit = hasRole("admin") || hasRole("rmq") || hasRole("responsable_processus") || hasRole("consultant");
+  const canEdit = hasPermission("bpmn", "can_edit");
   const canvasRef = useRef<BpmnCanvasHandle>(null);
 
   const handleExport = useCallback(async (format: "png" | "pdf") => {

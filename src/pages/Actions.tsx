@@ -38,7 +38,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function Actions() {
-  const { hasRole } = useAuth();
+  const { hasRole, hasPermission } = useAuth();
   const [actions, setActions] = useState<Action[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,9 +52,9 @@ export default function Actions() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editAction, setEditAction] = useState<{ id: string; description: string; type_action: string; echeance: string; responsable_id: string } | null>(null);
 
-  const canCreate = hasRole("rmq") || hasRole("responsable_processus") || hasRole("auditeur") || hasRole("admin");
-  const canEdit = hasRole("rmq") || hasRole("responsable_processus") || hasRole("admin");
-  const canDelete = hasRole("rmq") || hasRole("admin");
+  const canCreate = hasPermission("actions", "can_edit");
+  const canEdit = hasPermission("actions", "can_edit");
+  const canDelete = hasPermission("actions", "can_delete");
 
   const fetchActions = async () => {
     const { data } = await supabase.from("actions").select("*").order("echeance", { ascending: true });
@@ -363,7 +363,7 @@ export default function Actions() {
                                       <Progress value={n.avancement} className="h-1.5 w-16" />
                                       <span className="text-xs font-medium">{n.avancement}%</span>
                                     </div>
-                                    {(hasRole("rmq") || hasRole("admin")) && (
+                                    {canDelete && (
                                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteNote(n.id, a.id)}>
                                         <Trash2 className="h-3 w-3 text-destructive" />
                                       </Button>
