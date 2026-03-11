@@ -340,6 +340,21 @@ export default function Bpmn() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={showGenerateConfirm} onOpenChange={setShowGenerateConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remplacer le diagramme existant ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La génération va remplacer le diagramme actuel par un nouveau basé sur les activités du processus. Cette action est irréversible si vous sauvegardez ensuite.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={doGenerate}>Générer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
