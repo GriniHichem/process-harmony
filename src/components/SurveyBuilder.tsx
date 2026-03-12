@@ -434,9 +434,21 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
                     </div>
 
                     <div className="flex-1 space-y-3 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Icon className="h-4 w-4 text-primary shrink-0" />
                         <Badge variant="secondary" className="text-[10px]">{questionTypeLabels[q.question_type]}</Badge>
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <span className="text-[10px] text-muted-foreground">Poids :</span>
+                          {[1, 2, 3].map((p) => (
+                            <button
+                              key={p} type="button"
+                              onClick={() => updateQuestion(q.id, "poids", p)}
+                              className={`h-6 w-6 rounded text-xs font-semibold border transition-colors ${q.poids === p ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground border-border/60 hover:border-primary/40"}`}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <Input value={q.question_text} onChange={(e) => updateQuestion(q.id, "question_text", e.target.value)} placeholder="Texte de la question..." className="font-medium" />
 
