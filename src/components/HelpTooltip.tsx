@@ -99,13 +99,6 @@ export function HelpTooltip({ term, className = "" }: HelpTooltipProps) {
             </div>
           )}
 
-          {/* Source */}
-          <div className="flex items-center gap-1.5 pt-1 border-t border-border/50">
-            <BookOpen size={12} className="text-muted-foreground/50" />
-            <span className="text-[11px] italic text-muted-foreground/60">
-              {def.source}
-            </span>
-          </div>
         </div>
       </PopoverContent>
     </Popover>
