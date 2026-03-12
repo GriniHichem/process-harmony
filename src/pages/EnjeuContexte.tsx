@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { supabase } from "@/integrations/supabase/client";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 export default function EnjeuContexte() {
   const { hasRole, hasPermission, user } = useAuth();

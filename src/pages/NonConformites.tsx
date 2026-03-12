@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Plus, XCircle, Pencil, ChevronRight, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type NC = {
   id: string; reference: string; description: string; gravite: string;

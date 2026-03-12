@@ -21,6 +21,7 @@ import { ProcessInteractionManager } from "@/components/ProcessInteractionManage
 import { PartiePrenanteAdder } from "@/components/PartiePrenanteAdder";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { ProcessArchivedObjects } from "@/components/ProcessArchivedObjects";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 

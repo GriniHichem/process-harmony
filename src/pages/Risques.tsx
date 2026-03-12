@@ -15,6 +15,7 @@ import { Plus, AlertTriangle, Lightbulb, Trash2, ChevronDown, ChevronRight, Penc
 import { useAuth } from "@/contexts/AuthContext";
 import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
 

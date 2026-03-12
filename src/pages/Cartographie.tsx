@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type Process = { id: string; code: string; nom: string; type_processus: string; statut: string };
 

@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, UserCheck, UserX, Search, Users, Eye } from "lucide-react";
 import { ActeurImplicationsDialog } from "@/components/ActeurImplicationsDialog";
+import { HelpTooltip } from "@/components/HelpTooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ActeurGroup {
