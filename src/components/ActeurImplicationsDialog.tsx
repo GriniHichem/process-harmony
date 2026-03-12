@@ -69,14 +69,22 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     const riskMap = Object.fromEntries((risks ?? []).map(r => [r.id, r]));
     const issueMap = Object.fromEntries((issues ?? []).map(i => [i.id, i]));
 
+    // Helper: check if a process ID is allowed
+    const isAllowed = (processId: string | null | undefined) => {
+      if (!allowedProcessIds) return true; // no filter
+      return processId ? allowedProcessIds.includes(processId) : false;
+    };
+
     const result: SectionData[] = [];
 
-    // 1. Process tasks
-    const taskItems: ImplicationItem[] = (tasks ?? []).map(t => ({
-      label: t.description || "Activité",
-      context: procMap[t.process_id] || "Processus",
-      navigateTo: `/processus/${t.process_id}`,
-    }));
+    // 1. Process tasks — filter by allowed processes
+    const taskItems: ImplicationItem[] = (tasks ?? [])
+      .filter(t => isAllowed(t.process_id))
+      .map(t => ({
+        label: t.description || "Activité",
+        context: procMap[t.process_id] || "Processus",
+        navigateTo: `/processus/${t.process_id}`,
+      }));
     if (taskItems.length > 0) {
       result.push({ title: "Activités processus", icon: <ClipboardList className="h-4 w-4" />, items: taskItems });
     }
