@@ -50,36 +50,57 @@ export default function SurveyResults() {
       const allAnswers = (responses || []).flatMap((r: any) => r.client_survey_answers || []);
       const qMap = new Map((questions || []).map((q: any) => [q.id, q]));
 
-      // Satisfaction distribution (satisfaction type)
+      // Weighted satisfaction distribution
       const satAnswers = allAnswers.filter((a: any) => {
         const q = qMap.get(a.question_id);
         return q?.question_type === "satisfaction" && a.answer_value != null;
       });
       const distribution = [0, 0, 0, 0, 0, 0];
       satAnswers.forEach((a: any) => { if (a.answer_value >= 1 && a.answer_value <= 5) distribution[a.answer_value]++; });
-      const totalSat = satAnswers.length || 1;
-      const satisfiedCount = distribution[4] + distribution[5];
-      const satisfactionRate = Math.round((satisfiedCount / totalSat) * 100);
 
-      // Rating average
+      // Weighted satisfaction rate: sum(value * poids) / sum(max_value * poids)
+      let weightedSatSum = 0;
+      let weightedSatMax = 0;
+      satAnswers.forEach((a: any) => {
+        const q = qMap.get(a.question_id);
+        const poids = q?.poids ?? 1;
+        weightedSatSum += a.answer_value * poids;
+        weightedSatMax += 5 * poids;
+      });
+      const satisfactionRate = weightedSatMax > 0 ? Math.round((weightedSatSum / weightedSatMax) * 100) : 0;
+      const totalSat = satAnswers.length || 1;
+
+      // Weighted rating average: sum(value * poids) / sum(poids)
       const ratingAnswers = allAnswers.filter((a: any) => {
         const q = qMap.get(a.question_id);
         return q?.question_type === "rating" && a.answer_value != null;
       });
-      const avgRating = ratingAnswers.length > 0
-        ? (ratingAnswers.reduce((s: number, a: any) => s + a.answer_value, 0) / ratingAnswers.length).toFixed(1)
-        : null;
+      let avgRating: string | null = null;
+      if (ratingAnswers.length > 0) {
+        let wSum = 0, wTotal = 0;
+        ratingAnswers.forEach((a: any) => {
+          const poids = qMap.get(a.question_id)?.poids ?? 1;
+          wSum += a.answer_value * poids;
+          wTotal += poids;
+        });
+        avgRating = (wSum / wTotal).toFixed(1);
+      }
 
-      // NPS calculation
+      // Weighted NPS calculation
       const npsAnswers = allAnswers.filter((a: any) => {
         const q = qMap.get(a.question_id);
         return q?.question_type === "nps" && a.answer_value != null;
       });
       let npsScore: number | null = null;
       if (npsAnswers.length > 0) {
-        const promoters = npsAnswers.filter((a: any) => a.answer_value >= 9).length;
-        const detractors = npsAnswers.filter((a: any) => a.answer_value <= 6).length;
-        npsScore = Math.round(((promoters - detractors) / npsAnswers.length) * 100);
+        let wPromoters = 0, wDetractors = 0, wTotal = 0;
+        npsAnswers.forEach((a: any) => {
+          const poids = qMap.get(a.question_id)?.poids ?? 1;
+          if (a.answer_value >= 9) wPromoters += poids;
+          if (a.answer_value <= 6) wDetractors += poids;
+          wTotal += poids;
+        });
+        npsScore = wTotal > 0 ? Math.round(((wPromoters - wDetractors) / wTotal) * 100) : 0;
       }
 
       const textAnswers = allAnswers.filter((a: any) => a.answer_text && a.answer_text.trim() && a.answer_value == null);

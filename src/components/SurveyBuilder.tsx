@@ -26,6 +26,7 @@ interface Question {
   image_url?: string;
   ordre: number;
   options?: string[];
+  poids: number;
 }
 
 interface SurveyBuilderProps {
@@ -154,7 +155,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
         editingQuestions?.map((q: any) => ({
           id: q.id, question_text: q.question_text, question_type: q.question_type,
           image_url: q.question_type === "multiple_choice" ? undefined : q.image_url,
-          ordre: q.ordre, options: parseOptions(q),
+          ordre: q.ordre, options: parseOptions(q), poids: q.poids ?? 1,
         })) || []
       );
     }
@@ -166,7 +167,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
     };
     setQuestions((prev) => [...prev, {
       id: crypto.randomUUID(), question_text: "", question_type: type,
-      ordre: prev.length, ...(defaults[type] || {}),
+      ordre: prev.length, poids: 1, ...(defaults[type] || {}),
     }]);
   };
 
@@ -179,7 +180,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
   };
 
   const duplicateQuestion = (q: Question) => {
-    setQuestions((prev) => [...prev, { ...q, id: crypto.randomUUID(), ordre: prev.length }]);
+    setQuestions((prev) => [...prev, { ...q, id: crypto.randomUUID(), ordre: prev.length, poids: q.poids }]);
   };
 
   const moveQuestion = (idx: number, dir: -1 | 1) => {
@@ -264,7 +265,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
       const questionsToInsert = questions.map((q, i) => ({
         survey_id: surveyId, question_text: q.question_text, question_type: q.question_type,
         image_url: q.question_type === "multiple_choice" ? JSON.stringify(q.options || []) : (q.image_url || null),
-        ordre: i,
+        ordre: i, poids: q.poids || 1,
       }));
       const { error: qErr } = await supabase.from("client_survey_questions").insert(questionsToInsert);
       if (qErr) throw qErr;
@@ -433,9 +434,21 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
                     </div>
 
                     <div className="flex-1 space-y-3 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Icon className="h-4 w-4 text-primary shrink-0" />
                         <Badge variant="secondary" className="text-[10px]">{questionTypeLabels[q.question_type]}</Badge>
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <span className="text-[10px] text-muted-foreground">Poids :</span>
+                          {[1, 2, 3].map((p) => (
+                            <button
+                              key={p} type="button"
+                              onClick={() => updateQuestion(q.id, "poids", p)}
+                              className={`h-6 w-6 rounded text-xs font-semibold border transition-colors ${q.poids === p ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground border-border/60 hover:border-primary/40"}`}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <Input value={q.question_text} onChange={(e) => updateQuestion(q.id, "question_text", e.target.value)} placeholder="Texte de la question..." className="font-medium" />
 
