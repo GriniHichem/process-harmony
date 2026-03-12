@@ -379,11 +379,16 @@ export default function EvaluationProcessus() {
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(ev.created_at), "dd/MM/yyyy", { locale: fr })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="flex gap-1">
                           {ev.statut === "en_attente" && (
-                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(ev.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(ev)} title="Modifier">
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(ev.id)} title="Supprimer">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
                           )}
                         </TableCell>
                       </TableRow>
