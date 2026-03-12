@@ -180,7 +180,7 @@ export default function Audits() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Audits</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Audits <HelpTooltip term="audit" /></h1>
           <p className="text-muted-foreground">Programme et suivi des audits qualité</p>
         </div>
         {canCreate && (

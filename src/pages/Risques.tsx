@@ -174,7 +174,7 @@ export default function Risques() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Risques & Opportunités</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Risques & Opportunités <HelpTooltip term="risques_opportunites" /></h1>
           <p className="text-muted-foreground">Évaluation par processus — cliquez pour voir les actions & moyens</p>
         </div>
         {canCreate && (

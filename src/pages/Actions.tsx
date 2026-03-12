@@ -197,7 +197,7 @@ export default function Actions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Actions</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Actions <HelpTooltip term="action_amelioration" /></h1>
           <p className="text-muted-foreground">Actions correctives, préventives et d'amélioration</p>
         </div>
         {canCreate && (

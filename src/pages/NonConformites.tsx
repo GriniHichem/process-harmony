@@ -159,7 +159,7 @@ export default function NonConformites() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Non-conformités</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Non-conformités <HelpTooltip term="non_conformite" /></h1>
           <p className="text-muted-foreground">Suivi des écarts qualité — workflow complet</p>
         </div>
         {canCreate && (

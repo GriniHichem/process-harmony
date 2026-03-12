@@ -161,7 +161,7 @@ export default function Processus() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Processus</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Processus <HelpTooltip term="processus" /></h1>
           <p className="text-muted-foreground">Gestion du référentiel des processus</p>
         </div>
         {canCreate && (

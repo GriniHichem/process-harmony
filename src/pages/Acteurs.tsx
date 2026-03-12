@@ -158,7 +158,7 @@ export default function Acteurs() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Acteurs</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Acteurs <HelpTooltip term="acteur" /></h1>
           <p className="text-muted-foreground text-sm">Référentiel des fonctions et postes de l'organisation</p>
         </div>
         {canEdit && (
