@@ -55,6 +55,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/survey/:token" element={<SurveyPublicPage />} />
             {/* Principal */}
             <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
             <Route path="/acteurs" element={<ProtectedPage><RoleGuard requiredModule="acteurs"><Acteurs /></RoleGuard></ProtectedPage>} />
