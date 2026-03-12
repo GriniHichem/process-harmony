@@ -34,6 +34,7 @@ import SatisfactionClient from "./pages/SatisfactionClient";
 import Fournisseurs from "./pages/Fournisseurs";
 import EvaluationProcessus from "./pages/EvaluationProcessus";
 import AdminPermissions from "./pages/AdminPermissions";
+import SurveyPublicPage from "./pages/SurveyPublicPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
