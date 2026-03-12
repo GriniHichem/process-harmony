@@ -97,25 +97,40 @@ export default function EvaluationProcessus() {
         processId = proc.id;
       }
 
-      const { error } = await supabase.from("process_evaluations").insert({
-        nom: nom.trim(),
-        description: description.trim(),
-        ...scores,
-        score_total: scoreTotal,
-        resultat,
-        statut,
-        process_id: processId,
-      });
-      if (error) throw error;
+      if (editingId) {
+        // Update existing evaluation
+        const { error } = await supabase.from("process_evaluations").update({
+          nom: nom.trim(),
+          description: description.trim(),
+          ...scores,
+          score_total: scoreTotal,
+          resultat,
+          statut,
+          process_id: processId,
+        }).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("process_evaluations").insert({
+          nom: nom.trim(),
+          description: description.trim(),
+          ...scores,
+          score_total: scoreTotal,
+          resultat,
+          statut,
+          process_id: processId,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: (_, statut) => {
       queryClient.invalidateQueries({ queryKey: ["process_evaluations"] });
+      const wasEditing = !!editingId;
       resetForm();
       toast({
-        title: statut === "processus_cree" ? "Processus créé" : "Évaluation enregistrée",
+        title: statut === "processus_cree" ? "Processus créé" : wasEditing ? "Évaluation mise à jour" : "Évaluation enregistrée",
         description: statut === "processus_cree"
           ? `"${nom}" a été ajouté à la liste des processus.`
-          : `"${nom}" a été enregistré comme activité.`,
+          : wasEditing ? `"${nom}" a été mis à jour.` : `"${nom}" a été enregistré.`,
       });
     },
     onError: (err: any) => {
@@ -133,6 +148,19 @@ export default function EvaluationProcessus() {
       toast({ title: "Évaluation supprimée" });
     },
   });
+
+  const handleEdit = (ev: any) => {
+    setEditingId(ev.id);
+    setNom(ev.nom);
+    setDescription(ev.description || "");
+    setScores({
+      score_objectifs: ev.score_objectifs,
+      score_ca: ev.score_ca,
+      score_satisfaction: ev.score_satisfaction,
+      score_perennite: ev.score_perennite,
+      score_risques: ev.score_risques,
+    });
+  };
 
   const candidats = useMemo(
     () => evaluations.filter((ev: any) => ev.resultat === "processus" || ev.resultat === "zone_orange"),
