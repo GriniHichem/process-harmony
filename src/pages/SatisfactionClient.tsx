@@ -11,10 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Eye } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Edit, Trash2, Eye, Link2, Copy, Play, Square, ClipboardList, BarChart3, History } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import SurveyBuilder from "@/components/SurveyBuilder";
+import SurveyResults from "@/components/SurveyResults";
 
+// --- Historique (ancien module) ---
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   en_cours: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -23,19 +27,42 @@ const statutColors: Record<string, string> = {
 };
 const statutLabels: Record<string, string> = { planifiee: "Planifiée", en_cours: "En cours", terminee: "Terminée", analysee: "Analysée" };
 const typeLabels: Record<string, string> = { questionnaire: "Questionnaire", entretien: "Entretien", reclamation: "Réclamation", retour_client: "Retour client" };
-
 const emptyForm = { reference: "", titre: "", date_enquete: "", type_enquete: "questionnaire", score_global: "", nombre_reponses: 0, analyse_resultats: "", actions_prevues: "", statut: "planifiee" };
 
+const surveyStatusConfig: Record<string, { label: string; color: string }> = {
+  draft: { label: "Brouillon", color: "bg-muted text-muted-foreground" },
+  active: { label: "Actif", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  closed: { label: "Clôturé", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" },
+};
+
 export default function SatisfactionClient() {
-  const { hasRole, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const canEdit = hasPermission("satisfaction_client", "can_edit");
   const qc = useQueryClient();
+
+  // Historique state
   const [dialog, setDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [viewing, setViewing] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);
 
+  // Sondages state
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingSurvey, setEditingSurvey] = useState<any>(null);
+  const [editingQuestions, setEditingQuestions] = useState<any[]>([]);
+
+  // Fetch client_surveys
+  const { data: clientSurveys = [] } = useQuery({
+    queryKey: ["client_surveys"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("client_surveys").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch old surveys (historique)
   const { data: surveys = [] } = useQuery({
     queryKey: ["satisfaction_surveys"],
     queryFn: async () => {
@@ -45,6 +72,63 @@ export default function SatisfactionClient() {
     },
   });
 
+  // Response counts per survey
+  const { data: responseCounts = {} } = useQuery({
+    queryKey: ["survey_response_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("client_survey_responses").select("survey_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((r: any) => {
+        counts[r.survey_id] = (counts[r.survey_id] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+
+  // Survey CRUD
+  const toggleStatus = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
+      const { error } = await supabase.from("client_surveys").update({ status: newStatus }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client_surveys"] });
+      toast({ title: "Statut mis à jour" });
+    },
+  });
+
+  const deleteSurvey = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("client_surveys").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client_surveys"] });
+      toast({ title: "Sondage supprimé" });
+    },
+  });
+
+  const openEditSurvey = async (s: any) => {
+    const { data: questions } = await supabase.from("client_survey_questions").select("*").eq("survey_id", s.id).order("ordre");
+    setEditingSurvey(s);
+    setEditingQuestions(questions || []);
+    setBuilderOpen(true);
+  };
+
+  const openNewSurvey = () => {
+    setEditingSurvey(null);
+    setEditingQuestions([]);
+    setBuilderOpen(true);
+  };
+
+  const copyLink = (token: string) => {
+    const url = `${window.location.origin}/survey/${token}`;
+    navigator.clipboard.writeText(url);
+    toast({ title: "Lien copié !", description: url });
+  };
+
+  // Historique CRUD
   const saveMut = useMutation({
     mutationFn: async (f: typeof form & { id?: string }) => {
       const payload = { reference: f.reference, titre: f.titre, date_enquete: f.date_enquete || new Date().toISOString().split("T")[0], type_enquete: f.type_enquete, score_global: f.score_global ? parseFloat(f.score_global) : null, nombre_reponses: f.nombre_reponses, analyse_resultats: f.analyse_resultats, actions_prevues: f.actions_prevues, statut: f.statut };
@@ -69,56 +153,146 @@ export default function SatisfactionClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Satisfaction client</h1>
-          
-        </div>
-        {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle enquête</Button>}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Satisfaction client</h1>
+        <p className="text-muted-foreground mt-1">Sondages, résultats et historique des enquêtes</p>
       </div>
 
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Réf.</TableHead>
-              <TableHead>Titre</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>Réponses</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead className="w-28">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {surveys.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Aucune enquête de satisfaction.</TableCell></TableRow>
-            ) : surveys.map((s: any) => (
-              <TableRow key={s.id}>
-                <TableCell className="font-mono text-xs">{s.reference}</TableCell>
-                <TableCell className="max-w-[180px] truncate">{s.titre}</TableCell>
-                <TableCell>{format(new Date(s.date_enquete), "dd/MM/yyyy")}</TableCell>
-                <TableCell>{typeLabels[s.type_enquete] || s.type_enquete}</TableCell>
-                <TableCell className="font-semibold">{s.score_global != null ? `${s.score_global}%` : "—"}</TableCell>
-                <TableCell>{s.nombre_reponses}</TableCell>
-                <TableCell><Badge className={statutColors[s.statut]}>{statutLabels[s.statut]}</Badge></TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => { setViewing(s); setViewDialog(true); }}><Eye className="h-4 w-4" /></Button>
-                    {canEdit && <>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
-                    </>}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <Tabs defaultValue="sondages">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsTrigger value="sondages" className="gap-1.5"><ClipboardList className="h-4 w-4" />Sondages</TabsTrigger>
+          <TabsTrigger value="resultats" className="gap-1.5"><BarChart3 className="h-4 w-4" />Résultats</TabsTrigger>
+          <TabsTrigger value="historique" className="gap-1.5"><History className="h-4 w-4" />Historique</TabsTrigger>
+        </TabsList>
 
-      {/* View */}
+        {/* ===== SONDAGES TAB ===== */}
+        <TabsContent value="sondages" className="space-y-4 mt-4">
+          {canEdit && (
+            <div className="flex justify-end">
+              <Button onClick={openNewSurvey} className="gap-1.5"><Plus className="h-4 w-4" />Nouveau sondage</Button>
+            </div>
+          )}
+
+          {clientSurveys.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>Aucun sondage créé.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {clientSurveys.map((s: any) => {
+                const stCfg = surveyStatusConfig[s.status] || surveyStatusConfig.draft;
+                return (
+                  <Card key={s.id} className="p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold truncate">{s.name}</h3>
+                          <Badge className={stCfg.color}>{stCfg.label}</Badge>
+                        </div>
+                        {s.description && <p className="text-sm text-muted-foreground line-clamp-1">{s.description}</p>}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          {s.department && <span>Département : {s.department}</span>}
+                          {s.product_service && <span>Produit : {s.product_service}</span>}
+                          <span>{(responseCounts as any)[s.id] || 0} réponse(s)</span>
+                          <span>Créé le {format(new Date(s.created_at), "dd/MM/yyyy")}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {s.status === "active" && (
+                          <Button variant="outline" size="sm" onClick={() => copyLink(s.public_token)} className="gap-1 text-xs">
+                            <Copy className="h-3 w-3" />Copier lien
+                          </Button>
+                        )}
+                        {canEdit && (
+                          <>
+                            {s.status === "draft" && (
+                              <Button variant="outline" size="icon" onClick={() => toggleStatus.mutate({ id: s.id, newStatus: "active" })} title="Activer">
+                                <Play className="h-4 w-4 text-emerald-600" />
+                              </Button>
+                            )}
+                            {s.status === "active" && (
+                              <Button variant="outline" size="icon" onClick={() => toggleStatus.mutate({ id: s.id, newStatus: "closed" })} title="Clôturer">
+                                <Square className="h-4 w-4 text-red-500" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => openEditSurvey(s)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => deleteSurvey.mutate(s.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ===== RÉSULTATS TAB ===== */}
+        <TabsContent value="resultats" className="mt-4">
+          <SurveyResults />
+        </TabsContent>
+
+        {/* ===== HISTORIQUE TAB ===== */}
+        <TabsContent value="historique" className="space-y-4 mt-4">
+          {canEdit && (
+            <div className="flex justify-end">
+              <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle enquête</Button>
+            </div>
+          )}
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Réf.</TableHead>
+                  <TableHead>Titre</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead>Réponses</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="w-28">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {surveys.length === 0 ? (
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Aucune enquête de satisfaction.</TableCell></TableRow>
+                ) : surveys.map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-mono text-xs">{s.reference}</TableCell>
+                    <TableCell className="max-w-[180px] truncate">{s.titre}</TableCell>
+                    <TableCell>{format(new Date(s.date_enquete), "dd/MM/yyyy")}</TableCell>
+                    <TableCell>{typeLabels[s.type_enquete] || s.type_enquete}</TableCell>
+                    <TableCell className="font-semibold">{s.score_global != null ? `${s.score_global}%` : "—"}</TableCell>
+                    <TableCell>{s.nombre_reponses}</TableCell>
+                    <TableCell><Badge className={statutColors[s.statut]}>{statutLabels[s.statut]}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => { setViewing(s); setViewDialog(true); }}><Eye className="h-4 w-4" /></Button>
+                        {canEdit && <>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </>}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Survey Builder */}
+      <SurveyBuilder
+        open={builderOpen}
+        onOpenChange={setBuilderOpen}
+        editingSurvey={editingSurvey}
+        editingQuestions={editingQuestions}
+      />
+
+      {/* View historique */}
       <Dialog open={viewDialog} onOpenChange={setViewDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{viewing?.titre}</DialogTitle></DialogHeader>
@@ -136,7 +310,7 @@ export default function SatisfactionClient() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit */}
+      {/* Edit historique */}
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing ? "Modifier" : "Nouvelle"} enquête de satisfaction</DialogTitle></DialogHeader>
