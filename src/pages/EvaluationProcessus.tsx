@@ -48,6 +48,9 @@ export default function EvaluationProcessus() {
     score_risques: 2,
   });
 
+  // Editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   // Dialog for process creation with custom code
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
   const [processCode, setProcessCode] = useState("");
