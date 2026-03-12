@@ -41,7 +41,7 @@ interface LinkedUser {
 const emptyForm = { fonction: "", organisation: "", type_acteur: "interne" as "interne" | "externe", description_poste: "", group_id: "" };
 
 export default function Acteurs() {
-  const { hasRole, hasPermission } = useAuth();
+  const { hasRole, hasPermission, profile } = useAuth();
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [groups, setGroups] = useState<ActeurGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,10 +52,14 @@ export default function Acteurs() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [linkedUsers, setLinkedUsers] = useState<Record<string, LinkedUser[]>>({});
+  const [myProcessIds, setMyProcessIds] = useState<string[] | null>(null);
 
   const canEdit = hasPermission("acteurs", "can_edit");
   const canDelete = hasPermission("acteurs", "can_delete");
-  const canViewImplications = hasPermission("acteurs", "can_read_detail");
+  // Acteur role: no implications view. Resp. processus: filtered to own processes only.
+  const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant") && !hasRole("auditeur");
+  const canViewImplications = !isOnlyActeur && hasPermission("acteurs", "can_read_detail");
+  const isRespProcessus = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
   const [implicationActeur, setImplicationActeur] = useState<{ id: string; label: string } | null>(null);
 
   const fetchActeurs = async () => {

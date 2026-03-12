@@ -11,6 +11,8 @@ interface Props {
   acteurLabel: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** If set, only show implications related to these process IDs */
+  allowedProcessIds?: string[] | null;
 }
 
 interface ImplicationItem {
