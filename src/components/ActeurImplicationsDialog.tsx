@@ -51,6 +51,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
       { data: riskActions },
       { data: riskMoyens },
       { data: ctxActions },
+      { data: ctxIssueProcesses },
     ] = await Promise.all([
       supabase.from("processes").select("id, nom"),
       supabase.from("indicators").select("id, nom, process_id"),
@@ -62,6 +63,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
       supabase.from("risk_actions").select("id, description, risk_id").eq("responsable", acteurId),
       supabase.from("risk_moyens").select("id, description, risk_id").eq("responsable", acteurId),
       supabase.from("context_issue_actions").select("id, description, context_issue_id").eq("responsable", acteurId),
+      supabase.from("context_issue_processes").select("context_issue_id, process_id"),
     ]);
 
     const procMap = Object.fromEntries((processes ?? []).map(p => [p.id, p.nom]));
