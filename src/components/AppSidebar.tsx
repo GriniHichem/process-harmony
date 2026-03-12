@@ -7,6 +7,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { AppModule } from "@/lib/defaultPermissions";
+import { HelpTooltip } from "@/components/HelpTooltip";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
@@ -58,20 +59,34 @@ const adminItems: NavItem[] = [
   { title: "Permissions", url: "/admin/permissions", icon: Lock },
 ];
 
+const groupHelpTerms: Record<string, string> = {
+  "Processus": "approche_processus",
+  "Manager processus": "management_processus",
+  "Pilotage SMQ": "politique_qualite",
+  "Audit & Amélioration": "audit",
+};
+
 function NavGroup({ label, items, collapsed }: { label: string; items: NavItem[]; collapsed: boolean }) {
   const location = useLocation();
   const { hasPermission } = useAuth();
 
   const visibleItems = items.filter((item) => {
-    if (!item.module) return true; // no module = always visible (e.g. Dashboard)
+    if (!item.module) return true;
     return hasPermission(item.module, "can_read");
   });
 
   if (visibleItems.length === 0) return null;
 
+  const helpTerm = groupHelpTerms[label];
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarGroupLabel>
+        <span className="flex items-center gap-1.5">
+          {label}
+          {helpTerm && <HelpTooltip term={helpTerm} />}
+        </span>
+      </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           {visibleItems.map((item) => (
