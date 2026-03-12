@@ -263,12 +263,20 @@ export default function EvaluationProcessus() {
 
               <div className="flex gap-3 justify-end">
                 <Button
+                  variant="secondary"
+                  onClick={() => saveMutation.mutate("en_attente")}
+                  disabled={saveMutation.isPending || !nom.trim()}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {editingId ? "Mettre à jour" : "Enregistrer"}
+                </Button>
+                <Button
                   variant="outline"
                   onClick={() => saveMutation.mutate("activite")}
                   disabled={saveMutation.isPending || !nom.trim()}
                 >
                   <Archive className="mr-2 h-4 w-4" />
-                  Ignorer / garder comme activité
+                  Garder comme activité
                 </Button>
                 <Button
                   onClick={() => setProcessDialogOpen(true)}
