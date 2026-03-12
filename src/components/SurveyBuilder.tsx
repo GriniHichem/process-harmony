@@ -155,7 +155,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
         editingQuestions?.map((q: any) => ({
           id: q.id, question_text: q.question_text, question_type: q.question_type,
           image_url: q.question_type === "multiple_choice" ? undefined : q.image_url,
-          ordre: q.ordre, options: parseOptions(q),
+          ordre: q.ordre, options: parseOptions(q), poids: q.poids ?? 1,
         })) || []
       );
     }
