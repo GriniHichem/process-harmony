@@ -167,7 +167,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
     };
     setQuestions((prev) => [...prev, {
       id: crypto.randomUUID(), question_text: "", question_type: type,
-      ordre: prev.length, ...(defaults[type] || {}),
+      ordre: prev.length, poids: 1, ...(defaults[type] || {}),
     }]);
   };
 
