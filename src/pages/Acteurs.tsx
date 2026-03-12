@@ -313,6 +313,7 @@ export default function Acteurs() {
           acteurLabel={implicationActeur.label}
           open={!!implicationActeur}
           onOpenChange={(o) => { if (!o) setImplicationActeur(null); }}
+          allowedProcessIds={isRespProcessus ? myProcessIds : null}
         />
       )}
     </div>
