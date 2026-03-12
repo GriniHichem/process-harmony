@@ -180,7 +180,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
   };
 
   const duplicateQuestion = (q: Question) => {
-    setQuestions((prev) => [...prev, { ...q, id: crypto.randomUUID(), ordre: prev.length }]);
+    setQuestions((prev) => [...prev, { ...q, id: crypto.randomUUID(), ordre: prev.length, poids: q.poids }]);
   };
 
   const moveQuestion = (idx: number, dir: -1 | 1) => {
