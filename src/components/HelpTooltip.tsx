@@ -1,4 +1,4 @@
-import { HelpCircle, BookOpen, Lightbulb, ChevronRight } from "lucide-react";
+import { HelpCircle, Lightbulb, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useHelpMode } from "@/contexts/HelpModeContext";
 import { helpDefinitions, categoryMeta, type HelpCategory } from "@/lib/helpDefinitions";
