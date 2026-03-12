@@ -374,7 +374,8 @@ export default function ProcessDetail() {
                   ) : (
                     <>
                       <ProcessElementList
-                        title={title}
+                         title={title}
+                         helpTerm={helpTerm}
                         elements={elements.filter(e => e.type === type)}
                         canEdit={effectiveCanEdit}
                         canDelete={canDelete}
