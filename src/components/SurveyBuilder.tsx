@@ -265,7 +265,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
       const questionsToInsert = questions.map((q, i) => ({
         survey_id: surveyId, question_text: q.question_text, question_type: q.question_type,
         image_url: q.question_type === "multiple_choice" ? JSON.stringify(q.options || []) : (q.image_url || null),
-        ordre: i,
+        ordre: i, poids: q.poids || 1,
       }));
       const { error: qErr } = await supabase.from("client_survey_questions").insert(questionsToInsert);
       if (qErr) throw qErr;
