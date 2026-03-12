@@ -266,7 +266,7 @@ export default function Bpmn() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold">Modélisation BPMN</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">Modélisation BPMN <HelpTooltip term="bpmn" /></h1>
         <p className="text-muted-foreground">Diagrammes de flux des processus selon la norme BPMN 2.0</p>
       </div>
 

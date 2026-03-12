@@ -106,7 +106,7 @@ export default function Competences() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Compétences & Formations</h1>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Compétences & Formations <HelpTooltip term="competences" /></h1>
         
       </div>
 
