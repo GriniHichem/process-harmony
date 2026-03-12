@@ -93,6 +93,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     const indItems: ImplicationItem[] = [];
     for (const a of (indActions ?? [])) {
       const ind = indMap[a.indicator_id];
+      if (!isAllowed(ind?.process_id)) continue;
       const procName = ind ? procMap[ind.process_id] : "";
       indItems.push({
         label: `Action: ${a.description || "—"}`,
@@ -102,6 +103,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     }
     for (const m of (indMoyens ?? [])) {
       const ind = indMap[m.indicator_id];
+      if (!isAllowed(ind?.process_id)) continue;
       const procName = ind ? procMap[ind.process_id] : "";
       indItems.push({
         label: `Moyen: ${m.description || "—"}`,
