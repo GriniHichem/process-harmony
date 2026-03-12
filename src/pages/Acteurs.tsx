@@ -86,7 +86,16 @@ export default function Acteurs() {
     }
   };
 
-  useEffect(() => { fetchActeurs(); fetchGroups(); fetchLinkedUsers(); }, []);
+  const fetchMyProcessIds = async () => {
+    if (!isRespProcessus || !profile?.acteur_id) {
+      setMyProcessIds(null);
+      return;
+    }
+    const { data } = await supabase.from("processes").select("id").eq("responsable_id", profile.acteur_id);
+    setMyProcessIds(data ? data.map(p => p.id) : []);
+  };
+
+  useEffect(() => { fetchActeurs(); fetchGroups(); fetchLinkedUsers(); fetchMyProcessIds(); }, [profile?.acteur_id]);
 
   const getGroupName = (groupId: string | null) => {
     if (!groupId) return null;
