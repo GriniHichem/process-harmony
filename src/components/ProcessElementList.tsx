@@ -52,7 +52,7 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium">{title}</h4>
+        <h4 className="text-sm font-medium flex items-center gap-1.5">{title} {helpTerm && <HelpTooltip term={helpTerm} />}</h4>
         {canEdit && !adding && !customAdder && (
           <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
             <Plus className="h-3 w-3 mr-1" />Ajouter
