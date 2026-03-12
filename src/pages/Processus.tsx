@@ -248,6 +248,7 @@ export default function Processus() {
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Responsable">
                       <UserCheck className="h-3.5 w-3.5" />
                       <span>{responsable ? getUserLabel(responsable) : "Non assigné"}</span>
+                      <HelpTooltip term="pilote_processus" />
                     </div>
                     <Badge className={statusColors[p.statut]}>{p.statut.replace("_", " ")}</Badge>
                     <Button variant="ghost" size="icon" className="h-8 w-8" title="Versions archivées" onClick={(e) => handleShowArchives(e, p.code)}>

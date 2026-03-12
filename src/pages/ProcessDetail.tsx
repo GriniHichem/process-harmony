@@ -344,7 +344,7 @@ export default function ProcessDetail() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Responsable</Label>
+                  <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">Responsable <HelpTooltip term="pilote_processus" /></Label>
                   <Select value={process.responsable_id ?? "none"} onValueChange={(v) => updateField("responsable_id", v === "none" ? null : v)} disabled={!canChangeResponsable}>
                     <SelectTrigger className="h-10"><SelectValue placeholder="Non assigné" /></SelectTrigger>
                     <SelectContent>
