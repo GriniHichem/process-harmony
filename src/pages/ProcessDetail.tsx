@@ -366,7 +366,7 @@ export default function ProcessDetail() {
 
         <TabsContent value="elements" className="mt-4 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {ELEMENT_SECTIONS.map(({ type, title, prefix, icon }) => (
+            {ELEMENT_SECTIONS.map(({ type, title, prefix, icon, helpTerm }) => (
               <Card key={type} className="card-elevated border-border/50 group">
                 <CardContent className="pt-5">
                   {type === "interaction" ? (
