@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Archive, Trash2 } from "lucide-react";
+import { Plus, Archive, Trash2, Save, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { HelpTooltip } from "@/components/HelpTooltip";
@@ -48,6 +48,9 @@ export default function EvaluationProcessus() {
     score_risques: 2,
   });
 
+  // Editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   // Dialog for process creation with custom code
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
   const [processCode, setProcessCode] = useState("");
@@ -73,6 +76,7 @@ export default function EvaluationProcessus() {
     setDescription("");
     setProcessCode("");
     setProcessType("support");
+    setEditingId(null);
     setScores({ score_objectifs: 2, score_ca: 2, score_satisfaction: 2, score_perennite: 2, score_risques: 2 });
   };
 
@@ -93,25 +97,40 @@ export default function EvaluationProcessus() {
         processId = proc.id;
       }
 
-      const { error } = await supabase.from("process_evaluations").insert({
-        nom: nom.trim(),
-        description: description.trim(),
-        ...scores,
-        score_total: scoreTotal,
-        resultat,
-        statut,
-        process_id: processId,
-      });
-      if (error) throw error;
+      if (editingId) {
+        // Update existing evaluation
+        const { error } = await supabase.from("process_evaluations").update({
+          nom: nom.trim(),
+          description: description.trim(),
+          ...scores,
+          score_total: scoreTotal,
+          resultat,
+          statut,
+          process_id: processId,
+        }).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("process_evaluations").insert({
+          nom: nom.trim(),
+          description: description.trim(),
+          ...scores,
+          score_total: scoreTotal,
+          resultat,
+          statut,
+          process_id: processId,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: (_, statut) => {
       queryClient.invalidateQueries({ queryKey: ["process_evaluations"] });
+      const wasEditing = !!editingId;
       resetForm();
       toast({
-        title: statut === "processus_cree" ? "Processus créé" : "Évaluation enregistrée",
+        title: statut === "processus_cree" ? "Processus créé" : wasEditing ? "Évaluation mise à jour" : "Évaluation enregistrée",
         description: statut === "processus_cree"
           ? `"${nom}" a été ajouté à la liste des processus.`
-          : `"${nom}" a été enregistré comme activité.`,
+          : wasEditing ? `"${nom}" a été mis à jour.` : `"${nom}" a été enregistré.`,
       });
     },
     onError: (err: any) => {
@@ -129,6 +148,19 @@ export default function EvaluationProcessus() {
       toast({ title: "Évaluation supprimée" });
     },
   });
+
+  const handleEdit = (ev: any) => {
+    setEditingId(ev.id);
+    setNom(ev.nom);
+    setDescription(ev.description || "");
+    setScores({
+      score_objectifs: ev.score_objectifs,
+      score_ca: ev.score_ca,
+      score_satisfaction: ev.score_satisfaction,
+      score_perennite: ev.score_perennite,
+      score_risques: ev.score_risques,
+    });
+  };
 
   const candidats = useMemo(
     () => evaluations.filter((ev: any) => ev.resultat === "processus" || ev.resultat === "zone_orange"),
@@ -155,7 +187,12 @@ export default function EvaluationProcessus() {
         <TabsContent value="evaluer">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Nouvelle évaluation</CardTitle>
+              <CardTitle className="text-lg flex items-center justify-between">
+                {editingId ? "Modifier l'évaluation" : "Nouvelle évaluation"}
+                {editingId && (
+                  <Button variant="ghost" size="sm" onClick={resetForm}>Annuler la modification</Button>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -226,12 +263,20 @@ export default function EvaluationProcessus() {
 
               <div className="flex gap-3 justify-end">
                 <Button
+                  variant="secondary"
+                  onClick={() => saveMutation.mutate("en_attente")}
+                  disabled={saveMutation.isPending || !nom.trim()}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {editingId ? "Mettre à jour" : "Enregistrer"}
+                </Button>
+                <Button
                   variant="outline"
                   onClick={() => saveMutation.mutate("activite")}
                   disabled={saveMutation.isPending || !nom.trim()}
                 >
                   <Archive className="mr-2 h-4 w-4" />
-                  Ignorer / garder comme activité
+                  Garder comme activité
                 </Button>
                 <Button
                   onClick={() => setProcessDialogOpen(true)}
@@ -334,11 +379,16 @@ export default function EvaluationProcessus() {
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(ev.created_at), "dd/MM/yyyy", { locale: fr })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="flex gap-1">
                           {ev.statut === "en_attente" && (
-                            <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(ev.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(ev)} title="Modifier">
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(ev.id)} title="Supprimer">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
                           )}
                         </TableCell>
                       </TableRow>
@@ -394,7 +444,12 @@ export default function EvaluationProcessus() {
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(ev.created_at), "dd/MM/yyyy", { locale: fr })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="flex gap-1">
+                          {ev.statut === "en_attente" && (
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(ev)} title="Modifier">
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(ev.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
