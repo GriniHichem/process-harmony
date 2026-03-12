@@ -17,6 +17,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, R
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type IndicatorType = "activite" | "resultat" | "perception" | "interne";
 type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType; moyens?: string | null };
@@ -460,7 +461,7 @@ export default function Indicateurs() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Indicateurs</h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">Indicateurs <HelpTooltip term="indicateur" /></h1>
           <p className="text-sm text-muted-foreground mt-0.5">Suivi de la performance des processus</p>
         </div>
         {canCreate && (

@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import SurveyBuilder from "@/components/SurveyBuilder";
 import SurveyResults from "@/components/SurveyResults";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 // --- Historique (ancien module) ---
 const statutColors: Record<string, string> = {
@@ -202,7 +203,7 @@ export default function SatisfactionClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Satisfaction client</h1>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Satisfaction client <HelpTooltip term="satisfaction_client" /></h1>
         <p className="text-muted-foreground mt-1">Sondages, résultats et historique des enquêtes</p>
       </div>
 

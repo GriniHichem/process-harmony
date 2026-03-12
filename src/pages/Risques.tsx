@@ -15,6 +15,7 @@ import { Plus, AlertTriangle, Lightbulb, Trash2, ChevronDown, ChevronRight, Penc
 import { useAuth } from "@/contexts/AuthContext";
 import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
 
@@ -173,7 +174,7 @@ export default function Risques() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Risques & Opportunités</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Risques & Opportunités <HelpTooltip term="risques_opportunites" /></h1>
           <p className="text-muted-foreground">Évaluation par processus — cliquez pour voir les actions & moyens</p>
         </div>
         {canCreate && (

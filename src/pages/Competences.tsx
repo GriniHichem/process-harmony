@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, GraduationCap, Award } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const niveauColors: Record<string, string> = {
   debutant: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
@@ -105,7 +106,7 @@ export default function Competences() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Compétences & Formations</h1>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Compétences & Formations <HelpTooltip term="competences" /></h1>
         
       </div>
 

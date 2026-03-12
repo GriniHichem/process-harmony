@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Plus, XCircle, Pencil, ChevronRight, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type NC = {
   id: string; reference: string; description: string; gravite: string;
@@ -158,7 +159,7 @@ export default function NonConformites() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Non-conformités</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Non-conformités <HelpTooltip term="non_conformite" /></h1>
           <p className="text-muted-foreground">Suivi des écarts qualité — workflow complet</p>
         </div>
         {canCreate && (

@@ -14,6 +14,7 @@ import { Plus, Pencil, Trash2, AlertOctagon, Calendar, User, Search } from "luci
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 interface Incident {
   id: string;
@@ -147,7 +148,7 @@ export default function Incidents() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Incidents</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Incidents <HelpTooltip term="incident" /></h1>
           <p className="text-muted-foreground">Registre des incidents liés aux risques et processus</p>
         </div>
         {canEdit && (

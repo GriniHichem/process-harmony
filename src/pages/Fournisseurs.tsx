@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const statutColors: Record<string, string> = {
   actif: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
@@ -68,7 +69,7 @@ export default function Fournisseurs() {
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Prestataires externes</h1>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Prestataires externes <HelpTooltip term="fournisseur" /></h1>
           
         </div>
         {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouveau fournisseur</Button>}

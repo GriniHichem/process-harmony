@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Search, Eye, UserCheck, Trash2, History } from "lucide-react";
+import { HelpTooltip } from "@/components/HelpTooltip";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -160,7 +161,7 @@ export default function Processus() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Processus</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Processus <HelpTooltip term="processus" /></h1>
           <p className="text-muted-foreground">Gestion du référentiel des processus</p>
         </div>
         {canCreate && (

@@ -17,6 +17,7 @@ import { exportPolitiqueQualitePdf, exportObjectifsQualitePdf } from "@/lib/expo
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const statutPolicyColors: Record<string, string> = {
   brouillon: "bg-muted text-muted-foreground",
@@ -110,7 +111,7 @@ export default function PolitiqueQualite() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Politique & Objectifs Qualité</h1>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Politique & Objectifs Qualité <HelpTooltip term="politique_qualite" /></h1>
       </div>
 
       <Tabs defaultValue="politique">

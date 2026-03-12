@@ -1,3 +1,4 @@
+import { HelpTooltip } from "@/components/HelpTooltip";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -265,7 +266,7 @@ export default function Bpmn() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold">Modélisation BPMN</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">Modélisation BPMN <HelpTooltip term="bpmn" /></h1>
         <p className="text-muted-foreground">Diagrammes de flux des processus selon la norme BPMN 2.0</p>
       </div>
 

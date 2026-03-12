@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Plus, ClipboardCheck, Pencil, Eye, ChevronRight, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type Audit = {
   id: string; reference: string; type_audit: string; perimetre: string | null;
@@ -179,7 +180,7 @@ export default function Audits() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Audits</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Audits <HelpTooltip term="audit" /></h1>
           <p className="text-muted-foreground">Programme et suivi des audits qualité</p>
         </div>
         {canCreate && (

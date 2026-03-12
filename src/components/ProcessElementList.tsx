@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 interface ProcessElement {
   id: string;
@@ -22,9 +23,10 @@ interface ProcessElementListProps {
   onUpdate: (id: string, code: string, description: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
   customAdder?: React.ReactNode;
+  helpTerm?: string;
 }
 
-export function ProcessElementList({ title, elements, canEdit, canDelete, multiline, onAdd, onUpdate, onRemove, customAdder }: ProcessElementListProps) {
+export function ProcessElementList({ title, elements, canEdit, canDelete, multiline, onAdd, onUpdate, onRemove, customAdder, helpTerm }: ProcessElementListProps) {
   const [adding, setAdding] = useState(false);
   const [newDesc, setNewDesc] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium">{title}</h4>
+        <h4 className="text-sm font-medium flex items-center gap-1.5">{title} {helpTerm && <HelpTooltip term={helpTerm} />}</h4>
         {canEdit && !adding && !customAdder && (
           <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
             <Plus className="h-3 w-3 mr-1" />Ajouter

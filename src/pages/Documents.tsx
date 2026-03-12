@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, FileText, Trash2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 
 type Doc = {
@@ -165,7 +166,7 @@ export default function Documents() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Gestion documentaire</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Gestion documentaire <HelpTooltip term="document" /></h1>
           <p className="text-muted-foreground">Documents associés aux processus</p>
         </div>
         {canCreate && (

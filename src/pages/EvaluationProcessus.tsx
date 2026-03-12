@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Archive, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const CRITERIA = [
   { key: "score_objectifs", label: "Atteinte des objectifs stratégiques" },
@@ -136,7 +137,7 @@ export default function EvaluationProcessus() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Évaluation des processus potentiels</h1>
+      <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">Évaluation des processus potentiels <HelpTooltip term="evaluation_processus" /></h1>
 
       <Tabs defaultValue="evaluer" className="w-full">
         <TabsList>

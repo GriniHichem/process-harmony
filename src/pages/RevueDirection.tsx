@@ -18,6 +18,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import ParticipantSelector, { formatParticipantsDisplay, parseParticipants } from "@/components/ParticipantSelector";
 import { ReviewInputItemsEditor, ReviewInputItemsView } from "@/components/ReviewInputItems";
 import { ReviewDecisionsEditor, ReviewDecisionsView } from "@/components/ReviewDecisions";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -103,7 +104,7 @@ export default function RevueDirection() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-        <h1 className="text-3xl font-bold tracking-tight">Revue de direction</h1>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Revue de direction <HelpTooltip term="revue_direction" /></h1>
         {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle revue</Button>}
       </div>
 

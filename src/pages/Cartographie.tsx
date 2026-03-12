@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type Process = { id: string; code: string; nom: string; type_processus: string; statut: string };
 
@@ -29,7 +30,7 @@ export default function Cartographie() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Cartographie des processus</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">Cartographie des processus <HelpTooltip term="cartographie" /></h1>
         <p className="text-muted-foreground">Vue d'ensemble organisée par type</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

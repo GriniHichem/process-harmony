@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Plus, Zap, ChevronDown, ChevronRight, StickyNote, User, Trash2, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type Acteur = { id: string; fonction: string | null };
 type ActionNote = { id: string; action_id: string; contenu: string; avancement: number; date_note: string; created_at: string };
@@ -196,7 +197,7 @@ export default function Actions() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Actions</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">Actions <HelpTooltip term="action_amelioration" /></h1>
           <p className="text-muted-foreground">Actions correctives, préventives et d'amélioration</p>
         </div>
         {canCreate && (

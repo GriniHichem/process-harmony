@@ -21,6 +21,7 @@ import { ProcessInteractionManager } from "@/components/ProcessInteractionManage
 import { PartiePrenanteAdder } from "@/components/PartiePrenanteAdder";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { ProcessArchivedObjects } from "@/components/ProcessArchivedObjects";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
@@ -28,14 +29,14 @@ interface ProcessElement {
   id: string; code: string; description: string; type: ElementType; ordre: number; process_id: string;
 }
 
-const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string; icon: React.ReactNode }[] = [
-  { type: "finalite", title: "Finalité", prefix: "F", icon: <Target className="h-4 w-4" /> },
-  { type: "donnee_entree", title: "Données d'entrée", prefix: "DE", icon: <ArrowRightLeft className="h-4 w-4" /> },
-  { type: "donnee_sortie", title: "Données de sortie", prefix: "DS", icon: <ArrowRightLeft className="h-4 w-4" /> },
-  { type: "activite", title: "Activités principales", prefix: "AP", icon: <Settings2 className="h-4 w-4" /> },
-  { type: "interaction", title: "Interactions", prefix: "I", icon: <ArrowRightLeft className="h-4 w-4" /> },
-  { type: "partie_prenante", title: "Parties prenantes", prefix: "PP", icon: <Users className="h-4 w-4" /> },
-  { type: "ressource", title: "Ressources", prefix: "R", icon: <Package className="h-4 w-4" /> },
+const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string; icon: React.ReactNode; helpTerm?: string }[] = [
+  { type: "finalite", title: "Finalité", prefix: "F", icon: <Target className="h-4 w-4" />, helpTerm: "finalite" },
+  { type: "donnee_entree", title: "Données d'entrée", prefix: "DE", icon: <ArrowRightLeft className="h-4 w-4" />, helpTerm: "donnees_entree" },
+  { type: "donnee_sortie", title: "Données de sortie", prefix: "DS", icon: <ArrowRightLeft className="h-4 w-4" />, helpTerm: "donnees_sortie" },
+  { type: "activite", title: "Activités principales", prefix: "AP", icon: <Settings2 className="h-4 w-4" />, helpTerm: "activite" },
+  { type: "interaction", title: "Interactions", prefix: "I", icon: <ArrowRightLeft className="h-4 w-4" />, helpTerm: "interaction" },
+  { type: "partie_prenante", title: "Parties prenantes", prefix: "PP", icon: <Users className="h-4 w-4" />, helpTerm: "parties_interessees" },
+  { type: "ressource", title: "Ressources", prefix: "R", icon: <Package className="h-4 w-4" />, helpTerm: "ressources" },
 ];
 
 const generateNextCode = (prefix: string, existingElements: ProcessElement[]): string => {
@@ -365,7 +366,7 @@ export default function ProcessDetail() {
 
         <TabsContent value="elements" className="mt-4 animate-fade-in">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {ELEMENT_SECTIONS.map(({ type, title, prefix, icon }) => (
+            {ELEMENT_SECTIONS.map(({ type, title, prefix, icon, helpTerm }) => (
               <Card key={type} className="card-elevated border-border/50 group">
                 <CardContent className="pt-5">
                   {type === "interaction" ? (
@@ -373,7 +374,8 @@ export default function ProcessDetail() {
                   ) : (
                     <>
                       <ProcessElementList
-                        title={title}
+                         title={title}
+                         helpTerm={helpTerm}
                         elements={elements.filter(e => e.type === type)}
                         canEdit={effectiveCanEdit}
                         canDelete={canDelete}
