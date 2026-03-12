@@ -27,7 +27,7 @@ interface SectionData {
   items: ImplicationItem[];
 }
 
-export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenChange }: Props) {
+export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenChange, allowedProcessIds }: Props) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [sections, setSections] = useState<SectionData[]>([]);
