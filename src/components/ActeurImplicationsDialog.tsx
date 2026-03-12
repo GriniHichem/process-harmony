@@ -119,6 +119,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     const riskItems: ImplicationItem[] = [];
     for (const a of (riskActions ?? [])) {
       const r = riskMap[a.risk_id];
+      if (!isAllowed(r?.process_id)) continue;
       const procName = r ? procMap[r.process_id] : "";
       riskItems.push({
         label: `Action: ${a.description || "—"}`,
@@ -128,6 +129,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     }
     for (const m of (riskMoyens ?? [])) {
       const r = riskMap[m.risk_id];
+      if (!isAllowed(r?.process_id)) continue;
       const procName = r ? procMap[r.process_id] : "";
       riskItems.push({
         label: `Moyen: ${m.description || "—"}`,
