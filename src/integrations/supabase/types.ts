@@ -367,6 +367,209 @@ export type Database = {
           },
         ]
       }
+      client_survey_answers: {
+        Row: {
+          answer_text: string
+          answer_value: number | null
+          created_at: string
+          id: string
+          question_id: string
+          response_id: string
+        }
+        Insert: {
+          answer_text?: string
+          answer_value?: number | null
+          created_at?: string
+          id?: string
+          question_id: string
+          response_id: string
+        }
+        Update: {
+          answer_text?: string
+          answer_value?: number | null
+          created_at?: string
+          id?: string
+          question_id?: string
+          response_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_survey_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "client_survey_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_survey_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "client_survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_survey_comments: {
+        Row: {
+          action_id: string | null
+          category: string
+          comment_text: string
+          created_at: string
+          id: string
+          question_id: string | null
+          response_id: string
+          updated_at: string
+        }
+        Insert: {
+          action_id?: string | null
+          category?: string
+          comment_text?: string
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          response_id: string
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string | null
+          category?: string
+          comment_text?: string
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          response_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_survey_comments_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_survey_comments_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "client_survey_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_survey_comments_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "client_survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_survey_questions: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          ordre: number
+          question_text: string
+          question_type: string
+          survey_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          ordre?: number
+          question_text?: string
+          question_type?: string
+          survey_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          ordre?: number
+          question_text?: string
+          question_type?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "client_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_survey_responses: {
+        Row: {
+          created_at: string
+          id: string
+          respondent_name: string | null
+          survey_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          respondent_name?: string | null
+          survey_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          respondent_name?: string | null
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "client_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_surveys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department: string
+          description: string
+          id: string
+          name: string
+          product_service: string
+          public_token: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          description?: string
+          id?: string
+          name: string
+          product_service?: string
+          public_token?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          description?: string
+          id?: string
+          name?: string
+          product_service?: string
+          public_token?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       competences: {
         Row: {
           acteur_id: string
