@@ -26,6 +26,7 @@ interface Question {
   image_url?: string;
   ordre: number;
   options?: string[];
+  poids: number;
 }
 
 interface SurveyBuilderProps {
