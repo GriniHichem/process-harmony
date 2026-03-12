@@ -1,0 +1,1 @@
+ALTER TABLE public.client_survey_questions ADD COLUMN IF NOT EXISTS poids integer NOT NULL DEFAULT 1;

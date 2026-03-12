@@ -470,6 +470,7 @@ export type Database = {
           id: string
           image_url: string | null
           ordre: number
+          poids: number
           question_text: string
           question_type: string
           survey_id: string
@@ -479,6 +480,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ordre?: number
+          poids?: number
           question_text?: string
           question_type?: string
           survey_id: string
@@ -488,6 +490,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           ordre?: number
+          poids?: number
           question_text?: string
           question_type?: string
           survey_id?: string
