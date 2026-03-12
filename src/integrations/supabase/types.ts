@@ -531,6 +531,35 @@ export type Database = {
           },
         ]
       }
+      client_survey_shares: {
+        Row: {
+          created_at: string
+          id: string
+          shared_with_user_id: string
+          survey_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          shared_with_user_id: string
+          survey_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          shared_with_user_id?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_survey_shares_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "client_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_surveys: {
         Row: {
           created_at: string
@@ -539,9 +568,11 @@ export type Database = {
           description: string
           id: string
           name: string
+          objectif: string
           product_service: string
           public_token: string
           status: string
+          type_sondage: string
           updated_at: string
         }
         Insert: {
@@ -551,9 +582,11 @@ export type Database = {
           description?: string
           id?: string
           name: string
+          objectif?: string
           product_service?: string
           public_token?: string
           status?: string
+          type_sondage?: string
           updated_at?: string
         }
         Update: {
@@ -563,9 +596,11 @@ export type Database = {
           description?: string
           id?: string
           name?: string
+          objectif?: string
           product_service?: string
           public_token?: string
           status?: string
+          type_sondage?: string
           updated_at?: string
         }
         Relationships: []

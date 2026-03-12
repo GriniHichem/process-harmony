@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Eye, Link2, Copy, Play, Square, ClipboardList, BarChart3, History } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Copy, Play, Square, ClipboardList, BarChart3, History, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import SurveyBuilder from "@/components/SurveyBuilder";
@@ -35,9 +35,39 @@ const surveyStatusConfig: Record<string, { label: string; color: string }> = {
   closed: { label: "Clôturé", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" },
 };
 
+const surveyTypeLabels: Record<string, string> = {
+  satisfaction_globale: "Satisfaction globale",
+  satisfaction_produit: "Satisfaction produit",
+  satisfaction_service: "Satisfaction service",
+  satisfaction_livraison: "Satisfaction livraison",
+  satisfaction_sav: "Satisfaction SAV",
+  satisfaction_accueil: "Satisfaction accueil",
+  evaluation_fournisseur: "Évaluation fournisseur",
+  audit_interne: "Retour audit interne",
+  reclamation: "Analyse réclamation",
+  nps: "NPS",
+  enquete_post_projet: "Enquête post-projet",
+  enquete_perception: "Perception qualité",
+  autre: "Autre",
+};
+
+const objectifLabels: Record<string, string> = {
+  mesurer_satisfaction: "Mesurer satisfaction (§9.1.2)",
+  identifier_ameliorations: "Identifier améliorations (§10.1)",
+  evaluer_conformite: "Évaluer conformité (§8.2.1)",
+  suivre_reclamations: "Suivre réclamations (§8.2.1)",
+  evaluer_efficacite_actions: "Efficacité actions (§10.2)",
+  analyser_tendances: "Tendances satisfaction (§9.1.3)",
+  preparer_revue_direction: "Revue direction (§9.3)",
+  benchmark_concurrence: "Benchmark",
+  autre: "Autre",
+};
+
 export default function SatisfactionClient() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasRole, user } = useAuth();
   const canEdit = hasPermission("satisfaction_client", "can_edit");
+  const isResponsableProcessus = hasRole("responsable_processus");
+  const isAdminOrRmq = hasRole("admin") || hasRole("rmq");
   const qc = useQueryClient();
 
   // Historique state
@@ -52,6 +82,26 @@ export default function SatisfactionClient() {
   const [editingSurvey, setEditingSurvey] = useState<any>(null);
   const [editingQuestions, setEditingQuestions] = useState<any[]>([]);
 
+  // Fetch shares for current user
+  const { data: myShares = [] } = useQuery({
+    queryKey: ["my_survey_shares", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase.from("client_survey_shares").select("survey_id").eq("shared_with_user_id", user!.id);
+      return (data || []).map((s: any) => s.survey_id);
+    },
+  });
+
+  // Fetch all shares for display
+  const { data: allShares = [] } = useQuery({
+    queryKey: ["all_survey_shares"],
+    enabled: isAdminOrRmq,
+    queryFn: async () => {
+      const { data } = await supabase.from("client_survey_shares").select("survey_id, shared_with_user_id, profiles:shared_with_user_id(nom, prenom)");
+      return data || [];
+    },
+  });
+
   // Fetch client_surveys
   const { data: clientSurveys = [] } = useQuery({
     queryKey: ["client_surveys"],
@@ -61,6 +111,11 @@ export default function SatisfactionClient() {
       return data;
     },
   });
+
+  // Filter surveys for responsable_processus
+  const visibleSurveys = isAdminOrRmq
+    ? clientSurveys
+    : clientSurveys.filter((s: any) => myShares.includes(s.id));
 
   // Fetch old surveys (historique)
   const { data: surveys = [] } = useQuery({
@@ -79,9 +134,7 @@ export default function SatisfactionClient() {
       const { data, error } = await supabase.from("client_survey_responses").select("survey_id");
       if (error) throw error;
       const counts: Record<string, number> = {};
-      (data || []).forEach((r: any) => {
-        counts[r.survey_id] = (counts[r.survey_id] || 0) + 1;
-      });
+      (data || []).forEach((r: any) => { counts[r.survey_id] = (counts[r.survey_id] || 0) + 1; });
       return counts;
     },
   });
@@ -92,10 +145,7 @@ export default function SatisfactionClient() {
       const { error } = await supabase.from("client_surveys").update({ status: newStatus }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["client_surveys"] });
-      toast({ title: "Statut mis à jour" });
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client_surveys"] }); toast({ title: "Statut mis à jour" }); },
   });
 
   const deleteSurvey = useMutation({
@@ -103,10 +153,7 @@ export default function SatisfactionClient() {
       const { error } = await supabase.from("client_surveys").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["client_surveys"] });
-      toast({ title: "Sondage supprimé" });
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client_surveys"] }); toast({ title: "Sondage supprimé" }); },
   });
 
   const openEditSurvey = async (s: any) => {
@@ -116,16 +163,17 @@ export default function SatisfactionClient() {
     setBuilderOpen(true);
   };
 
-  const openNewSurvey = () => {
-    setEditingSurvey(null);
-    setEditingQuestions([]);
-    setBuilderOpen(true);
-  };
+  const openNewSurvey = () => { setEditingSurvey(null); setEditingQuestions([]); setBuilderOpen(true); };
 
   const copyLink = (token: string) => {
     const url = `${window.location.origin}/survey/${token}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Lien copié !", description: url });
+  };
+
+  // Get shared users for a survey
+  const getSharedUsers = (surveyId: string) => {
+    return allShares.filter((s: any) => s.survey_id === surveyId);
   };
 
   // Historique CRUD
@@ -173,30 +221,46 @@ export default function SatisfactionClient() {
             </div>
           )}
 
-          {clientSurveys.length === 0 ? (
+          {visibleSurveys.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>Aucun sondage créé.</p>
+              <p>{isResponsableProcessus && !isAdminOrRmq ? "Aucun sondage partagé avec vous." : "Aucun sondage créé."}</p>
             </div>
           ) : (
             <div className="grid gap-4">
-              {clientSurveys.map((s: any) => {
+              {visibleSurveys.map((s: any) => {
                 const stCfg = surveyStatusConfig[s.status] || surveyStatusConfig.draft;
+                const typeLabel = surveyTypeLabels[s.type_sondage] || s.type_sondage;
+                const objLabel = objectifLabels[s.objectif] || s.objectif;
+                const shared = isAdminOrRmq ? getSharedUsers(s.id) : [];
                 return (
                   <Card key={s.id} className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-semibold truncate">{s.name}</h3>
                           <Badge className={stCfg.color}>{stCfg.label}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{typeLabel}</Badge>
                         </div>
                         {s.description && <p className="text-sm text-muted-foreground line-clamp-1">{s.description}</p>}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                          {objLabel && <span className="font-medium text-primary/80">🎯 {objLabel}</span>}
                           {s.department && <span>Département : {s.department}</span>}
                           {s.product_service && <span>Produit : {s.product_service}</span>}
                           <span>{(responseCounts as any)[s.id] || 0} réponse(s)</span>
                           <span>Créé le {format(new Date(s.created_at), "dd/MM/yyyy")}</span>
                         </div>
+                        {isAdminOrRmq && shared.length > 0 && (
+                          <div className="flex items-center gap-1 mt-2 flex-wrap">
+                            <Users className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">Partagé avec :</span>
+                            {shared.map((sh: any, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-[10px] py-0">
+                                {sh.profiles?.prenom} {sh.profiles?.nom}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {s.status === "active" && (
@@ -285,12 +349,7 @@ export default function SatisfactionClient() {
       </Tabs>
 
       {/* Survey Builder */}
-      <SurveyBuilder
-        open={builderOpen}
-        onOpenChange={setBuilderOpen}
-        editingSurvey={editingSurvey}
-        editingQuestions={editingQuestions}
-      />
+      <SurveyBuilder open={builderOpen} onOpenChange={setBuilderOpen} editingSurvey={editingSurvey} editingQuestions={editingQuestions} />
 
       {/* View historique */}
       <Dialog open={viewDialog} onOpenChange={setViewDialog}>
