@@ -17,6 +17,7 @@ import { exportPolitiqueQualitePdf, exportObjectifsQualitePdf } from "@/lib/expo
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import RichTextEditor from "@/components/RichTextEditor";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const statutPolicyColors: Record<string, string> = {
   brouillon: "bg-muted text-muted-foreground",

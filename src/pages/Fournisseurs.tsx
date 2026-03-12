@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const statutColors: Record<string, string> = {
   actif: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",

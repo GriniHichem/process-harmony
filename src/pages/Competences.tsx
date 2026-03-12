@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, GraduationCap, Award } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const niveauColors: Record<string, string> = {
   debutant: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",

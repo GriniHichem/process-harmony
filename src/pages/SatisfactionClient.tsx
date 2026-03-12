@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import SurveyBuilder from "@/components/SurveyBuilder";
 import SurveyResults from "@/components/SurveyResults";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 // --- Historique (ancien module) ---
 const statutColors: Record<string, string> = {

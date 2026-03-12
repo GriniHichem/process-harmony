@@ -18,6 +18,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import ParticipantSelector, { formatParticipantsDisplay, parseParticipants } from "@/components/ParticipantSelector";
 import { ReviewInputItemsEditor, ReviewInputItemsView } from "@/components/ReviewInputItems";
 import { ReviewDecisionsEditor, ReviewDecisionsView } from "@/components/ReviewDecisions";
+import { HelpTooltip } from "@/components/HelpTooltip";
 
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
