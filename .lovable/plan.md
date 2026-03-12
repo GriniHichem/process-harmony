@@ -1,109 +1,106 @@
 
 
-# Plan: Refonte complète du module Satisfaction Client
+# Plan d'implémentation — Application de gestion ISO 9001
 
-## Contexte
-Le module actuel `satisfaction_surveys` est une simple table CRUD. Il faut le transformer en un vrai système de sondages avec questionnaires dynamiques, lien public guest, collecte de réponses et analyse des résultats.
+## Phase 1 : Fondations
 
-## Architecture de la base de données
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-### Nouvelles tables (migration)
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-```text
-client_surveys (remplace satisfaction_surveys pour la partie sondage)
-├── id, name, description, department, product_service
-├── public_token (unique, pour lien public)
-├── status (draft/active/closed)
-├── created_at, created_by
+## Phase 2 : Modules principaux
 
-client_survey_questions
-├── id, survey_id (FK → client_surveys)
-├── question_text, question_type (satisfaction/text/image/yes_no)
-├── image_url (nullable, pour questions avec image)
-├── ordre (int)
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-client_survey_responses
-├── id, survey_id (FK → client_surveys)
-├── respondent_name (nullable), created_at
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-client_survey_answers
-├── id, response_id (FK → client_survey_responses)
-├── question_id (FK → client_survey_questions)
-├── answer_text, answer_value (int, nullable)
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
-client_survey_comments  (pour catégorisation des commentaires)
-├── id, response_id (FK), question_id (FK)
-├── comment_text, category (amelioration/plainte/suggestion)
-├── action_id (FK → actions, nullable)
-```
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
-### RLS
-- `client_surveys`, `client_survey_questions`: SELECT pour authenticated, INSERT/UPDATE/DELETE pour rmq/admin
-- `client_survey_responses`, `client_survey_answers`: INSERT pour **anon** (guest) + SELECT pour authenticated
-- On garde la table `satisfaction_surveys` existante intacte (partie historique manuelle)
+## Phase 3 : Modules qualité
 
-### Storage
-- Bucket `survey-images` (public) pour les images des questions
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-## Routes & Pages
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-1. **`/satisfaction-client`** — Page principale avec 3 onglets (Tabs):
-   - **Sondages**: Liste des sondages, création, gestion du lien public
-   - **Résultats**: Tableau des résultats par sondage, scores, pourcentages
-   - **Historique**: L'ancien tableau `satisfaction_surveys` (enquêtes manuelles)
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-2. **`/survey/:token`** — Page publique guest (hors `ProtectedRoute`):
-   - Logo entreprise, titre, questions, bouton Envoyer
-   - Message de remerciement après soumission
-   - Aucune authentification requise
+## Phase 4 : Modules audit & amélioration
 
-## Composants
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-### Page SatisfactionClient.tsx (refonte)
-- 3 onglets via `<Tabs>`
-- Onglet "Sondages": CRUD sondages + builder de questions
-- Onglet "Résultats": sélection sondage → stats (nb réponses, score moyen, répartition satisfaction, commentaires catégorisés)
-- Onglet "Historique": l'ancien tableau existant
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-### SurveyBuilder (nouveau composant)
-- Dialog pour créer/éditer un sondage
-- Section questions: ajout/réordonnement/suppression
-- Types: satisfaction (5 niveaux), texte, image, oui/non
-- Upload image via storage bucket
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
 
-### SurveyPublicPage (nouvelle page)
-- Route `/survey/:token` — publique, pas de layout app
-- Fetch sondage par `public_token`
-- Formulaire simple, responsive
-- Soumission → message merci
+## Phase 5 : Tableaux de bord & Reporting
 
-### SurveyResults (nouveau composant)
-- Sélection du sondage
-- KPIs: nb réponses, taux de satisfaction calculé automatiquement
-- Répartition par niveau (Très satisfait → Très insatisfait) en pourcentage
-- Liste des commentaires avec catégorisation (amélioration/plainte/suggestion)
-- Bouton "Créer action d'amélioration" depuis un commentaire → insert dans table `actions`
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
 
-## Modifications App.tsx
-- Ajouter route publique `/survey/:token` → `SurveyPublicPage` (sans `ProtectedRoute`)
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
 
-## Edge function
-- Pas nécessaire. Les réponses guest passent par RLS anon sur `client_survey_responses` et `client_survey_answers`.
+## Contrôle d'accès (transversal)
 
-## Calcul du taux de satisfaction
-```
-Taux = (nb "très satisfait" + nb "satisfait") / total réponses × 100
-```
-Calculé côté client à partir des `answer_value` (5=très satisfait, 4=satisfait, 3=neutre, 2=insatisfait, 1=très insatisfait).
-
-## Fichiers impactés
-
-| Fichier | Action |
-|---------|--------|
-| Migration SQL | Créer 5 tables + RLS + bucket |
-| `src/pages/SatisfactionClient.tsx` | Refonte complète avec 3 onglets |
-| `src/components/SurveyBuilder.tsx` | Nouveau — création sondage + questions |
-| `src/components/SurveyResults.tsx` | Nouveau — résultats + commentaires |
-| `src/pages/SurveyPublicPage.tsx` | Nouveau — formulaire guest |
-| `src/App.tsx` | Ajouter route publique `/survey/:token` |
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
 
