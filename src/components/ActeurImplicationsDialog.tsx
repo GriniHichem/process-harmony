@@ -11,6 +11,8 @@ interface Props {
   acteurLabel: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** If set, only show implications related to these process IDs */
+  allowedProcessIds?: string[] | null;
 }
 
 interface ImplicationItem {
@@ -25,7 +27,7 @@ interface SectionData {
   items: ImplicationItem[];
 }
 
-export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenChange }: Props) {
+export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenChange, allowedProcessIds }: Props) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [sections, setSections] = useState<SectionData[]>([]);
@@ -49,6 +51,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
       { data: riskActions },
       { data: riskMoyens },
       { data: ctxActions },
+      { data: ctxIssueProcesses },
     ] = await Promise.all([
       supabase.from("processes").select("id, nom"),
       supabase.from("indicators").select("id, nom, process_id"),
@@ -60,6 +63,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
       supabase.from("risk_actions").select("id, description, risk_id").eq("responsable", acteurId),
       supabase.from("risk_moyens").select("id, description, risk_id").eq("responsable", acteurId),
       supabase.from("context_issue_actions").select("id, description, context_issue_id").eq("responsable", acteurId),
+      supabase.from("context_issue_processes").select("context_issue_id, process_id"),
     ]);
 
     const procMap = Object.fromEntries((processes ?? []).map(p => [p.id, p.nom]));
@@ -67,14 +71,22 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     const riskMap = Object.fromEntries((risks ?? []).map(r => [r.id, r]));
     const issueMap = Object.fromEntries((issues ?? []).map(i => [i.id, i]));
 
+    // Helper: check if a process ID is allowed
+    const isAllowed = (processId: string | null | undefined) => {
+      if (!allowedProcessIds) return true; // no filter
+      return processId ? allowedProcessIds.includes(processId) : false;
+    };
+
     const result: SectionData[] = [];
 
-    // 1. Process tasks
-    const taskItems: ImplicationItem[] = (tasks ?? []).map(t => ({
-      label: t.description || "Activité",
-      context: procMap[t.process_id] || "Processus",
-      navigateTo: `/processus/${t.process_id}`,
-    }));
+    // 1. Process tasks — filter by allowed processes
+    const taskItems: ImplicationItem[] = (tasks ?? [])
+      .filter(t => isAllowed(t.process_id))
+      .map(t => ({
+        label: t.description || "Activité",
+        context: procMap[t.process_id] || "Processus",
+        navigateTo: `/processus/${t.process_id}`,
+      }));
     if (taskItems.length > 0) {
       result.push({ title: "Activités processus", icon: <ClipboardList className="h-4 w-4" />, items: taskItems });
     }
@@ -83,6 +95,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     const indItems: ImplicationItem[] = [];
     for (const a of (indActions ?? [])) {
       const ind = indMap[a.indicator_id];
+      if (!isAllowed(ind?.process_id)) continue;
       const procName = ind ? procMap[ind.process_id] : "";
       indItems.push({
         label: `Action: ${a.description || "—"}`,
@@ -92,6 +105,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     }
     for (const m of (indMoyens ?? [])) {
       const ind = indMap[m.indicator_id];
+      if (!isAllowed(ind?.process_id)) continue;
       const procName = ind ? procMap[ind.process_id] : "";
       indItems.push({
         label: `Moyen: ${m.description || "—"}`,
@@ -107,6 +121,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     const riskItems: ImplicationItem[] = [];
     for (const a of (riskActions ?? [])) {
       const r = riskMap[a.risk_id];
+      if (!isAllowed(r?.process_id)) continue;
       const procName = r ? procMap[r.process_id] : "";
       riskItems.push({
         label: `Action: ${a.description || "—"}`,
@@ -116,6 +131,7 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
     }
     for (const m of (riskMoyens ?? [])) {
       const r = riskMap[m.risk_id];
+      if (!isAllowed(r?.process_id)) continue;
       const procName = r ? procMap[r.process_id] : "";
       riskItems.push({
         label: `Moyen: ${m.description || "—"}`,
@@ -127,15 +143,28 @@ export function ActeurImplicationsDialog({ acteurId, acteurLabel, open, onOpenCh
       result.push({ title: "Risques & Opportunités (Actions & Moyens)", icon: <AlertTriangle className="h-4 w-4" />, items: riskItems });
     }
 
-    // 4. Context issue actions
-    const ctxItems: ImplicationItem[] = (ctxActions ?? []).map(a => {
-      const issue = issueMap[a.context_issue_id];
-      return {
-        label: `Action: ${a.description || "—"}`,
-        context: issue?.intitule || "Enjeu",
-        navigateTo: `/enjeux-contexte?issue=${a.context_issue_id}`,
-      };
-    });
+    // 4. Context issue actions — filter by allowed processes via context_issue_processes junction
+    const ctxIssueToProcesses = new Map<string, string[]>();
+    for (const cip of (ctxIssueProcesses ?? [])) {
+      const arr = ctxIssueToProcesses.get(cip.context_issue_id) || [];
+      arr.push(cip.process_id);
+      ctxIssueToProcesses.set(cip.context_issue_id, arr);
+    }
+    const isCtxIssueAllowed = (issueId: string) => {
+      if (!allowedProcessIds) return true;
+      const linkedProcs = ctxIssueToProcesses.get(issueId) || [];
+      return linkedProcs.some(pid => allowedProcessIds.includes(pid));
+    };
+    const ctxItems: ImplicationItem[] = (ctxActions ?? [])
+      .filter(a => isCtxIssueAllowed(a.context_issue_id))
+      .map(a => {
+        const issue = issueMap[a.context_issue_id];
+        return {
+          label: `Action: ${a.description || "—"}`,
+          context: issue?.intitule || "Enjeu",
+          navigateTo: `/enjeux-contexte?issue=${a.context_issue_id}`,
+        };
+      });
     if (ctxItems.length > 0) {
       result.push({ title: "Enjeux du contexte (Actions)", icon: <Globe className="h-4 w-4" />, items: ctxItems });
     }
