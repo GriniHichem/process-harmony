@@ -109,7 +109,7 @@ const NONE: ModulePermissions = { can_read: false, can_read_detail: false, can_e
  * Default permissions per role per module.
  * Admin is always full — handled separately in hasPermission().
  */
-export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin">, Record<AppModule, ModulePermissions>> = {
+export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin">, Record<AppModule, ModulePermissions>> = {
   rmq: {
     processus: ALL_TRUE,
     cartographie: ALL_TRUE,
