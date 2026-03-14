@@ -34,6 +34,7 @@ interface LayoutGateway {
 }
 interface LayoutEdge {
   fromX: number; fromY: number; toX: number; toY: number; label?: string; dashed?: boolean;
+  isDefault?: boolean; flowType?: TaskFlowType;
 }
 
 // ─── Constants ───
