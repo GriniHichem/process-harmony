@@ -106,6 +106,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
     name: "", description: "", department: "", product_service: "",
     type_sondage: "satisfaction_globale", objectif: "mesurer_satisfaction",
     type_sondage_autre: "", objectif_autre: "",
+    mode_sondage: "libre",
   });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [uploading, setUploading] = useState<string | null>(null);
