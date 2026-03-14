@@ -96,9 +96,9 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
 
   let curY = 80;
 
-  // Process inputs box at top — dynamic height
+  // Process inputs box at top — dynamic height (with external/internal sections)
   const processInputsY = curY;
-  const realInputBoxH = PROCESS_IO_BOX_H + Math.max(0, processEntrees.length) * 20 + 12;
+  const realInputBoxH = PROCESS_IO_BOX_H + Math.max(0, processEntrees.length) * 22 + 40;
   if (processEntrees.length > 0) {
     curY += realInputBoxH + 60;
   }
