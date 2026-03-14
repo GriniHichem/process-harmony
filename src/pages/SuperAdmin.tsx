@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Settings, Upload, Eye, Save } from "lucide-react";
+import { Settings, Upload, Eye, Save, Mail } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 export default function SuperAdmin() {
@@ -112,8 +112,32 @@ export default function SuperAdmin() {
           </CardContent>
         </Card>
 
-        {/* Logos */}
+        {/* Email + Logos */}
         <div className="space-y-6">
+          {/* Configuration Email */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Configuration Email
+              </CardTitle>
+              <CardDescription>Adresse utilisée pour l'envoi des copies de sondage et notifications</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Email support / expéditeur</Label>
+                <Input
+                  type="email"
+                  placeholder="qualite@votreentreprise.com"
+                  value={form.support_email}
+                  onChange={(e) => handleChange("support_email", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Cet email sera utilisé comme adresse d'expédition pour les copies de réponses aux sondages et autres communications système.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
           {/* Logo Entreprise */}
           <Card>
             <CardHeader>
