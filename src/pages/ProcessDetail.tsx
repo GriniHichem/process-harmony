@@ -484,7 +484,7 @@ export default function ProcessDetail() {
         )}
       </Tabs>
 
-      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
         <DialogContent className={cn("flex flex-col transition-all duration-300", pdfFullscreen ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0" : "max-w-5xl w-[90vw] h-[85vh]")} aria-describedby={undefined}>
           <DialogHeader>
             <div className="flex items-center justify-between pr-8">
