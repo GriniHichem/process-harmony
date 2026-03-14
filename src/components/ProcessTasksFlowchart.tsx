@@ -251,45 +251,54 @@ function computeDataFlowLinks(nodes: LayoutNode[], processElements: ProcessEleme
 function FlowchartEdge({ edge }: { edge: LayoutEdge }) {
   const dx = edge.toX - edge.fromX;
   const dy = edge.toY - edge.fromY;
-  const midY = edge.fromY + dy * 0.5;
+  // Place the horizontal segment closer to the top (30%) so labels sit near the gateway
+  const midY = edge.fromY + dy * 0.3;
 
-  const path = Math.abs(dx) < 2
+  const isStraight = Math.abs(dx) < 2;
+  const path = isStraight
     ? `M${edge.fromX},${edge.fromY} L${edge.toX},${edge.toY}`
     : `M${edge.fromX},${edge.fromY} L${edge.fromX},${midY} L${edge.toX},${midY} L${edge.toX},${edge.toY}`;
 
   const badgeColors: Record<string, { bg: string; text: string }> = {
-    conditionnel: { bg: "hsl(38 92% 50% / 0.15)", text: "hsl(38 92% 35%)" },
-    inclusif: { bg: "hsl(280 60% 55% / 0.15)", text: "hsl(280 60% 40%)" },
+    conditionnel: { bg: "hsl(38 92% 50% / 0.18)", text: "hsl(38 92% 30%)" },
+    inclusif: { bg: "hsl(280 60% 55% / 0.18)", text: "hsl(280 60% 35%)" },
   };
   const defaultBadge = { bg: "hsl(var(--muted))", text: "hsl(var(--muted-foreground))" };
-
-  const labelX = Math.abs(dx) < 2 ? edge.fromX : (edge.fromX + edge.toX) / 2;
-  const labelY = Math.abs(dx) < 2 ? (edge.fromY + edge.toY) / 2 : midY;
-
   const colors = edge.flowType ? (badgeColors[edge.flowType] || defaultBadge) : defaultBadge;
 
-  // Dynamic badge width based on label length
+  // Dynamic badge sizing
   const labelText = edge.label || "";
-  const displayText = labelText.length > 24 ? labelText.slice(0, 23) + "…" : labelText;
-  const badgeW = Math.max(80, displayText.length * 7 + 24);
-  const badgeH = 26;
+  const displayText = labelText.length > 30 ? labelText.slice(0, 29) + "…" : labelText;
+  const badgeW = Math.max(90, displayText.length * 7.5 + 28);
+  const badgeH = 28;
+
+  // Position label on the horizontal segment, near the destination branch
+  const labelX = isStraight
+    ? edge.fromX + (dx > 0 ? 1 : -1) * 60
+    : edge.toX + (edge.fromX > edge.toX ? badgeW / 2 + 8 : -badgeW / 2 - 8);
+  const labelY = isStraight ? edge.fromY + 36 : midY;
 
   return (
     <g>
       <path d={path} fill="none" stroke="hsl(var(--border))" strokeWidth={2} markerEnd="url(#arrowhead)"
         strokeDasharray={edge.dashed ? "6 4" : undefined} />
-      {edge.isDefault && Math.abs(dx) >= 2 && (
-        <line x1={edge.fromX - 4} y1={edge.fromY + 12} x2={edge.fromX + 4} y2={edge.fromY + 20}
-          stroke="hsl(var(--border))" strokeWidth={2} />
+      {/* Default path slash indicator */}
+      {edge.isDefault && !isStraight && (
+        <line x1={edge.fromX - 5} y1={edge.fromY + 10} x2={edge.fromX + 5} y2={edge.fromY + 22}
+          stroke={colors.text} strokeWidth={2.5} />
       )}
       {edge.label && (
         <g>
-          <rect x={labelX - badgeW / 2} y={labelY - badgeH / 2} width={badgeW} height={badgeH} rx={badgeH / 2}
+          {/* Background with shadow effect */}
+          <rect x={labelX - badgeW / 2 - 1} y={labelY - badgeH / 2 + 1} width={badgeW + 2} height={badgeH}
+            rx={6} fill="hsl(var(--background))" opacity={0.5} />
+          <rect x={labelX - badgeW / 2} y={labelY - badgeH / 2} width={badgeW} height={badgeH}
+            rx={6}
             fill={edge.isDefault ? "hsl(var(--muted))" : colors.bg}
-            stroke={edge.isDefault ? "hsl(var(--border))" : colors.text} strokeWidth={0.5} opacity={0.95} />
+            stroke={edge.isDefault ? "hsl(var(--border))" : colors.text} strokeWidth={1} opacity={0.97} />
           <text x={labelX} y={labelY + 1} textAnchor="middle" dominantBaseline="middle"
             fill={edge.isDefault ? "hsl(var(--muted-foreground))" : colors.text}
-            fontSize="10" fontFamily="inherit" fontWeight={edge.isDefault ? "normal" : "600"}
+            fontSize="11" fontFamily="inherit" fontWeight={edge.isDefault ? "500" : "700"}
             fontStyle={edge.isDefault ? "italic" : "normal"}>
             {displayText}
           </text>
