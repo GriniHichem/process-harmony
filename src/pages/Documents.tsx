@@ -8,11 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, X, Eye, Download, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, FileText, Trash2, X, Eye, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
-import { cn } from "@/lib/utils";
-
+import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 
 type Doc = {
   id: string;
@@ -43,7 +42,6 @@ export default function Documents() {
 
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
   const [pdfViewerTitle, setPdfViewerTitle] = useState("");
-  const [pdfFullscreen, setPdfFullscreen] = useState(false);
 
   const canCreate = hasPermission("documents", "can_edit");
   const canDelete = hasPermission("documents", "can_delete");
@@ -51,7 +49,6 @@ export default function Documents() {
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const fetchDocs = async () => {
-    // Fetch processes (filtered for responsable_processus)
     let procQuery = supabase.from("processes").select("id, nom").order("nom");
     if (isOnlyResponsable && user) {
       procQuery = procQuery.eq("responsable_id", user.id);
@@ -60,14 +57,12 @@ export default function Documents() {
     setProcesses(procData ?? []);
     const myProcessIds = (procData ?? []).map(p => p.id);
 
-    // Fetch documents
     const { data: docsData } = await supabase
       .from("documents")
       .select("*")
       .eq("archive", false)
       .order("created_at", { ascending: false });
 
-    // Fetch all document-process associations
     const { data: dpData } = await supabase.from("document_processes").select("document_id, process_id");
 
     const dpMap = new Map<string, string[]>();
@@ -89,7 +84,6 @@ export default function Documents() {
       process_ids: dpMap.get(d.id) || [],
     }));
 
-    // Filter documents for responsable_processus: only docs linked to their processes
     if (isOnlyResponsable) {
       enriched = enriched.filter(d => d.process_ids.some(pid => myProcessIds.includes(pid)));
     }
@@ -111,7 +105,10 @@ export default function Documents() {
     if (file) {
       const path = `${Date.now()}_${file.name}`;
       const { error: uploadErr } = await supabase.storage.from("documents").upload(path, file);
-      if (uploadErr) { toast.error("Erreur upload: " + uploadErr.message); return; }
+      if (uploadErr) {
+        toast.error("Erreur upload : " + (uploadErr.message.includes("row-level security") ? "Vous n'avez pas les droits pour uploader des fichiers." : uploadErr.message));
+        return;
+      }
       chemin = path;
       nom_fichier = file.name;
       taille_fichier = file.size;
@@ -120,22 +117,26 @@ export default function Documents() {
     const { data: insertedDoc, error } = await supabase.from("documents").insert({
       titre: newDoc.titre,
       type_document: newDoc.type_document as any,
-      process_id: newDoc.selectedProcessIds[0] || null, // keep legacy column for compatibility
+      process_id: newDoc.selectedProcessIds[0] || null,
       chemin_fichier: chemin,
       nom_fichier,
       taille_fichier,
     }).select("id").single();
 
-    if (error || !insertedDoc) { toast.error(error?.message || "Erreur"); return; }
+    if (error || !insertedDoc) {
+      toast.error("Erreur création document : " + (error?.message.includes("row-level security") ? "Vous n'avez pas les droits pour créer des documents." : error?.message || "Erreur inconnue"));
+      return;
+    }
 
-    // Insert junction table rows
     if (newDoc.selectedProcessIds.length > 0) {
       const rows = newDoc.selectedProcessIds.map(pid => ({
         document_id: insertedDoc.id,
         process_id: pid,
       }));
       const { error: dpError } = await supabase.from("document_processes").insert(rows);
-      if (dpError) { toast.error("Erreur association processus: " + dpError.message); }
+      if (dpError) {
+        toast.error("Document créé mais erreur d'association processus : " + dpError.message);
+      }
     }
 
     toast.success("Document ajouté");
@@ -169,6 +170,15 @@ export default function Documents() {
     if (filterProcessId === "all") return true;
     return d.process_ids.includes(filterProcessId);
   });
+
+  const openPdfViewer = async (doc: Doc) => {
+    const { data, error } = await supabase.storage.from("documents").download(doc.chemin_fichier!);
+    if (error || !data) { toast.error("Impossible d'accéder au fichier"); return; }
+    const pdfBlob = data.type === "application/pdf" ? data : new Blob([data], { type: "application/pdf" });
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    setPdfViewerTitle(doc.titre);
+    setPdfViewerUrl(blobUrl);
+  };
 
   return (
     <div className="space-y-6">
@@ -273,18 +283,7 @@ export default function Documents() {
                 <div className="flex items-center gap-2">
                   {d.nom_fichier && <Badge variant="secondary">{d.nom_fichier}</Badge>}
                   {d.chemin_fichier && d.nom_fichier?.toLowerCase().endsWith(".pdf") && (
-                    <Button variant="ghost" size="icon"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const { data, error } = await supabase.storage.from("documents").download(d.chemin_fichier!);
-                        if (error || !data) { toast.error("Impossible d'accéder au fichier"); return; }
-                        const pdfBlob = data.type === "application/pdf" ? data : new Blob([data], { type: "application/pdf" });
-                        const blobUrl = URL.createObjectURL(pdfBlob);
-                        setPdfViewerTitle(d.titre);
-                        setPdfViewerUrl(blobUrl);
-                      }}
-                      title="Consulter le PDF"
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => openPdfViewer(d)} title="Consulter le PDF">
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
@@ -314,21 +313,18 @@ export default function Documents() {
         </div>
       )}
 
-      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl?.startsWith("blob:")) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
-        <DialogContent className={cn("flex flex-col transition-all duration-300", pdfFullscreen ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0" : "max-w-5xl w-[90vw] h-[85vh]")} aria-describedby={undefined}>
-          <DialogHeader>
-            <div className="flex items-center justify-between pr-8">
-              <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPdfFullscreen(f => !f)} title={pdfFullscreen ? "Réduire" : "Plein écran"}>
-                {pdfFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-            </div>
-          </DialogHeader>
-          <div className="flex-1 min-h-0">
-            {pdfViewerUrl && <iframe key={pdfViewerUrl} src={pdfViewerUrl} className="w-full h-full rounded-md border" title="PDF Viewer" />}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PdfViewerDialog
+        open={!!pdfViewerUrl}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (pdfViewerUrl?.startsWith("blob:")) URL.revokeObjectURL(pdfViewerUrl);
+            setPdfViewerUrl(null);
+            setPdfViewerTitle("");
+          }
+        }}
+        pdfUrl={pdfViewerUrl}
+        title={pdfViewerTitle}
+      />
     </div>
   );
 }
