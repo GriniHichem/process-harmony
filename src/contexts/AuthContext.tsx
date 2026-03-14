@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [customRoleIds, setCustomRoleIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [permOverrides, setPermOverrides] = useState<Record<string, ModulePermissions>>({});
   const [customRolePerms, setCustomRolePerms] = useState<CustomRolePermissions>({});
 
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
+      setDataLoaded(false);
       const [profileRes, rolesRes, permRes, userCustomRolesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
@@ -139,6 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
+    } finally {
+      setDataLoaded(true);
     }
   };
 
@@ -189,8 +193,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const priorityOrder: AppRole[] = ["super_admin", "admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
   const role = priorityOrder.find((r) => roles.includes(r)) ?? null;
 
+  const isFullyLoaded = !loading && (user ? dataLoaded : true);
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, customRoles, role, loading, hasRole, hasPermission, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, customRoles, role, loading: !isFullyLoaded, hasRole, hasPermission, signOut }}>
       {children}
     </AuthContext.Provider>
   );
