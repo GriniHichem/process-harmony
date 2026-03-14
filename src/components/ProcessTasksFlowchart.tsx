@@ -730,7 +730,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               {/* Gateways + incomplete warning badges */}
               {layout.gateways.map((gw, i) => {
                 const branchCount = !gw.isMerge ? tasks.filter(t => t.parent_code === gw.code).length : 2;
-                const isIncomplete = !gw.isMerge && (gw.type === "parallele" || gw.type === "inclusif") && branchCount < 2;
+                const isIncomplete = !gw.isMerge && (gw.type === "parallele" || gw.type === "inclusif" || gw.type === "conditionnel") && branchCount < 2;
+                const canAddBranch = canEdit && !gw.isMerge && ["conditionnel", "parallele", "inclusif"].includes(gw.type);
                 const cx = gw.x + gw.s / 2;
                 return (
                   <g key={i}>
@@ -741,6 +742,19 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                           className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 border border-amber-400 dark:border-amber-600 flex items-center justify-center cursor-help">
                           <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                         </div>
+                      </foreignObject>
+                    )}
+                    {/* Add branch button on gateway */}
+                    {canAddBranch && (
+                      <foreignObject x={cx + gw.s / 2 + (isIncomplete ? 28 : 4)} y={gw.y + gw.s / 2 - 14} width={28} height={28} className="overflow-visible" style={{ pointerEvents: "none" }}>
+                        <button
+                          className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg text-sm font-bold border-2 border-background hover:scale-110 transition-transform"
+                          style={{ pointerEvents: "auto" }}
+                          onClick={(e) => { e.stopPropagation(); openAddDialog(gw.code); }}
+                          title="Ajouter une branche"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
                       </foreignObject>
                     )}
                   </g>
