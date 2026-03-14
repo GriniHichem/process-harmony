@@ -321,10 +321,11 @@ export async function exportObjectifsQualitePdf() {
     non_atteint: objectives.filter((o: any) => o.statut === "non_atteint").length,
   };
 
+  const logos = await getAppLogos();
   let sn = 0;
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Objectifs Qualité</title><style>${HEADER_STYLE}</style></head><body>
 
-  ${buildHeader("Objectifs Qualité", "OBJ-QUA")}
+  ${buildHeader("Objectifs Qualité", "OBJ-QUA", undefined, logos.companyLogo, logos.brandLogo, logos.companyName)}
 
   <!-- Synthèse -->
   <div class="section">
