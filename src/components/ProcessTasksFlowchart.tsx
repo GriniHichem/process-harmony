@@ -628,8 +628,25 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               <circle cx={layout.startCx} cy={layout.startCy} r={CIRCLE_R} fill="hsl(var(--primary))" stroke="none" />
               <text x={layout.startCx} y={layout.startCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="10" fontWeight="600" fontFamily="inherit">Début</text>
 
-              {/* Gateways */}
-              {layout.gateways.map((gw, i) => <GatewayShape key={i} gw={gw} />)}
+              {/* Gateways + incomplete warning badges */}
+              {layout.gateways.map((gw, i) => {
+                const branchCount = !gw.isMerge ? tasks.filter(t => t.parent_code === gw.code).length : 2;
+                const isIncomplete = !gw.isMerge && (gw.type === "parallele" || gw.type === "inclusif") && branchCount < 2;
+                const cx = gw.x + gw.s / 2;
+                return (
+                  <g key={i}>
+                    <GatewayShape gw={gw} />
+                    {isIncomplete && (
+                      <foreignObject x={cx + gw.s / 2 + 2} y={gw.y - 4} width={24} height={24} className="overflow-visible">
+                        <div title={`${branchCount === 0 ? "Aucune" : "1 seule"} branche — au moins 2 requises`}
+                          className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 border border-amber-400 dark:border-amber-600 flex items-center justify-center cursor-help">
+                          <AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                        </div>
+                      </foreignObject>
+                    )}
+                  </g>
+                );
+              })}
 
               {/* Task nodes — 3-column enriched cards */}
               {layout.nodes.map(node => {

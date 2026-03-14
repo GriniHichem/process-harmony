@@ -132,6 +132,11 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
                   ))}
                 </SelectContent>
               </Select>
+              {(typeFlux === "parallele" || typeFlux === "inclusif") && (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <span>⚡</span> Ce type de flux nécessite au moins 2 branches pour être complet
+                </p>
+              )}
             </div>
           )}
 
