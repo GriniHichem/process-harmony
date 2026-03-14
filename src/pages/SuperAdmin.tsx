@@ -18,6 +18,9 @@ export default function SuperAdmin() {
   const [saving, setSaving] = useState(false);
   const [uploadingCompany, setUploadingCompany] = useState(false);
   const [uploadingBrand, setUploadingBrand] = useState(false);
+  const [smtpPassword, setSmtpPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const companyFileRef = useRef<HTMLInputElement>(null);
   const brandFileRef = useRef<HTMLInputElement>(null);
 
