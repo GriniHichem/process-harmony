@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, X } from "lucide-react";
+import { Plus, FileText, Trash2, X, Eye, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
 
@@ -20,6 +20,7 @@ type Doc = {
   version: number;
   archive: boolean;
   nom_fichier: string | null;
+  chemin_fichier: string | null;
   created_at: string;
   process_ids: string[];
 };
@@ -77,6 +78,7 @@ export default function Documents() {
       version: d.version,
       archive: d.archive,
       nom_fichier: d.nom_fichier,
+      chemin_fichier: d.chemin_fichier,
       created_at: d.created_at,
       process_ids: dpMap.get(d.id) || [],
     }));
@@ -264,6 +266,26 @@ export default function Documents() {
                 </div>
                 <div className="flex items-center gap-2">
                   {d.nom_fichier && <Badge variant="secondary">{d.nom_fichier}</Badge>}
+                  {d.chemin_fichier && (
+                    <Button variant="ghost" size="icon"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const { data } = await supabase.storage.from("documents").download(d.chemin_fichier!);
+                        if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
+                        const isPdf = d.nom_fichier?.toLowerCase().endsWith(".pdf");
+                        if (isPdf) {
+                          const blobUrl = URL.createObjectURL(data);
+                          window.open(blobUrl, "_blank");
+                        } else {
+                          const blobUrl = URL.createObjectURL(data);
+                          const a = document.createElement("a"); a.href = blobUrl; a.download = d.nom_fichier || "document"; a.click(); URL.revokeObjectURL(blobUrl);
+                        }
+                      }}
+                      title={d.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Ouvrir le PDF" : "Télécharger"}
+                    >
+                      {d.nom_fichier?.toLowerCase().endsWith(".pdf") ? <Eye className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                    </Button>
+                  )}
                   {canDelete && (
                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClick(d.id); }}>
                       <Trash2 className="h-4 w-4" />
