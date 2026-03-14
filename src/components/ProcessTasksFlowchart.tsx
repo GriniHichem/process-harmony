@@ -355,6 +355,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const [editorTask, setEditorTask] = useState<any>(null);
   const [editorIsBranch, setEditorIsBranch] = useState(false);
   const [branchParentCode, setBranchParentCode] = useState<string | null>(null);
+  const [editorParentFluxType, setEditorParentFluxType] = useState<TaskFlowType | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
