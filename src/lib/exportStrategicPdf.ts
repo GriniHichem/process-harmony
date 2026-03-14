@@ -435,10 +435,11 @@ export async function exportRevueDirectionPdf(reviewId: string) {
   const actionDecisions = (decisions || []).filter((d: any) => d.type === "action");
   const statutActionLabels: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", terminee: "Terminée" };
 
+  const logos = await getAppLogos();
   let sn = 0;
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Revue de Direction — ${esc(review.reference)}</title><style>${HEADER_STYLE}</style></head><body>
 
-  ${buildHeader("Revue de Direction", review.reference || "RD", "")}
+  ${buildHeader("Revue de Direction", review.reference || "RD", "", logos.companyLogo, logos.brandLogo, logos.companyName)}
 
   <!-- Informations générales -->
   <div class="section">
