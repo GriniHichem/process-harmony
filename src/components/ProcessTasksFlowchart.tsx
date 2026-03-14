@@ -949,19 +949,52 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               <circle cx={layout.endCx} cy={layout.endCy} r={CIRCLE_R - 5} fill="hsl(var(--primary))" />
               <text x={layout.endCx} y={layout.endCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="11" fontWeight="600" fontFamily="inherit">Fin</text>
 
-              {/* Process-level outputs */}
-              {layout.processSorties.length > 0 && (
-                <foreignObject x={layout.endCx - PROCESS_IO_BOX_W / 2} y={layout.processOutputsY} width={PROCESS_IO_BOX_W} height={PROCESS_IO_BOX_H + layout.processSorties.length * 20 + 12}>
-                  <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
-                    <div className="text-[11px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wider mb-1.5">Sorties du processus</div>
-                    <div className="flex flex-wrap justify-center gap-1.5">
-                      {layout.processSorties.map(e => (
-                        <span key={e.id} className="text-[10px] bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">{e.description}</span>
-                      ))}
+              {/* Process-level outputs — External vs Internal */}
+              {layout.processSorties.length > 0 && (() => {
+                const extSorties = layout.processSorties.filter(e => externalElementMap.has(e.id));
+                const intSorties = layout.processSorties.filter(e => !externalElementMap.has(e.id));
+                const outputBoxH = PROCESS_IO_BOX_H + layout.processSorties.length * 22 + 40;
+                return (
+                  <foreignObject x={layout.endCx - PROCESS_IO_BOX_W / 2} y={layout.processOutputsY} width={PROCESS_IO_BOX_W} height={outputBoxH}>
+                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                      <div className="text-[11px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wider mb-2 text-center">Sorties du processus</div>
+                      {extSorties.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Link2 className="h-3 w-3 text-green-600 dark:text-green-400" />
+                            <span className="text-[9px] font-semibold text-green-600 dark:text-green-400 uppercase">Externes (inter-processus)</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {extSorties.map(e => {
+                              const info = externalElementMap.get(e.id);
+                              const procLabel = info ? getProcessLabel(info.linkedProcessId) : "";
+                              return (
+                                <span key={e.id} className="text-[10px] bg-green-200 dark:bg-green-800/60 text-green-900 dark:text-green-100 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                  {e.description}
+                                  {procLabel && <span className="text-[9px] text-green-600 dark:text-green-300 font-mono">→ {procLabel}</span>}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {intSorties.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <FileText className="h-3 w-3 text-green-400 dark:text-green-500" />
+                            <span className="text-[9px] font-semibold text-green-400 dark:text-green-500 uppercase">Internes</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {intSorties.map(e => (
+                              <span key={e.id} className="text-[10px] bg-green-100/70 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">{e.description}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </foreignObject>
-              )}
+                  </foreignObject>
+                );
+              })()}
             </>
           )}
 
