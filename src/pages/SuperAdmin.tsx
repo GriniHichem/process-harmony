@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,13 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Settings, Upload, Eye, Save, Mail, Server, Eye as EyeIcon, EyeOff } from "lucide-react";
+import { Settings, Upload, Eye, Save, Mail, Server, Eye as EyeIcon, EyeOff, SendHorizonal } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 export default function SuperAdmin() {
-  const { settings, updateSetting, refreshSettings } = useAppSettings();
+  const { settings, loading, updateSetting, refreshSettings } = useAppSettings();
   const { user } = useAuth();
   const [form, setForm] = useState({ ...settings });
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+
+  // Sync form when settings finish loading from DB
+  useEffect(() => {
+    if (!loading) {
+      setForm({ ...settings });
+    }
+  }, [loading, settings]);
   const [saving, setSaving] = useState(false);
   const [uploadingCompany, setUploadingCompany] = useState(false);
   const [uploadingBrand, setUploadingBrand] = useState(false);
