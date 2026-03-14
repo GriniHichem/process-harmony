@@ -78,11 +78,12 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   journal: "Journal d'activité",
 };
 
-export type AppRole = "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
+export type AppRole = "super_admin" | "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
 
-export const ALL_ROLES: AppRole[] = ["admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
+export const ALL_ROLES: AppRole[] = ["super_admin", "admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
 
 export const ROLE_LABELS: Record<AppRole, string> = {
+  super_admin: "Super Admin",
   admin: "Admin",
   rmq: "RMQ",
   responsable_processus: "Resp. processus",
@@ -108,7 +109,7 @@ const NONE: ModulePermissions = { can_read: false, can_read_detail: false, can_e
  * Default permissions per role per module.
  * Admin is always full — handled separately in hasPermission().
  */
-export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin">, Record<AppModule, ModulePermissions>> = {
+export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin">, Record<AppModule, ModulePermissions>> = {
   rmq: {
     processus: ALL_TRUE,
     cartographie: ALL_TRUE,
@@ -247,7 +248,7 @@ export function getEffectivePermission(
   customRoleIds: string[] = [],
   customRolePerms: CustomRolePermissions = {}
 ): boolean {
-  if (roles.includes("admin")) return true;
+  if (roles.includes("super_admin") || roles.includes("admin")) return true;
 
   // Check standard roles
   const standardMatch = roles.some((role) => {
@@ -255,7 +256,7 @@ export function getEffectivePermission(
     const overrideKey = `${role}:${module}`;
     const override = dbOverrides[overrideKey];
     if (override) return override[level];
-    const defaults = DEFAULT_PERMISSIONS[role as Exclude<AppRole, "admin">];
+    const defaults = DEFAULT_PERMISSIONS[role as Exclude<AppRole, "admin" | "super_admin">];
     if (!defaults) return false;
     return defaults[module]?.[level] ?? false;
   });

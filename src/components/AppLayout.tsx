@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { HelpModeProvider, useHelpMode } from "@/contexts/HelpModeContext";
 import { Info, ScrollText, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import logo from "@/assets/logo.jpg";
+import defaultLogo from "@/assets/logo.jpg";
 
 function HeaderHelpButton() {
   const { helpMode, toggleHelpMode } = useHelpMode();
@@ -32,6 +33,7 @@ function HeaderHelpButton() {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, hasRole } = useAuth();
+  const { settings } = useAppSettings();
   const [infoOpen, setInfoOpen] = useState(false);
   const [accessible, setAccessible] = useState(() => localStorage.getItem("qprocess-accessible") === "true");
   const navigate = useNavigate();
@@ -41,7 +43,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     localStorage.setItem("qprocess-accessible", String(accessible));
   }, [accessible]);
 
-  const showLogs = hasRole("admin") || hasRole("rmq");
+  const showLogs = hasRole("admin") || hasRole("rmq") || hasRole("super_admin");
+  const logoSrc = settings.logo_url || defaultLogo;
 
   return (
     <HelpModeProvider>
@@ -52,10 +55,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <header className="h-14 flex items-center justify-between border-b bg-card px-4">
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
-                <img src={logo} alt="AMOUR" className="h-7 object-contain" />
+                <img src={logoSrc} alt={settings.company_name} className="h-7 object-contain" />
                 <div className="flex items-center gap-1.5">
                   <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    Q-Process
+                    {settings.app_name}
                   </span>
                   <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                     SMQ
@@ -115,21 +118,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <DialogContent className="max-w-sm text-center">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Q-Process
+                {settings.app_name}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 py-2">
-              <p className="text-sm font-medium text-foreground">v1.01</p>
+              <p className="text-sm font-medium text-foreground">{settings.app_version}</p>
               <p className="text-xs text-muted-foreground italic">
-                Système intégré ISO 9001 et gestion par processus
+                {settings.app_description}
               </p>
               <div className="h-px bg-border" />
               <p className="text-xs text-muted-foreground">
-                © 2026 Groupe AMOUR. Tous droits réservés.
+                {settings.info_copyright}
               </p>
               <p className="text-xs text-muted-foreground">
                 Cette application a été développée par<br />
-                <span className="font-semibold text-foreground">H. GRINI & F. SERRADJ</span> — SI TEAM
+                <span className="font-semibold text-foreground">{settings.info_credits}</span>
               </p>
             </div>
           </DialogContent>
