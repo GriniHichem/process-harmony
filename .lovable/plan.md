@@ -1,93 +1,106 @@
 
 
-# Logigramme Vertical 360° — Flux de données explicite
+# Plan d'implémentation — Application de gestion ISO 9001
 
-## Problème
+## Phase 1 : Fondations
 
-Actuellement, les entrées/sorties sont affichées comme de simples compteurs (badges) sur chaque carte. La logique métier **"la sortie de l'activité N est l'entrée de l'activité N+1"** n'est pas du tout visible. Le logigramme doit être **auto-explicatif** : on doit voir le flux de données circuler entre les activités.
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-## Nouveau design vertical avec flux de données explicite
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-```text
-            ┌─────────────────┐
-            │  Données entrée  │  ← Process-level inputs (DE-1, DE-2...)
-            │  processus       │
-            └────────┬────────┘
-                     │
-                  ● Début
-                     │
-     ┌───────┐  ┌─────────────────┐  ┌───────┐
-     │ DE-1  │──│  [1] Activité 1  │──│ DS-1  │
-     │ DE-2  │──│  Vérifier docs   │──│ DS-2  │
-     └───────┘  │  👤 Resp. Qual.  │  └───┬───┘
-                └────────┬────────┘      │
-                         │               │
-                    ─ ─ ─│─ ─ ─ ─ ─ ─ ─ ┘
-                    │    │  DS-1 → DE de Act.2
-                    ▼    ▼
-     ┌───────┐  ┌─────────────────┐  ┌───────┐
-     │ DS-1  │──│  [2] Activité 2  │──│ DS-3  │
-     │       │  │  Analyser        │──│ DS-4  │
-     └───────┘  │  👤 Dir. Prod.   │  └───────┘
-                └────────┬────────┘
-                         │
-                      ● Fin
-                         │
-            ┌─────────────────┐
-            │  Données sortie  │  ← Process-level outputs
-            │  processus       │
-            └─────────────────┘
-```
+## Phase 2 : Modules principaux
 
-## Principe clé : traçabilité du flux de données
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-Les sorties (DS) de l'activité précédente qui sont aussi des entrées (DE) de l'activité suivante seront représentées par des **lignes de liaison de données** (trait pointillé coloré) qui descendent d'un noeud à l'autre. Cela rend le flux **explicite et traçable**.
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-## Architecture du noeud enrichi (3 colonnes)
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
-Chaque carte (~400px large, ~130px haut) :
-- **Colonne gauche** : pastilles bleues avec les noms complets des entrées
-- **Colonne centre** : code badge + description + bandeau acteur coloré
-- **Colonne droite** : pastilles vertes avec les noms complets des sorties
-- **Bandeau acteur** : couleur unique par responsable pour identification visuelle instantanée
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
-## Changements dans `ProcessTasksFlowchart.tsx`
+## Phase 3 : Modules qualité
 
-### 1. Layout engine → direction verticale
-- Axe principal = Y (top→bottom), espacement `V_GAP = 120`
-- Branches gateway s'étalent horizontalement
-- Noeuds élargis : `CARD_W = 400, CARD_H = 130`
-- Start/End circles en haut/bas
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-### 2. Rendu des noeuds — 3 colonnes visibles
-- `foreignObject` large avec structure flex :
-  - Left col : liste des entrées (pills bleues, texte complet)
-  - Center col : code + description + acteur
-  - Right col : liste des sorties (pills vertes, texte complet)
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-### 3. Flux de données inter-activités
-- Après le layout, analyser les paires d'activités consécutives
-- Si une sortie (code DS-x) d'Act.N apparaît comme entrée d'Act.N+1 → dessiner un trait pointillé orange reliant les deux pastilles
-- Les données qui ne sont PAS partagées entre activités restent affichées normalement sans liaison
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-### 4. Process-level I/O
-- En haut du diagramme : colonne des entrées globales du processus (éléments `donnee_entree`)
-- En bas : colonne des sorties globales (éléments `donnee_sortie`)
+## Phase 4 : Modules audit & amélioration
 
-### 5. Palette acteurs
-- Chaque responsable unique reçoit une couleur de la palette (8 couleurs prédéfinies)
-- Le bandeau en bas de la carte utilise cette couleur
-- Légende en bas du canvas
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-### 6. Gateways verticaux
-- Le losange est centré sur l'axe vertical
-- Les branches partent horizontalement (gauche/droite) puis descendent vers les cartes
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-## Fichier modifié
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
 
-| Fichier | Action |
-|---------|--------|
-| `src/components/ProcessTasksFlowchart.tsx` | **Refonte complète** — layout vertical, noeuds 3 colonnes, flux de données explicites, palette acteurs |
+## Phase 5 : Tableaux de bord & Reporting
 
-Aucun autre fichier modifié.
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
+
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
+
+## Contrôle d'accès (transversal)
+
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
 
