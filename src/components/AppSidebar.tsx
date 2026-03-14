@@ -6,6 +6,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 import type { AppModule } from "@/lib/defaultPermissions";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import {
