@@ -276,11 +276,10 @@ export default function Documents() {
                     <Button variant="ghost" size="icon"
                       onClick={async (e) => {
                         e.stopPropagation();
-                        const { data } = await supabase.storage.from("documents").download(d.chemin_fichier!);
-                        if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
-                        const blobUrl = URL.createObjectURL(data);
+                        const { data, error } = await supabase.storage.from("documents").createSignedUrl(d.chemin_fichier!, 3600);
+                        if (error || !data?.signedUrl) { toast.error("Impossible d'accéder au fichier"); return; }
                         setPdfViewerTitle(d.titre);
-                        setPdfViewerUrl(blobUrl);
+                        setPdfViewerUrl(data.signedUrl);
                       }}
                       title="Consulter le PDF"
                     >
