@@ -67,7 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [permOverrides, setPermOverrides] = useState<Record<string, ModulePermissions>>({});
   const [customRolePerms, setCustomRolePerms] = useState<CustomRolePermissions>({});
 
-  const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
+  const hasRole = useCallback((role: AppRole) => {
+    if (role === "admin" && roles.includes("super_admin")) return true;
+    return roles.includes(role);
+  }, [roles]);
 
   const hasPermission = useCallback(
     (module: AppModule, level: PermissionLevel): boolean => {
