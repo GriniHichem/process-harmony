@@ -1,91 +1,106 @@
 
 
-# Refonte UI/UX du Logigramme — Interface Puissante et Professionnelle
+# Plan d'implémentation — Application de gestion ISO 9001
 
-## Problemes actuels identifies (code analyse)
+## Phase 1 : Fondations
 
-1. **Chevauchement Debut/Entrees** : `curY` utilise un offset fixe `PROCESS_IO_BOX_H + 40` (ligne 91) sans tenir compte du nombre reel d'entrees. Avec 4+ entrees, le cercle Debut masque le texte.
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-2. **Labels de condition coupes** : Largeur fixe 72px, troncature a 12 chars (ligne 281-288). "SI document conforme" devient "SI document…" — illisible.
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-3. **Bulle de decision mal placee** : Positionnee sous le losange (ligne 314, `y = cy + half + 4`) — entre en conflit avec les edges sortants.
+## Phase 2 : Modules principaux
 
-4. **Polices trop petites** : 8px-9px pour les I/O, 10px pour les codes, 11px pour les descriptions. Difficile a lire meme a zoom 100%.
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-5. **Cards trop rigides** : `CARD_H = 140` fixe, contenu coupe si description longue ou beaucoup d'I/O.
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-6. **"Sinon" invisible** : Aucune indication dans l'editeur qu'il faut laisser le champ vide pour creer le chemin par defaut.
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
-7. **Toolbar basique** : Pas de minimap, pas d'export, pas de recherche.
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
-## Plan de correction complet
+## Phase 3 : Modules qualité
 
-### A. Layout dynamique (`computeLayout`)
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-- **Hauteur des cards dynamique** : Calculer `CARD_H` par noeud en fonction du nombre d'entrees/sorties et de la longueur de description (min 140, max 260).
-- **Espacement entrees/debut** : `curY += realInputBoxHeight + 60` au lieu de `PROCESS_IO_BOX_H + 40`.
-- **Largeur process I/O** : Augmenter `PROCESS_IO_BOX_W` de 280 a 360 pour accueillir les descriptions longues.
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-### B. Labels de condition ameliores (`FlowchartEdge`)
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-- **Largeur dynamique** : `badgeW = Math.max(80, label.length * 7 + 24)`.
-- **Troncature a 24 chars** au lieu de 12.
-- **Hauteur badge** : 24px au lieu de 20px.
-- **Police** : 10px au lieu de 9px.
-- **Position** : Badge centre sur le segment horizontal de l'edge orthogonal.
+## Phase 4 : Modules audit & amélioration
 
-### C. Bulle de decision repositionnee (`GatewayShape`)
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-- Deplacer la bulle a **gauche** du losange : `x = cx - half - bubbleW - 8`.
-- Centrer verticalement par rapport au gateway.
-- Augmenter la largeur max a 220px et la troncature a 35 chars.
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-### D. Polices et lisibilite des cards
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
 
-- Entrees/Sorties : de 9px a **10px**.
-- Labels "Entrees"/"Sorties" : de 8px a **9px**.
-- Code : de 10px a **11px**.
-- Description : de 11px a **12px**.
-- Acteur banner : de 10px a **11px**.
-- Colonnes I/O : de 100px a **110px**, card width de 420 a **440px**.
+## Phase 5 : Tableaux de bord & Reporting
 
-### E. Hint "Sinon" plus visible (`FlowchartNodeEditor`)
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
 
-- Remplacer le simple texte italique 10px par un encadre colore :
-  ```
-  <div className="bg-amber-50 border border-amber-200 rounded-md p-2 flex items-center gap-2">
-    <Info className="h-4 w-4 text-amber-600" />
-    <span className="text-xs text-amber-800">
-      Laissez vide pour creer le chemin par defaut (SINON)
-    </span>
-  </div>
-  ```
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
 
-### F. Toolbar enrichie
+## Contrôle d'accès (transversal)
 
-- Ajouter bouton **"Fit to view"** (calcul auto du zoom/pan pour tout afficher).
-- Ajouter indicateur du **nombre d'activites** dans la toolbar.
-- Separateur visuel entre groupes de boutons.
-
-### G. Minimap (coin inferieur droit)
-
-- Petit rectangle 160x100px montrant une vue miniature du diagramme entier.
-- Rectangle rouge indiquant le viewport actuel.
-- Cliquable pour naviguer rapidement.
-
-## Fichiers modifies
-
-| Fichier | Changements |
-|---------|------------|
-| `ProcessTasksFlowchart.tsx` | Layout dynamique, edge labels, bulle decision, polices, toolbar, minimap, fit-to-view |
-| `FlowchartNodeEditor.tsx` | Hint Sinon visible |
-
-## Risques verifies
-
-| Risque | Mitigation |
-|--------|-----------|
-| Card hauteur dynamique casse le layout des branches | Min/max clamp (140-260px), recalcul correct dans `layoutSequence` |
-| Badge edge depasse le viewBox | `minX/maxX` deja calcule a +80px de marge |
-| Minimap performance | Rendu simplifie (rectangles + lignes, pas de foreignObject) |
-| Bulle gauche hors viewBox si gateway a gauche | `minX` calcul prend en compte `cx - bubbleW` |
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
 

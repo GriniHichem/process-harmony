@@ -147,9 +147,12 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
               <Input value={condition} onChange={e => setCondition(e.target.value)}
                 placeholder={parentFluxType === "inclusif" ? "Ex: SI urgent, SI critique..." : "Ex: SI conforme, SINON..."} />
               {parentFluxType === "conditionnel" && (
-                <p className="text-[10px] text-muted-foreground italic">
-                  Laissez vide pour le flux par défaut (SINON)
-                </p>
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-md p-2 flex items-center gap-2">
+                  <span className="text-amber-600 dark:text-amber-400 text-sm shrink-0">💡</span>
+                  <span className="text-xs text-amber-800 dark:text-amber-300">
+                    Laissez vide pour créer le chemin par défaut (<strong>SINON</strong>)
+                  </span>
+                </div>
               )}
             </div>
           )}
