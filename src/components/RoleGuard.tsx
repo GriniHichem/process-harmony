@@ -17,7 +17,15 @@ interface RoleGuardProps {
 }
 
 export function RoleGuard({ children, allowedRoles, blockedOnlyRoles, requiredModule, requiredLevel = "can_read", redirectTo }: RoleGuardProps) {
-  const { roles, hasPermission } = useAuth();
+  const { roles, hasPermission, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   let allowed = true;
 
