@@ -174,22 +174,39 @@ export default function SuperAdmin() {
                 Aperçu
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border bg-card p-6 text-center space-y-3">
-                <div className="flex items-center justify-center gap-4">
-                  <img src={companyLogo} alt="Logo entreprise" className="h-10 object-contain" />
-                  <img src={brandLogo} alt="Logo marque" className="h-10 object-contain" />
+            <CardContent className="space-y-4">
+              {/* Header bar preview */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Barre haute</p>
+                <div className="rounded-lg border bg-card p-3 flex items-center gap-3">
+                  <img src={companyLogo} alt="Logo entreprise" className="h-7 object-contain" />
+                  {form.brand_logo_url && (
+                    <img src={brandLogo} alt="Logo marque" className="h-7 object-contain" />
+                  )}
+                  <span className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    {form.app_name}
+                  </span>
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                    SMQ
+                  </span>
                 </div>
-                <p className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {form.app_name}
-                </p>
-                <p className="text-sm font-medium text-foreground">{form.app_version}</p>
-                <p className="text-xs text-muted-foreground italic">{form.app_description}</p>
-                <div className="h-px bg-border" />
-                <p className="text-xs text-muted-foreground">{form.info_copyright}</p>
-                <p className="text-xs text-muted-foreground">
-                  Développé par <span className="font-semibold text-foreground">{form.info_credits}</span>
-                </p>
+              </div>
+              {/* Info dialog preview */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Dialogue Info</p>
+                <div className="rounded-lg border bg-card p-6 text-center space-y-3">
+                  <p className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    {form.app_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{form.company_name}</p>
+                  <p className="text-sm font-medium text-foreground">{form.app_version}</p>
+                  <p className="text-xs text-muted-foreground italic">{form.app_description}</p>
+                  <div className="h-px bg-border" />
+                  <p className="text-xs text-muted-foreground">{form.info_copyright}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Développé par <span className="font-semibold text-foreground">{form.info_credits}</span>
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
