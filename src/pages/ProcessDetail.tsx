@@ -431,7 +431,6 @@ export default function ProcessDetail() {
                                     </Button>
                                   )}
                                 </div>
-                                </div>
                               </div>
                             );
                           })}
