@@ -1,83 +1,106 @@
 
 
-# Analyse complète — Conditions sur les gateways
+# Plan d'implémentation — Application de gestion ISO 9001
 
-## Problemes identifies dans le code actuel
+## Phase 1 : Fondations
 
-### 1. `FlowchartEdge` (ligne 256) — Labels mal positionnés
-Le label de condition est placé avec `textAnchor="end"` à `Math.min(fromX, toX) - 8`. Sur un edge qui va du centre du gateway vers une branche décalée horizontalement, le label finit à gauche du diagramme, souvent invisible ou superposé.
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-### 2. `GatewayShape` (ligne 280-284) — Description mal utilisée
-La description de la tâche-gateway (ex: "Vérifier conformité") s'affiche à droite du losange comme texte brut. Pour XOR/OR, cela devrait être une **question de décision** stylée. Pour AND, pas de question nécessaire.
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-### 3. `FlowchartNodeEditor` (ligne 138) — Condition visible pour AND
-Le champ "Condition" s'affiche pour **toutes** les branches (`isBranch || task?.parent_code`), y compris AND. En BPMN, les branches AND s'exécutent **toutes** — pas de condition.
+## Phase 2 : Modules principaux
 
-### 4. Pas de flux par défaut (XOR)
-En BPMN, un gateway XOR doit avoir un flux "par défaut" (SINON) visuellement distinct. Actuellement, si une branche n'a pas de condition, rien ne l'indique.
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-### 5. Prop manquante — `parentFluxType`
-Le `FlowchartNodeEditor` ne reçoit pas le type de flux du parent. Il faut transmettre cette info pour masquer le champ condition quand le parent est `parallele`.
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-## Plan de correction
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
-### Fichier 1 : `FlowchartNodeEditor.tsx`
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
-**Ajouter prop `parentFluxType`** :
-- Nouvelle prop optionnelle `parentFluxType?: TaskFlowType`
-- Si `parentFluxType === "parallele"` → masquer complètement le champ "Condition"
-- Si `parentFluxType === "conditionnel"` → placeholder "Ex: SI conforme, SINON..." (actuel)
-- Si `parentFluxType === "inclusif"` → placeholder "Ex: SI urgent, SI critique..."
+## Phase 3 : Modules qualité
 
-### Fichier 2 : `ProcessTasksFlowchart.tsx`
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-**A. Passer `parentFluxType` au `FlowchartNodeEditor`**
-- Quand `openAddDialog(parentCode)` → chercher la tâche parent, stocker son `type_flux`
-- Quand `openEditDialog(task)` → si `task.parent_code`, chercher le parent et stocker son `type_flux`
-- Nouveau state `editorParentFluxType: TaskFlowType | null`
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-**B. Refactorer `GatewayShape`** — Bulle de décision
-- Pour XOR et OR (non-merge) : ajouter un `foreignObject` sous le losange avec la description dans une bulle jaune/orange (question de décision)
-- Pour AND : garder juste le losange avec `+`, pas de bulle
-- Supprimer le texte brut actuel à droite du losange
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-**C. Refactorer `FlowchartEdge`** — Labels repositionnés
-- Positionner le label de condition au **milieu du premier segment** de l'edge (entre gateway et branche)
-- Style : badge arrondi avec fond semi-transparent coloré selon le type de flux
-- Pour les edges XOR sans condition : afficher "Sinon" avec style distinct (fond gris, texte italique)
-- Ajouter un petit trait barré (`/`) sur l'edge du flux par défaut (convention BPMN standard)
+## Phase 4 : Modules audit & amélioration
 
-**D. Détecter le flux par défaut XOR**
-- Dans `computeLayout`, enrichir les `LayoutEdge` avec `isDefault?: boolean` et `flowType?: TaskFlowType`
-- Logique : pour un gateway XOR, si une branche n'a pas de `condition`, marquer son edge comme `isDefault = true`
-- Passer `flowType` du gateway à chaque edge pour le styling
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-### Modifications au type `LayoutEdge`
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-```typescript
-interface LayoutEdge {
-  fromX: number; fromY: number; toX: number; toY: number;
-  label?: string; dashed?: boolean;
-  isDefault?: boolean;   // ← nouveau : flux par défaut XOR
-  flowType?: TaskFlowType; // ← nouveau : pour le style du badge
-}
-```
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
 
-## Résumé des risques vérifiés
+## Phase 5 : Tableaux de bord & Reporting
 
-| Risque | Statut |
-|--------|--------|
-| Prop manquante `parentFluxType` | Corrigé en ajoutant state + prop |
-| Positionnement label sur edge vertical→horizontal | Calcul au milieu du segment horizontal |
-| Détection default path pour XOR | Logique simple : pas de condition = default |
-| Branches AND ne doivent pas avoir de conditions | Champ masqué dans l'éditeur |
-| Bulle question ne doit pas apparaitre sur merge gateways | Condition `!gw.isMerge` déjà en place |
-| `foreignObject` dans SVG pour la bulle | Fonctionne avec le même pattern que les noeuds |
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
 
-## Fichiers modifiés
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
 
-| Fichier | Changement |
-|---------|-----------|
-| `src/components/ProcessTasksFlowchart.tsx` | State `editorParentFluxType`, `LayoutEdge` enrichi, `GatewayShape` avec bulle, `FlowchartEdge` avec badges, détection flux défaut |
-| `src/components/FlowchartNodeEditor.tsx` | Prop `parentFluxType`, masquage condition pour AND |
+## Contrôle d'accès (transversal)
+
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
 

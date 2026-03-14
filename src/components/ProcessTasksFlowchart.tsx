@@ -34,6 +34,7 @@ interface LayoutGateway {
 }
 interface LayoutEdge {
   fromX: number; fromY: number; toX: number; toY: number; label?: string; dashed?: boolean;
+  isDefault?: boolean; flowType?: TaskFlowType;
 }
 
 // ─── Constants ───
@@ -134,16 +135,21 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
           accX += span;
 
           const branch = branches[bi];
+          // Detect default path for XOR: branch without condition
+          const hasCondition = !!branch.condition;
+          const isDefaultPath = task.type_flux === "conditionnel" && !hasCondition;
+          const edgeLabel = isDefaultPath ? "Sinon" : (branch.condition || undefined);
+
           const nestedBranches = branchMap.get(branch.code);
           if (nestedBranches && nestedBranches.length > 0) {
             const res = layoutSequence([branch], branchStartY, bCx);
-            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: branch.condition || undefined });
+            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: edgeLabel, isDefault: isDefaultPath, flowType: task.type_flux });
             branchEnds.push({ x: res.connectFromX, y: res.connectFromY });
             maxEndY = Math.max(maxEndY, res.lastY);
           } else {
             const nx = bCx - CARD_W / 2;
             nodes.push({ task: branch, x: nx, y: branchStartY, w: CARD_W, h: CARD_H });
-            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: branch.condition || undefined });
+            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: edgeLabel, isDefault: isDefaultPath, flowType: task.type_flux });
             branchEnds.push({ x: bCx, y: branchStartY + CARD_H });
             maxEndY = Math.max(maxEndY, branchStartY + CARD_H);
           }
@@ -248,15 +254,40 @@ function FlowchartEdge({ edge }: { edge: LayoutEdge }) {
     ? `M${edge.fromX},${edge.fromY} L${edge.toX},${edge.toY}`
     : `M${edge.fromX},${edge.fromY} L${edge.fromX},${midY} L${edge.toX},${midY} L${edge.toX},${edge.toY}`;
 
+  // Badge colors by flow type
+  const badgeColors: Record<string, { bg: string; text: string }> = {
+    conditionnel: { bg: "hsl(38 92% 50% / 0.15)", text: "hsl(38 92% 35%)" },
+    inclusif: { bg: "hsl(280 60% 55% / 0.15)", text: "hsl(280 60% 40%)" },
+  };
+  const defaultBadge = { bg: "hsl(var(--muted))", text: "hsl(var(--muted-foreground))" };
+
+  // Position for the label badge: middle of horizontal segment
+  const labelX = Math.abs(dx) < 2 ? edge.fromX : (edge.fromX + edge.toX) / 2;
+  const labelY = Math.abs(dx) < 2 ? (edge.fromY + edge.toY) / 2 : midY;
+
+  const colors = edge.flowType ? (badgeColors[edge.flowType] || defaultBadge) : defaultBadge;
+
   return (
     <g>
       <path d={path} fill="none" stroke="hsl(var(--border))" strokeWidth={2} markerEnd="url(#arrowhead)"
         strokeDasharray={edge.dashed ? "6 4" : undefined} />
+      {/* Default path indicator (BPMN slash mark) */}
+      {edge.isDefault && Math.abs(dx) >= 2 && (
+        <line x1={edge.fromX - 4} y1={edge.fromY + 12} x2={edge.fromX + 4} y2={edge.fromY + 20}
+          stroke="hsl(var(--border))" strokeWidth={2} />
+      )}
       {edge.label && (
-        <text x={Math.min(edge.fromX, edge.toX) - 8} y={midY} textAnchor="end"
-          className="fill-muted-foreground text-[10px]" fontFamily="inherit">
-          {edge.label}
-        </text>
+        <g>
+          <rect x={labelX - 36} y={labelY - 11} width={72} height={20} rx={10}
+            fill={edge.isDefault ? "hsl(var(--muted))" : colors.bg}
+            stroke={edge.isDefault ? "hsl(var(--border))" : colors.text} strokeWidth={0.5} opacity={0.95} />
+          <text x={labelX} y={labelY + 1} textAnchor="middle" dominantBaseline="middle"
+            fill={edge.isDefault ? "hsl(var(--muted-foreground))" : colors.text}
+            fontSize="9" fontFamily="inherit" fontWeight={edge.isDefault ? "normal" : "600"}
+            fontStyle={edge.isDefault ? "italic" : "normal"}>
+            {edge.label.length > 12 ? edge.label.slice(0, 11) + "…" : edge.label}
+          </text>
+        </g>
       )}
     </g>
   );
@@ -268,6 +299,7 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
   const half = gw.s / 2;
   const color = FLOW_COLORS[gw.type] || FLOW_COLORS.sequentiel;
   const symbol = gw.type === "parallele" ? "+" : gw.type === "inclusif" ? "○" : "×";
+  const showDecisionBubble = !gw.isMerge && gw.label && gw.type !== "parallele";
 
   return (
     <g>
@@ -277,7 +309,27 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
         fill={color} fontSize={gw.s * 0.45} fontWeight="bold" fontFamily="inherit">
         {symbol}
       </text>
-      {!gw.isMerge && gw.label && (
+      {/* Decision question bubble for XOR and OR — below diamond */}
+      {showDecisionBubble && (
+        <foreignObject x={cx - 100} y={cy + half + 4} width={200} height={36}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+            background: "hsl(45 93% 94%)", border: "1.5px solid hsl(38 92% 60%)",
+            borderRadius: "8px", padding: "3px 8px", width: "fit-content", margin: "0 auto",
+            maxWidth: "196px",
+          }}>
+            <span style={{ fontSize: "11px" }}>❓</span>
+            <span style={{
+              fontSize: "10px", fontWeight: 600, color: "hsl(38 50% 30%)",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {gw.label.length > 28 ? gw.label.slice(0, 27) + "…" : gw.label}
+            </span>
+          </div>
+        </foreignObject>
+      )}
+      {/* AND label — just show text to the right */}
+      {!gw.isMerge && gw.label && gw.type === "parallele" && (
         <text x={cx + half + 10} y={cy + 1} textAnchor="start" dominantBaseline="middle"
           className="fill-foreground text-[11px] font-medium" fontFamily="inherit">
           {gw.label.length > 40 ? gw.label.slice(0, 40) + "…" : gw.label}
@@ -303,6 +355,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const [editorTask, setEditorTask] = useState<any>(null);
   const [editorIsBranch, setEditorIsBranch] = useState(false);
   const [branchParentCode, setBranchParentCode] = useState<string | null>(null);
+  const [editorParentFluxType, setEditorParentFluxType] = useState<TaskFlowType | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -358,6 +411,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     setEditorTask(null);
     setEditorIsBranch(!!parentCode);
     setBranchParentCode(parentCode || null);
+    const parent = parentCode ? tasks.find(t => t.code === parentCode) : null;
+    setEditorParentFluxType(parent?.type_flux || null);
     setEditorOpen(true);
   };
 
@@ -365,6 +420,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     setEditorTask(task);
     setEditorIsBranch(false);
     setBranchParentCode(null);
+    const parent = task.parent_code ? tasks.find(t => t.code === task.parent_code) : null;
+    setEditorParentFluxType(parent?.type_flux || null);
     setSelectedTaskId(task.id);
     setEditorOpen(true);
   };
@@ -695,6 +752,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         onDelete={editorTask?.id ? handleDelete : undefined}
         onAddElement={onAddElement}
         canDelete={canDelete}
+        parentFluxType={editorParentFluxType}
       />
     </div>
   );
