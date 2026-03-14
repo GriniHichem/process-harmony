@@ -254,7 +254,7 @@ export default function AdminPermissions() {
 
   const totalPerms = ALL_MODULES.length * PERM_LEVELS.length;
 
-  if (!hasRole("admin")) {
+  if (!hasRole("admin") && !hasRole("super_admin")) {
     return <Card><CardContent className="py-12 text-center text-muted-foreground">Accès réservé aux administrateurs.</CardContent></Card>;
   }
 
