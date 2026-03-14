@@ -16,8 +16,10 @@ export default function SuperAdmin() {
   const { user } = useAuth();
   const [form, setForm] = useState({ ...settings });
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadingCompany, setUploadingCompany] = useState(false);
+  const [uploadingBrand, setUploadingBrand] = useState(false);
+  const companyFileRef = useRef<HTMLInputElement>(null);
+  const brandFileRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -40,21 +42,23 @@ export default function SuperAdmin() {
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleLogoUpload = async (
+    file: File,
+    settingKey: "logo_url" | "brand_logo_url",
+    filename: string,
+    setUploading: (v: boolean) => void
+  ) => {
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `logo.${ext}`;
-      // Remove old logo
+      const path = `${filename}.${ext}`;
       await supabase.storage.from("branding").remove([path]);
       const { error } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
       if (error) throw error;
       const { data: urlData } = supabase.storage.from("branding").getPublicUrl(path);
       const logoUrl = urlData.publicUrl + "?t=" + Date.now();
-      await updateSetting("logo_url", logoUrl);
-      setForm((prev) => ({ ...prev, logo_url: logoUrl }));
+      await updateSetting(settingKey, logoUrl);
+      setForm((prev) => ({ ...prev, [settingKey]: logoUrl }));
       toast.success("Logo téléchargé avec succès");
     } catch (err: any) {
       toast.error("Erreur upload : " + err.message);
@@ -63,7 +67,8 @@ export default function SuperAdmin() {
     }
   };
 
-  const previewLogo = form.logo_url || logo;
+  const companyLogo = form.logo_url || logo;
+  const brandLogo = form.brand_logo_url || logo;
 
   return (
     <div className="space-y-6">
@@ -107,23 +112,53 @@ export default function SuperAdmin() {
           </CardContent>
         </Card>
 
-        {/* Logo */}
+        {/* Logos */}
         <div className="space-y-6">
+          {/* Logo Entreprise */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Logo</CardTitle>
-              <CardDescription>Téléchargez le logo de l'entreprise</CardDescription>
+              <CardTitle className="text-lg">Logo Entreprise</CardTitle>
+              <CardDescription>Logo principal affiché dans le header et la page de connexion</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div className="flex items-center gap-4">
                 <div className="h-20 w-20 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
-                  <img src={previewLogo} alt="Logo" className="h-full w-full object-contain" />
+                  <img src={companyLogo} alt="Logo entreprise" className="h-full w-full object-contain" />
                 </div>
                 <div className="flex-1 space-y-2">
-                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                  <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                  <input ref={companyFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file, "logo_url", "company-logo", setUploadingCompany);
+                  }} />
+                  <Button variant="outline" size="sm" onClick={() => companyFileRef.current?.click()} disabled={uploadingCompany}>
                     <Upload className="h-4 w-4 mr-2" />
-                    {uploading ? "Upload..." : "Changer le logo"}
+                    {uploadingCompany ? "Upload..." : "Changer le logo"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">PNG, JPG ou SVG recommandé</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Logo Marque */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Logo Marque</CardTitle>
+              <CardDescription>Logo de la marque / produit affiché dans le dialogue info</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
+                  <img src={brandLogo} alt="Logo marque" className="h-full w-full object-contain" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <input ref={brandFileRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file, "brand_logo_url", "brand-logo", setUploadingBrand);
+                  }} />
+                  <Button variant="outline" size="sm" onClick={() => brandFileRef.current?.click()} disabled={uploadingBrand}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadingBrand ? "Upload..." : "Changer le logo"}
                   </Button>
                   <p className="text-xs text-muted-foreground">PNG, JPG ou SVG recommandé</p>
                 </div>
@@ -141,7 +176,10 @@ export default function SuperAdmin() {
             </CardHeader>
             <CardContent>
               <div className="rounded-lg border bg-card p-6 text-center space-y-3">
-                <img src={previewLogo} alt="Logo" className="mx-auto h-12 object-contain" />
+                <div className="flex items-center justify-center gap-4">
+                  <img src={companyLogo} alt="Logo entreprise" className="h-10 object-contain" />
+                  <img src={brandLogo} alt="Logo marque" className="h-10 object-contain" />
+                </div>
                 <p className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   {form.app_name}
                 </p>
