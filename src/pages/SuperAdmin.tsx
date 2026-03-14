@@ -234,7 +234,50 @@ export default function SuperAdmin() {
               </div>
             </CardContent>
           </Card>
-          {/* Logo Entreprise */}
+
+          {/* Test Email */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <SendHorizonal className="h-4 w-4" />
+                Tester l'envoi
+              </CardTitle>
+              <CardDescription>Envoyez un email de test pour vérifier la configuration SMTP</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="destinataire@exemple.com"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  disabled={!testEmail || sendingTest}
+                  onClick={async () => {
+                    setSendingTest(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke("send-test-email", {
+                        body: { to: testEmail },
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      toast.success("Email de test envoyé avec succès !");
+                    } catch (err: any) {
+                      toast.error("Échec : " + err.message);
+                    } finally {
+                      setSendingTest(false);
+                    }
+                  }}
+                >
+                  <SendHorizonal className="h-4 w-4 mr-2" />
+                  {sendingTest ? "Envoi..." : "Envoyer"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Logo Entreprise</CardTitle>
