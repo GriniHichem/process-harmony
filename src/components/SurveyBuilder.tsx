@@ -311,9 +311,26 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
         <div className="flex-1 overflow-y-auto space-y-6 pr-1">
           {/* Survey info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
+            <div>
               <Label>Nom du sondage *</Label>
               <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Enquête satisfaction Q1 2026" />
+            </div>
+
+            {/* Mode du sondage */}
+            <div>
+              <Label>Mode du sondage</Label>
+              <Select value={form.mode_sondage} onValueChange={(v) => setForm(f => ({ ...f, mode_sondage: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="libre">🔓 Libre (anonyme)</SelectItem>
+                  <SelectItem value="cible">🎯 Ciblé (nominatif)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {form.mode_sondage === "cible"
+                  ? "Nom et email obligatoires. Une copie des réponses sera envoyée au participant."
+                  : "Répondants anonymes, nom et email optionnels."}
+              </p>
             </div>
 
             {/* Type de sondage ISO 9001 */}
