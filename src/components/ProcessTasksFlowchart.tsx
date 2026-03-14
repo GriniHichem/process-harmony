@@ -254,15 +254,40 @@ function FlowchartEdge({ edge }: { edge: LayoutEdge }) {
     ? `M${edge.fromX},${edge.fromY} L${edge.toX},${edge.toY}`
     : `M${edge.fromX},${edge.fromY} L${edge.fromX},${midY} L${edge.toX},${midY} L${edge.toX},${edge.toY}`;
 
+  // Badge colors by flow type
+  const badgeColors: Record<string, { bg: string; text: string }> = {
+    conditionnel: { bg: "hsl(38 92% 50% / 0.15)", text: "hsl(38 92% 35%)" },
+    inclusif: { bg: "hsl(280 60% 55% / 0.15)", text: "hsl(280 60% 40%)" },
+  };
+  const defaultBadge = { bg: "hsl(var(--muted))", text: "hsl(var(--muted-foreground))" };
+
+  // Position for the label badge: middle of horizontal segment
+  const labelX = Math.abs(dx) < 2 ? edge.fromX : (edge.fromX + edge.toX) / 2;
+  const labelY = Math.abs(dx) < 2 ? (edge.fromY + edge.toY) / 2 : midY;
+
+  const colors = edge.flowType ? (badgeColors[edge.flowType] || defaultBadge) : defaultBadge;
+
   return (
     <g>
       <path d={path} fill="none" stroke="hsl(var(--border))" strokeWidth={2} markerEnd="url(#arrowhead)"
         strokeDasharray={edge.dashed ? "6 4" : undefined} />
+      {/* Default path indicator (BPMN slash mark) */}
+      {edge.isDefault && Math.abs(dx) >= 2 && (
+        <line x1={edge.fromX - 4} y1={edge.fromY + 12} x2={edge.fromX + 4} y2={edge.fromY + 20}
+          stroke="hsl(var(--border))" strokeWidth={2} />
+      )}
       {edge.label && (
-        <text x={Math.min(edge.fromX, edge.toX) - 8} y={midY} textAnchor="end"
-          className="fill-muted-foreground text-[10px]" fontFamily="inherit">
-          {edge.label}
-        </text>
+        <g>
+          <rect x={labelX - 36} y={labelY - 11} width={72} height={20} rx={10}
+            fill={edge.isDefault ? "hsl(var(--muted))" : colors.bg}
+            stroke={edge.isDefault ? "hsl(var(--border))" : colors.text} strokeWidth={0.5} opacity={0.95} />
+          <text x={labelX} y={labelY + 1} textAnchor="middle" dominantBaseline="middle"
+            fill={edge.isDefault ? "hsl(var(--muted-foreground))" : colors.text}
+            fontSize="9" fontFamily="inherit" fontWeight={edge.isDefault ? "normal" : "600"}
+            fontStyle={edge.isDefault ? "italic" : "normal"}>
+            {edge.label.length > 12 ? edge.label.slice(0, 11) + "…" : edge.label}
+          </text>
+        </g>
       )}
     </g>
   );
