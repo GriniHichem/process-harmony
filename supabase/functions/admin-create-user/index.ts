@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const { data: isAdmin } = await supabaseAdmin.rpc('has_role', { _user_id: user.id, _role: 'admin' });
-    if (!isAdmin) return new Response(JSON.stringify({ error: 'Admin role required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { data: isSuperAdmin } = await supabaseAdmin.rpc('has_role', { _user_id: user.id, _role: 'super_admin' });
+    if (!isAdmin && !isSuperAdmin) return new Response(JSON.stringify({ error: 'Admin role required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const { email, password, nom, prenom, fonction } = await req.json();
     if (!email || !password) return new Response(JSON.stringify({ error: 'Email and password required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
