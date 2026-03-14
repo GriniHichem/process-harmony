@@ -117,7 +117,7 @@ export default function ProcessDetail() {
   const canCreateNewVersion = hasRole("rmq") && process?.statut === "valide";
 
   const [creatingVersion, setCreatingVersion] = useState(false);
-
+  const [activityViewMode, setActivityViewMode] = useState<"list" | "flowchart">("list");
   const handleCreateNewVersion = async () => {
     if (!process || !id) return;
     setCreatingVersion(true);
