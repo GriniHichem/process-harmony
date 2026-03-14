@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   info_credits: "H. GRINI & F. SERRADJ — SI TEAM",
   logo_url: "",
   brand_logo_url: "",
+  support_email: "",
 };
 
 interface AppSettingsContextType {
