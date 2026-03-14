@@ -457,7 +457,6 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     definition:
       "Génère un document PDF complet de la fiche d'identité du processus conforme à la norme ISO 9001. Le PDF inclut les éléments descriptifs, le logigramme BPMN, les indicateurs, les risques/opportunités, les enjeux de contexte et les interactions.",
     details: [
-      "Présentation et mise en page conçues par Radja BENHAMIDA",
       "Format A4 avec en-tête incluant les logos Entreprise et Marque",
       "Intégration automatique du diagramme BPMN si activé",
     ],
