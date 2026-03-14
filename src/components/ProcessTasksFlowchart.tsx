@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle, Locate } from "lucide-react";
+import { Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle, Locate, Link2, FileText } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ const CARD_W = 440, CARD_MIN_H = 140, CARD_MAX_H = 260, GW_S = 44;
 const V_GAP = 100, H_GAP = 60;
 const CIRCLE_R = 22;
 const IO_COL_W = 110;
-const PROCESS_IO_BOX_W = 360, PROCESS_IO_BOX_H = 44;
+const PROCESS_IO_BOX_W = 440, PROCESS_IO_BOX_H = 44;
 
 const FLOW_COLORS: Record<TaskFlowType, string> = {
   sequentiel: "hsl(var(--primary))",
@@ -96,9 +96,9 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
 
   let curY = 80;
 
-  // Process inputs box at top — dynamic height
+  // Process inputs box at top — dynamic height (with external/internal sections)
   const processInputsY = curY;
-  const realInputBoxH = PROCESS_IO_BOX_H + Math.max(0, processEntrees.length) * 20 + 12;
+  const realInputBoxH = PROCESS_IO_BOX_H + Math.max(0, processEntrees.length) * 22 + 40;
   if (processEntrees.length > 0) {
     curY += realInputBoxH + 60;
   }
@@ -414,9 +414,17 @@ function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX,
 
 // ─── Main Component ───
 
+interface InteractionRow {
+  id: string; source_process_id: string; target_process_id: string;
+  element_id: string; direction: string;
+}
+interface ProcessName { id: string; code: string; nom: string; }
+
 export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processElements, onAddElement }: Props) {
   const [tasks, setTasks] = useState<ProcessTask[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
+  const [interactions, setInteractions] = useState<InteractionRow[]>([]);
+  const [processNames, setProcessNames] = useState<ProcessName[]>([]);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(0.8);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -444,7 +452,38 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     if (data) setActeurs(data);
   }, []);
 
-  useEffect(() => { fetchTasks(); fetchActeurs(); }, [fetchTasks, fetchActeurs]);
+  const fetchInteractions = useCallback(async () => {
+    const { data } = await supabase
+      .from("process_interactions")
+      .select("*")
+      .or(`source_process_id.eq.${processId},target_process_id.eq.${processId}`);
+    if (data) setInteractions(data as InteractionRow[]);
+  }, [processId]);
+
+  const fetchProcessNames = useCallback(async () => {
+    const { data } = await supabase.from("processes").select("id, code, nom").neq("id", processId).order("code");
+    if (data) setProcessNames(data);
+  }, [processId]);
+
+  useEffect(() => { fetchTasks(); fetchActeurs(); fetchInteractions(); fetchProcessNames(); }, [fetchTasks, fetchActeurs, fetchInteractions, fetchProcessNames]);
+
+  // Classify elements as external (in interactions) vs internal
+  const externalElementMap = useMemo(() => {
+    const map = new Map<string, { direction: string; linkedProcessId: string }>();
+    for (const inter of interactions) {
+      if (inter.source_process_id === processId) {
+        map.set(inter.element_id, { direction: inter.direction, linkedProcessId: inter.target_process_id });
+      } else {
+        map.set(inter.element_id, { direction: inter.direction, linkedProcessId: inter.source_process_id });
+      }
+    }
+    return map;
+  }, [interactions, processId]);
+
+  const getProcessLabel = useCallback((id: string) => {
+    const p = processNames.find(p => p.id === id);
+    return p ? p.code : "?";
+  }, [processNames]);
 
   const layout = useMemo(() => tasks.length > 0 ? computeLayout(tasks, processElements) : null, [tasks, processElements]);
   const dataFlowLinks = useMemo(() => layout ? computeDataFlowLinks(layout.nodes, processElements) : [], [layout, processElements]);
@@ -700,19 +739,51 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
           {layout && (
             <>
-              {/* Process-level inputs */}
-              {layout.processEntrees.length > 0 && (
-                <foreignObject x={layout.startCx - PROCESS_IO_BOX_W / 2} y={layout.processInputsY} width={PROCESS_IO_BOX_W} height={layout.realInputBoxH}>
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center h-full">
-                    <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1.5">Entrées du processus</div>
-                    <div className="flex flex-wrap justify-center gap-1.5">
-                      {layout.processEntrees.map(e => (
-                        <span key={e.id} className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">{e.description}</span>
-                      ))}
+              {/* Process-level inputs — External vs Internal */}
+              {layout.processEntrees.length > 0 && (() => {
+                const extEntrees = layout.processEntrees.filter(e => externalElementMap.has(e.id));
+                const intEntrees = layout.processEntrees.filter(e => !externalElementMap.has(e.id));
+                return (
+                  <foreignObject x={layout.startCx - PROCESS_IO_BOX_W / 2} y={layout.processInputsY} width={PROCESS_IO_BOX_W} height={layout.realInputBoxH}>
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 h-full">
+                      <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2 text-center">Entrées du processus</div>
+                      {extEntrees.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Link2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                            <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400 uppercase">Externes (inter-processus)</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {extEntrees.map(e => {
+                              const info = externalElementMap.get(e.id);
+                              const procLabel = info ? getProcessLabel(info.linkedProcessId) : "";
+                              return (
+                                <span key={e.id} className="text-[10px] bg-blue-200 dark:bg-blue-800/60 text-blue-900 dark:text-blue-100 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                  {e.description}
+                                  {procLabel && <span className="text-[9px] text-blue-600 dark:text-blue-300 font-mono">← {procLabel}</span>}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {intEntrees.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <FileText className="h-3 w-3 text-blue-400 dark:text-blue-500" />
+                            <span className="text-[9px] font-semibold text-blue-400 dark:text-blue-500 uppercase">Internes</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {intEntrees.map(e => (
+                              <span key={e.id} className="text-[10px] bg-blue-100/70 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">{e.description}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </foreignObject>
-              )}
+                  </foreignObject>
+                );
+              })()}
 
               {/* Edges */}
               {layout.edges.map((e, i) => <FlowchartEdge key={i} edge={e} />)}
@@ -878,19 +949,52 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               <circle cx={layout.endCx} cy={layout.endCy} r={CIRCLE_R - 5} fill="hsl(var(--primary))" />
               <text x={layout.endCx} y={layout.endCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="11" fontWeight="600" fontFamily="inherit">Fin</text>
 
-              {/* Process-level outputs */}
-              {layout.processSorties.length > 0 && (
-                <foreignObject x={layout.endCx - PROCESS_IO_BOX_W / 2} y={layout.processOutputsY} width={PROCESS_IO_BOX_W} height={PROCESS_IO_BOX_H + layout.processSorties.length * 20 + 12}>
-                  <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
-                    <div className="text-[11px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wider mb-1.5">Sorties du processus</div>
-                    <div className="flex flex-wrap justify-center gap-1.5">
-                      {layout.processSorties.map(e => (
-                        <span key={e.id} className="text-[10px] bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">{e.description}</span>
-                      ))}
+              {/* Process-level outputs — External vs Internal */}
+              {layout.processSorties.length > 0 && (() => {
+                const extSorties = layout.processSorties.filter(e => externalElementMap.has(e.id));
+                const intSorties = layout.processSorties.filter(e => !externalElementMap.has(e.id));
+                const outputBoxH = PROCESS_IO_BOX_H + layout.processSorties.length * 22 + 40;
+                return (
+                  <foreignObject x={layout.endCx - PROCESS_IO_BOX_W / 2} y={layout.processOutputsY} width={PROCESS_IO_BOX_W} height={outputBoxH}>
+                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                      <div className="text-[11px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wider mb-2 text-center">Sorties du processus</div>
+                      {extSorties.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Link2 className="h-3 w-3 text-green-600 dark:text-green-400" />
+                            <span className="text-[9px] font-semibold text-green-600 dark:text-green-400 uppercase">Externes (inter-processus)</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {extSorties.map(e => {
+                              const info = externalElementMap.get(e.id);
+                              const procLabel = info ? getProcessLabel(info.linkedProcessId) : "";
+                              return (
+                                <span key={e.id} className="text-[10px] bg-green-200 dark:bg-green-800/60 text-green-900 dark:text-green-100 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                  {e.description}
+                                  {procLabel && <span className="text-[9px] text-green-600 dark:text-green-300 font-mono">→ {procLabel}</span>}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {intSorties.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <FileText className="h-3 w-3 text-green-400 dark:text-green-500" />
+                            <span className="text-[9px] font-semibold text-green-400 dark:text-green-500 uppercase">Internes</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {intSorties.map(e => (
+                              <span key={e.id} className="text-[10px] bg-green-100/70 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">{e.description}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </foreignObject>
-              )}
+                  </foreignObject>
+                );
+              })()}
             </>
           )}
 
