@@ -739,19 +739,51 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
           {layout && (
             <>
-              {/* Process-level inputs */}
-              {layout.processEntrees.length > 0 && (
-                <foreignObject x={layout.startCx - PROCESS_IO_BOX_W / 2} y={layout.processInputsY} width={PROCESS_IO_BOX_W} height={layout.realInputBoxH}>
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center h-full">
-                    <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1.5">Entrées du processus</div>
-                    <div className="flex flex-wrap justify-center gap-1.5">
-                      {layout.processEntrees.map(e => (
-                        <span key={e.id} className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">{e.description}</span>
-                      ))}
+              {/* Process-level inputs — External vs Internal */}
+              {layout.processEntrees.length > 0 && (() => {
+                const extEntrees = layout.processEntrees.filter(e => externalElementMap.has(e.id));
+                const intEntrees = layout.processEntrees.filter(e => !externalElementMap.has(e.id));
+                return (
+                  <foreignObject x={layout.startCx - PROCESS_IO_BOX_W / 2} y={layout.processInputsY} width={PROCESS_IO_BOX_W} height={layout.realInputBoxH}>
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 h-full">
+                      <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2 text-center">Entrées du processus</div>
+                      {extEntrees.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Link2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                            <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400 uppercase">Externes (inter-processus)</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {extEntrees.map(e => {
+                              const info = externalElementMap.get(e.id);
+                              const procLabel = info ? getProcessLabel(info.linkedProcessId) : "";
+                              return (
+                                <span key={e.id} className="text-[10px] bg-blue-200 dark:bg-blue-800/60 text-blue-900 dark:text-blue-100 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                  {e.description}
+                                  {procLabel && <span className="text-[9px] text-blue-600 dark:text-blue-300 font-mono">← {procLabel}</span>}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {intEntrees.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <FileText className="h-3 w-3 text-blue-400 dark:text-blue-500" />
+                            <span className="text-[9px] font-semibold text-blue-400 dark:text-blue-500 uppercase">Internes</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {intEntrees.map(e => (
+                              <span key={e.id} className="text-[10px] bg-blue-100/70 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">{e.description}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </foreignObject>
-              )}
+                  </foreignObject>
+                );
+              })()}
 
               {/* Edges */}
               {layout.edges.map((e, i) => <FlowchartEdge key={i} edge={e} />)}
