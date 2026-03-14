@@ -163,7 +163,7 @@ function esc(str: string | null | undefined): string {
 
 // ─── HTML Builder ───────────────────────────────────────────────────
 
-function buildHtml(data: ProcessData): string {
+function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: string; companyName: string }): string {
   const {
     process: p, elements, tasks, interactions, targetProcesses, documents,
     indicators, indicatorValues, indicatorActions, indicatorMoyens,
@@ -377,9 +377,9 @@ function buildHtml(data: ProcessData): string {
   <!-- ═══ COMPANY HEADER ═══ -->
   <div class="company-header">
     <div class="left">
-      <img src="/images/logo-conserverie.jpg" alt="Conserverie du Maghreb" />
+      <img src="${logos.brandLogo}" alt="Logo marque" />
       <div>
-        <h2>Conserverie du Maghreb</h2>
+        <h2>${esc(logos.companyName)}</h2>
         <p>Système de Management de la Qualité — ISO 9001:2015</p>
       </div>
     </div>
@@ -390,7 +390,7 @@ function buildHtml(data: ProcessData): string {
         Version : ${p.version_courante}<br>
         Date : ${now}
       </div>
-      <img src="/images/logo-amour.jpg" alt="AMOUR" />
+      <img src="${logos.companyLogo}" alt="${esc(logos.companyName)}" />
     </div>
   </div>
 
@@ -738,7 +738,16 @@ function buildHtml(data: ProcessData): string {
 
 export async function exportProcessPdf(processId: string) {
   const data = await fetchAllProcessData(processId);
-  const html = buildHtml(data);
+  const { data: settingsData } = await supabase.from("app_settings").select("key, value").in("key", ["logo_url", "brand_logo_url", "company_name"]);
+  const logos = { companyLogo: "/images/logo-amour.jpg", brandLogo: "/images/logo-conserverie.jpg", companyName: "Groupe AMOUR" };
+  if (settingsData) {
+    for (const r of settingsData) {
+      if (r.key === "logo_url" && r.value) logos.companyLogo = r.value;
+      if (r.key === "brand_logo_url" && r.value) logos.brandLogo = r.value;
+      if (r.key === "company_name" && r.value) logos.companyName = r.value;
+    }
+  }
+  const html = buildHtml(data, logos);
   const win = window.open("", "_blank");
   if (win) {
     win.document.write(html);

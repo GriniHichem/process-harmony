@@ -91,14 +91,29 @@ const HEADER_STYLE = `
   .sig-label { font-size: 10px; color: #475569; margin-bottom: 4px; }
 `;
 
-function buildHeader(docTitle: string, docRef: string, version?: string) {
+async function getAppLogos(): Promise<{ companyLogo: string; brandLogo: string; companyName: string }> {
+  const { data } = await supabase.from("app_settings").select("key, value").in("key", ["logo_url", "brand_logo_url", "company_name"]);
+  let companyLogo = "/images/logo-amour.jpg";
+  let brandLogo = "/images/logo-conserverie.jpg";
+  let companyName = "Groupe AMOUR";
+  if (data) {
+    for (const r of data) {
+      if (r.key === "logo_url" && r.value) companyLogo = r.value;
+      if (r.key === "brand_logo_url" && r.value) brandLogo = r.value;
+      if (r.key === "company_name" && r.value) companyName = r.value;
+    }
+  }
+  return { companyLogo, brandLogo, companyName };
+}
+
+function buildHeader(docTitle: string, docRef: string, version: string | undefined, companyLogo: string, brandLogo: string, companyName: string) {
   const now = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
   return `
   <div class="company-header">
     <div class="left">
-      <img src="/images/logo-amour.jpg" alt="Groupe AMOUR" />
+      <img src="${companyLogo}" alt="${esc(companyName)}" />
       <div>
-        <h2>Groupe AMOUR</h2>
+        <h2>${esc(companyName)}</h2>
         <p>Système de Management de la Qualité — ISO 9001:2015</p>
       </div>
     </div>
@@ -108,7 +123,7 @@ function buildHeader(docTitle: string, docRef: string, version?: string) {
         ${version ? `Version : ${esc(version)}<br>` : ""}
         Date : ${now}
       </div>
-      <img src="/images/logo-conserverie.jpg" alt="Conserverie du Maghreb" />
+      <img src="${brandLogo}" alt="Logo marque" />
     </div>
   </div>
   <div class="title-bar">
@@ -225,10 +240,11 @@ export async function exportPolitiqueQualitePdf() {
   const statutLabels: Record<string, string> = { brouillon: "Brouillon", valide: "Validé", archive: "Archivé" };
   const statutObjLabels: Record<string, string> = { en_cours: "En cours", atteint: "Atteint", non_atteint: "Non atteint" };
 
+  const logos = await getAppLogos();
   let sn = 0;
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Politique Qualité</title><style>${HEADER_STYLE}</style></head><body>
 
-  ${buildHeader("Politique Qualité", "POL-QUA", `v${policy.version}`)}
+  ${buildHeader("Politique Qualité", "POL-QUA", `v${policy.version}`, logos.companyLogo, logos.brandLogo, logos.companyName)}
 
   <!-- Informations générales -->
   <div class="section">
@@ -305,10 +321,11 @@ export async function exportObjectifsQualitePdf() {
     non_atteint: objectives.filter((o: any) => o.statut === "non_atteint").length,
   };
 
+  const logos = await getAppLogos();
   let sn = 0;
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Objectifs Qualité</title><style>${HEADER_STYLE}</style></head><body>
 
-  ${buildHeader("Objectifs Qualité", "OBJ-QUA")}
+  ${buildHeader("Objectifs Qualité", "OBJ-QUA", undefined, logos.companyLogo, logos.brandLogo, logos.companyName)}
 
   <!-- Synthèse -->
   <div class="section">
@@ -418,10 +435,11 @@ export async function exportRevueDirectionPdf(reviewId: string) {
   const actionDecisions = (decisions || []).filter((d: any) => d.type === "action");
   const statutActionLabels: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", terminee: "Terminée" };
 
+  const logos = await getAppLogos();
   let sn = 0;
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Revue de Direction — ${esc(review.reference)}</title><style>${HEADER_STYLE}</style></head><body>
 
-  ${buildHeader("Revue de Direction", review.reference || "RD", "")}
+  ${buildHeader("Revue de Direction", review.reference || "RD", "", logos.companyLogo, logos.brandLogo, logos.companyName)}
 
   <!-- Informations générales -->
   <div class="section">
