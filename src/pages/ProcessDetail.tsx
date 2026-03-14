@@ -402,25 +402,32 @@ export default function ProcessDetail() {
                                   <span className="font-medium">{doc.titre}</span>
                                   <span className="text-xs text-muted-foreground">({typeLabels[doc.type_document] ?? doc.type_document} • v{doc.version})</span>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                   {doc.nom_fichier && <Badge variant="secondary" className="text-xs">{doc.nom_fichier}</Badge>}
-                                  {doc.chemin_fichier && (
+                                  {doc.chemin_fichier && doc.nom_fichier?.toLowerCase().endsWith(".pdf") && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7"
                                       onClick={async () => {
                                         const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
                                         if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
-                                        const isPdf = doc.nom_fichier?.toLowerCase().endsWith(".pdf");
-                                        if (isPdf) {
-                                          const blobUrl = URL.createObjectURL(data);
-                                          setPdfViewerTitle(doc.titre); setPdfViewerUrl(blobUrl);
-                                        } else {
-                                          const blobUrl = URL.createObjectURL(data);
-                                          const a = document.createElement("a"); a.href = blobUrl; a.download = doc.nom_fichier || "document"; a.click(); URL.revokeObjectURL(blobUrl);
-                                        }
+                                        const blobUrl = URL.createObjectURL(data);
+                                        setPdfViewerTitle(doc.titre); setPdfViewerUrl(blobUrl);
                                       }}
-                                      title={doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Lire" : "Télécharger"}
+                                      title="Consulter le PDF"
                                     >
-                                      {doc.nom_fichier?.toLowerCase().endsWith(".pdf") ? <Eye className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {doc.chemin_fichier && (hasRole("rmq") || hasRole("admin") || hasRole("super_admin")) && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7"
+                                      onClick={async () => {
+                                        const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
+                                        if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
+                                        const blobUrl = URL.createObjectURL(data);
+                                        const a = document.createElement("a"); a.href = blobUrl; a.download = doc.nom_fichier || "document"; a.click(); URL.revokeObjectURL(blobUrl);
+                                      }}
+                                      title="Télécharger"
+                                    >
+                                      <Download className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                 </div>

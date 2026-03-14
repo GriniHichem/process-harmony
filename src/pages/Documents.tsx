@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, X, Eye, Download } from "lucide-react";
+import { Plus, FileText, Trash2, X, Eye, Download, Maximize2, Minimize2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { cn } from "@/lib/utils";
 
 
 type Doc = {
@@ -40,8 +41,13 @@ export default function Documents() {
   const [file, setFile] = useState<File | null>(null);
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
 
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
+  const [pdfViewerTitle, setPdfViewerTitle] = useState("");
+  const [pdfFullscreen, setPdfFullscreen] = useState(false);
+
   const canCreate = hasPermission("documents", "can_edit");
   const canDelete = hasPermission("documents", "can_delete");
+  const canDownload = hasRole("rmq") || hasRole("admin") || hasRole("super_admin");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const fetchDocs = async () => {
@@ -266,24 +272,33 @@ export default function Documents() {
                 </div>
                 <div className="flex items-center gap-2">
                   {d.nom_fichier && <Badge variant="secondary">{d.nom_fichier}</Badge>}
-                  {d.chemin_fichier && (
+                  {d.chemin_fichier && d.nom_fichier?.toLowerCase().endsWith(".pdf") && (
                     <Button variant="ghost" size="icon"
                       onClick={async (e) => {
                         e.stopPropagation();
                         const { data } = await supabase.storage.from("documents").download(d.chemin_fichier!);
                         if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
-                        const isPdf = d.nom_fichier?.toLowerCase().endsWith(".pdf");
-                        if (isPdf) {
-                          const blobUrl = URL.createObjectURL(data);
-                          window.open(blobUrl, "_blank");
-                        } else {
-                          const blobUrl = URL.createObjectURL(data);
-                          const a = document.createElement("a"); a.href = blobUrl; a.download = d.nom_fichier || "document"; a.click(); URL.revokeObjectURL(blobUrl);
-                        }
+                        const blobUrl = URL.createObjectURL(data);
+                        setPdfViewerTitle(d.titre);
+                        setPdfViewerUrl(blobUrl);
                       }}
-                      title={d.nom_fichier?.toLowerCase().endsWith(".pdf") ? "Ouvrir le PDF" : "Télécharger"}
+                      title="Consulter le PDF"
                     >
-                      {d.nom_fichier?.toLowerCase().endsWith(".pdf") ? <Eye className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {d.chemin_fichier && canDownload && (
+                    <Button variant="ghost" size="icon"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const { data } = await supabase.storage.from("documents").download(d.chemin_fichier!);
+                        if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
+                        const blobUrl = URL.createObjectURL(data);
+                        const a = document.createElement("a"); a.href = blobUrl; a.download = d.nom_fichier || "document"; a.click(); URL.revokeObjectURL(blobUrl);
+                      }}
+                      title="Télécharger"
+                    >
+                      <Download className="h-4 w-4" />
                     </Button>
                   )}
                   {canDelete && (
@@ -298,6 +313,21 @@ export default function Documents() {
         </div>
       )}
 
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
+        <DialogContent className={cn("flex flex-col transition-all duration-300", pdfFullscreen ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0" : "max-w-5xl w-[90vw] h-[85vh]")} aria-describedby={undefined}>
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPdfFullscreen(f => !f)} title={pdfFullscreen ? "Réduire" : "Plein écran"}>
+                {pdfFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {pdfViewerUrl && <iframe src={pdfViewerUrl} className="w-full h-full rounded-md border" title="PDF Viewer" />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
