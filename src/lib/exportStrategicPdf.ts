@@ -240,10 +240,11 @@ export async function exportPolitiqueQualitePdf() {
   const statutLabels: Record<string, string> = { brouillon: "Brouillon", valide: "Validé", archive: "Archivé" };
   const statutObjLabels: Record<string, string> = { en_cours: "En cours", atteint: "Atteint", non_atteint: "Non atteint" };
 
+  const logos = await getAppLogos();
   let sn = 0;
   const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Politique Qualité</title><style>${HEADER_STYLE}</style></head><body>
 
-  ${buildHeader("Politique Qualité", "POL-QUA", `v${policy.version}`)}
+  ${buildHeader("Politique Qualité", "POL-QUA", `v${policy.version}`, logos.companyLogo, logos.brandLogo, logos.companyName)}
 
   <!-- Informations générales -->
   <div class="section">
