@@ -377,9 +377,9 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
   <!-- ═══ COMPANY HEADER ═══ -->
   <div class="company-header">
     <div class="left">
-      <img src="/images/logo-conserverie.jpg" alt="Conserverie du Maghreb" />
+      <img src="${logos.brandLogo}" alt="Logo marque" />
       <div>
-        <h2>Conserverie du Maghreb</h2>
+        <h2>${esc(logos.companyName)}</h2>
         <p>Système de Management de la Qualité — ISO 9001:2015</p>
       </div>
     </div>
@@ -390,7 +390,7 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
         Version : ${p.version_courante}<br>
         Date : ${now}
       </div>
-      <img src="/images/logo-amour.jpg" alt="AMOUR" />
+      <img src="${logos.companyLogo}" alt="${esc(logos.companyName)}" />
     </div>
   </div>
 
