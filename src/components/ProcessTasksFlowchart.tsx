@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle, Locate } from "lucide-react";
+import { Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle, Locate, Link2, FileText } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { cn } from "@/lib/utils";
 
