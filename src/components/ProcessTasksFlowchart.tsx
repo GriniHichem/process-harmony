@@ -448,6 +448,18 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       });
       if (error) { toast.error(error.message); return; }
       toast.success("Activité ajoutée");
+
+      // Guidance toast for parallel/inclusive gateways
+      const savedFlux = parentCode ? "sequentiel" : data.type_flux;
+      if (!parentCode && (savedFlux === "parallele" || savedFlux === "inclusif")) {
+        const existingBranches = tasks.filter(t => t.parent_code === code);
+        if (existingBranches.length < 2) {
+          const msg = savedFlux === "parallele"
+            ? "N'oubliez pas d'ajouter au moins 2 branches parallèles via le bouton ＋ sur l'activité"
+            : "Ajoutez au moins 2 branches inclusives pour que la logique soit complète";
+          setTimeout(() => toast.info(msg, { duration: 6000 }), 600);
+        }
+      }
     }
     setEditorOpen(false);
     setSelectedTaskId(null);
