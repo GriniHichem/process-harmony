@@ -135,11 +135,17 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
             </div>
           )}
 
-          {/* Condition */}
-          {(isBranch || task?.parent_code) && (
+          {/* Condition — hidden for AND (parallele) branches */}
+          {(isBranch || task?.parent_code) && parentFluxType !== "parallele" && (
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Condition</Label>
-              <Input value={condition} onChange={e => setCondition(e.target.value)} placeholder="Ex: SI conforme, SINON..." />
+              <Input value={condition} onChange={e => setCondition(e.target.value)}
+                placeholder={parentFluxType === "inclusif" ? "Ex: SI urgent, SI critique..." : "Ex: SI conforme, SINON..."} />
+              {parentFluxType === "conditionnel" && (
+                <p className="text-[10px] text-muted-foreground italic">
+                  Laissez vide pour le flux par défaut (SINON)
+                </p>
+              )}
             </div>
           )}
 
