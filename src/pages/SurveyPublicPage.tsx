@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Send, Star } from "lucide-react";
+import { CheckCircle2, Send, Star, Mail } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 const anonClient = createClient(
@@ -34,6 +34,7 @@ export default function SurveyPublicPage() {
   const { token } = useParams<{ token: string }>();
   const [answers, setAnswers] = useState<Record<string, { text: string; value: number | null }>>({});
   const [respondentName, setRespondentName] = useState("");
+  const [respondentEmail, setRespondentEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -53,18 +54,37 @@ export default function SurveyPublicPage() {
     },
   });
 
+  const isCible = survey?.mode_sondage === "cible";
+
   const setAnswer = (questionId: string, text: string, value: number | null) => {
     setAnswers((prev) => ({ ...prev, [questionId]: { text, value } }));
   };
 
   const handleSubmit = async () => {
     if (!survey) return;
+
+    // Validation for ciblé mode
+    if (isCible) {
+      if (!respondentName.trim()) {
+        setError("Le nom est obligatoire pour ce sondage.");
+        return;
+      }
+      if (!respondentEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(respondentEmail)) {
+        setError("Une adresse email valide est obligatoire pour ce sondage.");
+        return;
+      }
+    }
+
     setSubmitting(true);
     setError("");
     try {
       const { data: response, error: rErr } = await anonClient
         .from("client_survey_responses")
-        .insert({ survey_id: survey.id, respondent_name: respondentName || null })
+        .insert({
+          survey_id: survey.id,
+          respondent_name: respondentName || null,
+          respondent_email: isCible ? respondentEmail : null,
+        })
         .select().single();
       if (rErr) throw rErr;
 
@@ -84,6 +104,33 @@ export default function SurveyPublicPage() {
           comment_text: tc.answer_text, category: "suggestion",
         });
       }
+
+      // Send copy email for ciblé mode
+      if (isCible && respondentEmail) {
+        try {
+          await anonClient.functions.invoke("send-survey-copy", {
+            body: {
+              response_id: response.id,
+              survey_name: survey.name,
+              respondent_name: respondentName,
+              respondent_email: respondentEmail,
+              questions: survey.questions.map((q: any) => ({
+                question_text: q.question_text,
+                question_type: q.question_type,
+              })),
+              answers: answersToInsert.map((a: any) => ({
+                question_id: a.question_id,
+                answer_text: a.answer_text,
+                answer_value: a.answer_value,
+              })),
+            },
+          });
+        } catch (emailErr) {
+          // Don't block submission if email fails
+          console.error("Failed to send survey copy email:", emailErr);
+        }
+      }
+
       setSubmitted(true);
     } catch (e: any) {
       setError(e.message);
@@ -120,6 +167,12 @@ export default function SurveyPublicPage() {
           <p className="text-muted-foreground">
             Merci pour votre contribution à l'amélioration de nos services.
           </p>
+          {isCible && respondentEmail && (
+            <p className="text-sm text-muted-foreground mt-3 flex items-center justify-center gap-1.5">
+              <Mail className="h-4 w-4" />
+              Une copie de vos réponses a été envoyée à <strong>{respondentEmail}</strong>
+            </p>
+          )}
         </Card>
       </div>
     );
@@ -138,10 +191,39 @@ export default function SurveyPublicPage() {
           )}
         </div>
 
-        {/* Respondent */}
-        <Card className="p-5">
-          <Label>Votre nom (optionnel)</Label>
-          <Input value={respondentName} onChange={(e) => setRespondentName(e.target.value)} placeholder="Nom du répondant" className="mt-1" />
+        {/* Respondent info */}
+        <Card className="p-5 space-y-3">
+          {isCible && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 mb-2">
+              <Mail className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-sm text-primary">
+                Une copie de vos réponses vous sera envoyée par email après soumission.
+              </p>
+            </div>
+          )}
+          <div>
+            <Label>{isCible ? "Votre nom *" : "Votre nom (optionnel)"}</Label>
+            <Input
+              value={respondentName}
+              onChange={(e) => setRespondentName(e.target.value)}
+              placeholder="Nom du répondant"
+              className="mt-1"
+              required={isCible}
+            />
+          </div>
+          {isCible && (
+            <div>
+              <Label>Votre adresse email *</Label>
+              <Input
+                type="email"
+                value={respondentEmail}
+                onChange={(e) => setRespondentEmail(e.target.value)}
+                placeholder="votre@email.com"
+                className="mt-1"
+                required
+              />
+            </div>
+          )}
         </Card>
 
         {/* Questions */}

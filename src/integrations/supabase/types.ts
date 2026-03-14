@@ -533,18 +533,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          respondent_email: string | null
           respondent_name: string | null
           survey_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          respondent_email?: string | null
           respondent_name?: string | null
           survey_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          respondent_email?: string | null
           respondent_name?: string | null
           survey_id?: string
         }
@@ -594,6 +597,7 @@ export type Database = {
           department: string
           description: string
           id: string
+          mode_sondage: string
           name: string
           objectif: string
           product_service: string
@@ -608,6 +612,7 @@ export type Database = {
           department?: string
           description?: string
           id?: string
+          mode_sondage?: string
           name: string
           objectif?: string
           product_service?: string
@@ -622,6 +627,7 @@ export type Database = {
           department?: string
           description?: string
           id?: string
+          mode_sondage?: string
           name?: string
           objectif?: string
           product_service?: string
