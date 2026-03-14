@@ -693,19 +693,31 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                             <span className="text-[8px] text-muted-foreground italic">—</span>
                           )}
                         </div>
-
-                        {/* Add branch button */}
-                        {canEdit && !t.parent_code && ["conditionnel", "parallele", "inclusif"].includes(t.type_flux) && isHovered && (
-                          <button
-                            className="absolute -bottom-3 left-1/2 -translate-x-1/2 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md text-xs hover:scale-110 transition-transform z-10"
-                            onClick={(e) => { e.stopPropagation(); openAddDialog(t.code); }}
-                            title="Ajouter une branche"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                        )}
                       </div>
                     </foreignObject>
+
+                    {/* Add branch button — rendered as SVG element outside foreignObject to avoid clipping */}
+                    {canEdit && !t.parent_code && ["conditionnel", "parallele", "inclusif"].includes(t.type_flux) && (
+                      <foreignObject
+                        x={node.x + node.w / 2 - 16}
+                        y={node.y + node.h - 4}
+                        width={32} height={32}
+                        className="overflow-visible"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        <button
+                          className={cn(
+                            "w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg text-sm font-bold transition-all duration-200 border-2 border-background",
+                            isHovered ? "opacity-100 scale-110" : "opacity-70 scale-100"
+                          )}
+                          style={{ pointerEvents: "auto" }}
+                          onClick={(e) => { e.stopPropagation(); openAddDialog(t.code); }}
+                          title="Ajouter une branche"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </foreignObject>
+                    )}
                   </g>
                 );
               })}
