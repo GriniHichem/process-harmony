@@ -20,6 +20,7 @@ type Doc = {
   version: number;
   archive: boolean;
   nom_fichier: string | null;
+  chemin_fichier: string | null;
   created_at: string;
   process_ids: string[];
 };
