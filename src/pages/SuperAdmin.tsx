@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Settings, Upload, Eye, Save } from "lucide-react";
+import { Settings, Upload, Eye, Save, Mail } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 export default function SuperAdmin() {
