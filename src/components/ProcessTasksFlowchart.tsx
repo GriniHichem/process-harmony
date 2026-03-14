@@ -299,6 +299,7 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
   const half = gw.s / 2;
   const color = FLOW_COLORS[gw.type] || FLOW_COLORS.sequentiel;
   const symbol = gw.type === "parallele" ? "+" : gw.type === "inclusif" ? "○" : "×";
+  const showDecisionBubble = !gw.isMerge && gw.label && gw.type !== "parallele";
 
   return (
     <g>
@@ -308,7 +309,27 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
         fill={color} fontSize={gw.s * 0.45} fontWeight="bold" fontFamily="inherit">
         {symbol}
       </text>
-      {!gw.isMerge && gw.label && (
+      {/* Decision question bubble for XOR and OR — below diamond */}
+      {showDecisionBubble && (
+        <foreignObject x={cx - 100} y={cy + half + 4} width={200} height={36}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+            background: "hsl(45 93% 94%)", border: "1.5px solid hsl(38 92% 60%)",
+            borderRadius: "8px", padding: "3px 8px", width: "fit-content", margin: "0 auto",
+            maxWidth: "196px",
+          }}>
+            <span style={{ fontSize: "11px" }}>❓</span>
+            <span style={{
+              fontSize: "10px", fontWeight: 600, color: "hsl(38 50% 30%)",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {gw.label.length > 28 ? gw.label.slice(0, 27) + "…" : gw.label}
+            </span>
+          </div>
+        </foreignObject>
+      )}
+      {/* AND label — just show text to the right */}
+      {!gw.isMerge && gw.label && gw.type === "parallele" && (
         <text x={cx + half + 10} y={cy + 1} textAnchor="start" dominantBaseline="middle"
           className="fill-foreground text-[11px] font-medium" fontFamily="inherit">
           {gw.label.length > 40 ? gw.label.slice(0, 40) + "…" : gw.label}
