@@ -451,6 +451,19 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     source: "p.26 & p.49",
   },
 
+  export_pdf: {
+    title: "Export PDF – Fiche processus",
+    category: "outil",
+    definition:
+      "Génère un document PDF complet de la fiche d'identité du processus conforme à la norme ISO 9001. Le PDF inclut les éléments descriptifs, le logigramme BPMN, les indicateurs, les risques/opportunités, les enjeux de contexte et les interactions.",
+    details: [
+      "Présentation et mise en page conçues par Radja BENHAMIDA",
+      "Format A4 avec en-tête incluant les logos Entreprise et Marque",
+      "Intégration automatique du diagramme BPMN si activé",
+    ],
+    source: "Application BPM Compass",
+  },
+
   carnet_sante: {
     title: "Carnet de santé du processus",
     category: "outil",
