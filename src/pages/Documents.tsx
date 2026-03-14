@@ -78,6 +78,7 @@ export default function Documents() {
       version: d.version,
       archive: d.archive,
       nom_fichier: d.nom_fichier,
+      chemin_fichier: d.chemin_fichier,
       created_at: d.created_at,
       process_ids: dpMap.get(d.id) || [],
     }));
