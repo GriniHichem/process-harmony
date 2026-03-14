@@ -55,7 +55,7 @@ interface Props {
   parentFluxType?: TaskFlowType | null;
 }
 
-export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteurs, processElements, onSave, onDelete, onAddElement, canDelete }: Props) {
+export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteurs, processElements, onSave, onDelete, onAddElement, canDelete, parentFluxType }: Props) {
   const [description, setDescription] = useState("");
   const [typeFlux, setTypeFlux] = useState<TaskFlowType>("sequentiel");
   const [condition, setCondition] = useState("");
