@@ -41,8 +41,13 @@ export default function Documents() {
   const [file, setFile] = useState<File | null>(null);
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
 
+  const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
+  const [pdfViewerTitle, setPdfViewerTitle] = useState("");
+  const [pdfFullscreen, setPdfFullscreen] = useState(false);
+
   const canCreate = hasPermission("documents", "can_edit");
   const canDelete = hasPermission("documents", "can_delete");
+  const canDownload = hasRole("rmq") || hasRole("admin") || hasRole("super_admin");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
   const fetchDocs = async () => {
