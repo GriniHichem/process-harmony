@@ -125,6 +125,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">{settings.company_name}</p>
               <p className="text-sm font-medium text-foreground">{settings.app_version}</p>
               <p className="text-xs text-muted-foreground italic">
                 {settings.app_description}
