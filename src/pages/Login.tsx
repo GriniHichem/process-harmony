@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import logo from "@/assets/logo.jpg";
+import defaultLogo from "@/assets/logo.jpg";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { settings } = useAppSettings();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,15 +28,17 @@ export default function Login() {
     setLoading(false);
   };
 
+  const logoSrc = settings.logo_url || defaultLogo;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
-          <img src={logo} alt="AMOUR" className="mx-auto h-14 object-contain" />
+          <img src={logoSrc} alt={settings.company_name} className="mx-auto h-14 object-contain" />
           <CardTitle className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Q-Process
+            {settings.app_name}
           </CardTitle>
-          <CardDescription>Système intégré ISO 9001 et gestion par processus</CardDescription>
+          <CardDescription>{settings.app_description}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">

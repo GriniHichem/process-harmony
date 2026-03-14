@@ -110,8 +110,10 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { profile, roles, hasRole, signOut } = useAuth();
+  const { settings } = useAppSettings();
 
-  const showAdminMenu = hasRole("admin") || hasRole("rmq");
+  const showAdminMenu = hasRole("admin") || hasRole("rmq") || hasRole("super_admin");
+  const showSuperAdmin = hasRole("super_admin");
 
   return (
     <Sidebar collapsible="icon">
@@ -122,7 +124,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div>
-              <p className="text-sm font-bold tracking-tight text-sidebar-foreground">Q-Process</p>
+              <p className="text-sm font-bold tracking-tight text-sidebar-foreground">{settings.app_name}</p>
               <p className="text-xs text-sidebar-foreground/60">SMQ</p>
             </div>
           )}
@@ -136,6 +138,23 @@ export function AppSidebar() {
         <NavGroup label="Pilotage SMQ" items={pilotageSMQItems} collapsed={collapsed} />
         <NavGroup label="Audit & Amélioration" items={auditItems} collapsed={collapsed} />
         {showAdminMenu && <NavGroup label="Administration" items={adminItems} collapsed={collapsed} />}
+        {showSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/super-admin" end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                      <Crown className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>Configuration</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
