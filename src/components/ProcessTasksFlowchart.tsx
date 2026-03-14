@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle } from "lucide-react";
+import { Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle, Locate } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { cn } from "@/lib/utils";
 
@@ -38,11 +38,11 @@ interface LayoutEdge {
 }
 
 // ─── Constants ───
-const CARD_W = 420, CARD_H = 140, GW_S = 44;
+const CARD_W = 440, CARD_MIN_H = 140, CARD_MAX_H = 260, GW_S = 44;
 const V_GAP = 100, H_GAP = 60;
 const CIRCLE_R = 22;
-const IO_PILL_H = 22, IO_COL_W = 100;
-const PROCESS_IO_BOX_W = 280, PROCESS_IO_BOX_H = 40;
+const IO_COL_W = 110;
+const PROCESS_IO_BOX_W = 360, PROCESS_IO_BOX_H = 44;
 
 const FLOW_COLORS: Record<TaskFlowType, string> = {
   sequentiel: "hsl(var(--primary))",
@@ -59,6 +59,17 @@ const ACTOR_PALETTE = [
 const BRANCH_PREFIX: Record<string, string> = {
   conditionnel: "a", parallele: "p", inclusif: "o",
 };
+
+// ─── Dynamic card height calculator ───
+function calcCardHeight(task: ProcessTask, processElements: ProcessElement[]): number {
+  const entrees = task.entrees ? task.entrees.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const sorties = task.sorties ? task.sorties.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const ioCount = Math.max(entrees.length, sorties.length);
+  const descLines = Math.ceil((task.description || "").length / 35);
+  const ioH = Math.max(0, ioCount - 2) * 22;
+  const descH = Math.max(0, descLines - 2) * 16;
+  return Math.min(CARD_MAX_H, Math.max(CARD_MIN_H, CARD_MIN_H + ioH + descH));
+}
 
 // ─── Vertical Auto-layout engine ───
 function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) {
@@ -85,10 +96,11 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
 
   let curY = 80;
 
-  // Process inputs box at top
+  // Process inputs box at top — dynamic height
   const processInputsY = curY;
+  const realInputBoxH = PROCESS_IO_BOX_H + Math.max(0, processEntrees.length) * 20 + 12;
   if (processEntrees.length > 0) {
-    curY += PROCESS_IO_BOX_H + 40;
+    curY += realInputBoxH + 60;
   }
 
   // Start circle
@@ -109,9 +121,9 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
     for (let i = 0; i < taskList.length; i++) {
       const task = taskList[i];
       const branches = branchMap.get(task.code);
+      const cardH = calcCardHeight(task, processElements);
 
       if (branches && branches.length > 0) {
-        // Gateway group — vertical split → horizontal branches
         const gwY = y;
         const gwCx = cx;
         const leafCounts = branches.map(b => countLeaves(b.code));
@@ -135,7 +147,6 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
           accX += span;
 
           const branch = branches[bi];
-          // Detect default path for XOR: branch without condition
           const hasCondition = !!branch.condition;
           const isDefaultPath = task.type_flux === "conditionnel" && !hasCondition;
           const edgeLabel = isDefaultPath ? "Sinon" : (branch.condition || undefined);
@@ -147,15 +158,15 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
             branchEnds.push({ x: res.connectFromX, y: res.connectFromY });
             maxEndY = Math.max(maxEndY, res.lastY);
           } else {
+            const branchCardH = calcCardHeight(branch, processElements);
             const nx = bCx - CARD_W / 2;
-            nodes.push({ task: branch, x: nx, y: branchStartY, w: CARD_W, h: CARD_H });
+            nodes.push({ task: branch, x: nx, y: branchStartY, w: CARD_W, h: branchCardH });
             edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: edgeLabel, isDefault: isDefaultPath, flowType: task.type_flux });
-            branchEnds.push({ x: bCx, y: branchStartY + CARD_H });
-            maxEndY = Math.max(maxEndY, branchStartY + CARD_H);
+            branchEnds.push({ x: bCx, y: branchStartY + branchCardH });
+            maxEndY = Math.max(maxEndY, branchStartY + branchCardH);
           }
         }
 
-        // Merge gateway
         const mergeY = maxEndY + V_GAP;
         gateways.push({ code: task.code + "_merge", type: task.type_flux, label: "", x: gwCx - GW_S / 2, y: mergeY, s: GW_S, isMerge: true });
         for (const be of branchEnds) {
@@ -166,13 +177,12 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
         prevCx = gwCx;
         y = prevBottom + V_GAP;
       } else {
-        // Simple task node — centered
         const nx = cx - CARD_W / 2;
-        nodes.push({ task, x: nx, y, w: CARD_W, h: CARD_H });
+        nodes.push({ task, x: nx, y, w: CARD_W, h: cardH });
         if (i > 0) {
           edges.push({ fromX: prevCx, fromY: prevBottom, toX: cx, toY: y });
         }
-        prevBottom = y + CARD_H;
+        prevBottom = y + cardH;
         prevCx = cx;
         y = prevBottom + V_GAP;
       }
@@ -183,7 +193,6 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
 
   const res = layoutSequence(roots, curY, centerX);
 
-  // Connect start circle to first element
   if (roots.length > 0) {
     const firstBranches = branchMap.get(roots[0].code);
     if (firstBranches && firstBranches.length > 0) {
@@ -193,15 +202,13 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
     }
   }
 
-  // End circle
   const endCx = centerX;
   const endCy = res.connectFromY + V_GAP + CIRCLE_R;
   edges.push({ fromX: res.connectFromX, fromY: res.connectFromY, toX: endCx, toY: endCy - CIRCLE_R });
 
-  // Process outputs box at bottom
   const processOutputsY = endCy + CIRCLE_R + 40;
 
-  return { nodes, gateways, edges, startCx, startCy, endCx, endCy, processInputsY, processOutputsY, processEntrees, processSorties };
+  return { nodes, gateways, edges, startCx, startCy, endCx, endCy, processInputsY, processOutputsY, processEntrees, processSorties, realInputBoxH };
 }
 
 // ─── Data flow links between consecutive tasks ───
@@ -212,13 +219,11 @@ interface DataFlowLink {
 
 function computeDataFlowLinks(nodes: LayoutNode[], processElements: ProcessElement[]): DataFlowLink[] {
   const links: DataFlowLink[] = [];
-  // For each pair of consecutive nodes (by ordre), check if output codes of prev appear in input codes of next
   const sorted = [...nodes].sort((a, b) => a.task.ordre - b.task.ordre);
 
   for (let i = 0; i < sorted.length - 1; i++) {
     const prev = sorted[i];
     const next = sorted[i + 1];
-    // Only link sequential (non-branched or same level)
     if (prev.task.parent_code !== next.task.parent_code) continue;
 
     const prevSorties = prev.task.sorties ? prev.task.sorties.split(",").map(s => s.trim()).filter(Boolean) : [];
@@ -226,7 +231,6 @@ function computeDataFlowLinks(nodes: LayoutNode[], processElements: ProcessEleme
 
     for (const code of prevSorties) {
       if (nextEntrees.includes(code)) {
-        // Right side of prev → left side of next
         links.push({
           fromNodeId: prev.task.id,
           toNodeId: next.task.id,
@@ -249,43 +253,45 @@ function FlowchartEdge({ edge }: { edge: LayoutEdge }) {
   const dy = edge.toY - edge.fromY;
   const midY = edge.fromY + dy * 0.5;
 
-  // Orthogonal path — vertical first, then horizontal
   const path = Math.abs(dx) < 2
     ? `M${edge.fromX},${edge.fromY} L${edge.toX},${edge.toY}`
     : `M${edge.fromX},${edge.fromY} L${edge.fromX},${midY} L${edge.toX},${midY} L${edge.toX},${edge.toY}`;
 
-  // Badge colors by flow type
   const badgeColors: Record<string, { bg: string; text: string }> = {
     conditionnel: { bg: "hsl(38 92% 50% / 0.15)", text: "hsl(38 92% 35%)" },
     inclusif: { bg: "hsl(280 60% 55% / 0.15)", text: "hsl(280 60% 40%)" },
   };
   const defaultBadge = { bg: "hsl(var(--muted))", text: "hsl(var(--muted-foreground))" };
 
-  // Position for the label badge: middle of horizontal segment
   const labelX = Math.abs(dx) < 2 ? edge.fromX : (edge.fromX + edge.toX) / 2;
   const labelY = Math.abs(dx) < 2 ? (edge.fromY + edge.toY) / 2 : midY;
 
   const colors = edge.flowType ? (badgeColors[edge.flowType] || defaultBadge) : defaultBadge;
 
+  // Dynamic badge width based on label length
+  const labelText = edge.label || "";
+  const displayText = labelText.length > 24 ? labelText.slice(0, 23) + "…" : labelText;
+  const badgeW = Math.max(80, displayText.length * 7 + 24);
+  const badgeH = 26;
+
   return (
     <g>
       <path d={path} fill="none" stroke="hsl(var(--border))" strokeWidth={2} markerEnd="url(#arrowhead)"
         strokeDasharray={edge.dashed ? "6 4" : undefined} />
-      {/* Default path indicator (BPMN slash mark) */}
       {edge.isDefault && Math.abs(dx) >= 2 && (
         <line x1={edge.fromX - 4} y1={edge.fromY + 12} x2={edge.fromX + 4} y2={edge.fromY + 20}
           stroke="hsl(var(--border))" strokeWidth={2} />
       )}
       {edge.label && (
         <g>
-          <rect x={labelX - 36} y={labelY - 11} width={72} height={20} rx={10}
+          <rect x={labelX - badgeW / 2} y={labelY - badgeH / 2} width={badgeW} height={badgeH} rx={badgeH / 2}
             fill={edge.isDefault ? "hsl(var(--muted))" : colors.bg}
             stroke={edge.isDefault ? "hsl(var(--border))" : colors.text} strokeWidth={0.5} opacity={0.95} />
           <text x={labelX} y={labelY + 1} textAnchor="middle" dominantBaseline="middle"
             fill={edge.isDefault ? "hsl(var(--muted-foreground))" : colors.text}
-            fontSize="9" fontFamily="inherit" fontWeight={edge.isDefault ? "normal" : "600"}
+            fontSize="10" fontFamily="inherit" fontWeight={edge.isDefault ? "normal" : "600"}
             fontStyle={edge.isDefault ? "italic" : "normal"}>
-            {edge.label.length > 12 ? edge.label.slice(0, 11) + "…" : edge.label}
+            {displayText}
           </text>
         </g>
       )}
@@ -301,6 +307,11 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
   const symbol = gw.type === "parallele" ? "+" : gw.type === "inclusif" ? "○" : "×";
   const showDecisionBubble = !gw.isMerge && gw.label && gw.type !== "parallele";
 
+  // Decision bubble to the left of the diamond
+  const bubbleLabel = gw.label || "";
+  const bubbleText = bubbleLabel.length > 35 ? bubbleLabel.slice(0, 34) + "…" : bubbleLabel;
+  const bubbleW = Math.min(220, Math.max(120, bubbleText.length * 6.5 + 32));
+
   return (
     <g>
       <polygon points={`${cx},${cy - half} ${cx + half},${cy} ${cx},${cy + half} ${cx - half},${cy}`}
@@ -309,33 +320,86 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
         fill={color} fontSize={gw.s * 0.45} fontWeight="bold" fontFamily="inherit">
         {symbol}
       </text>
-      {/* Decision question bubble for XOR and OR — below diamond */}
+      {/* Decision question bubble — positioned to the LEFT of the diamond */}
       {showDecisionBubble && (
-        <foreignObject x={cx - 100} y={cy + half + 4} width={200} height={36}>
+        <foreignObject x={cx - half - bubbleW - 12} y={cy - 18} width={bubbleW} height={36}>
           <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: "4px",
+            display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px",
             background: "hsl(45 93% 94%)", border: "1.5px solid hsl(38 92% 60%)",
-            borderRadius: "8px", padding: "3px 8px", width: "fit-content", margin: "0 auto",
-            maxWidth: "196px",
+            borderRadius: "8px", padding: "4px 10px", width: "fit-content", marginLeft: "auto",
+            maxWidth: `${bubbleW - 4}px`,
           }}>
-            <span style={{ fontSize: "11px" }}>❓</span>
+            <span style={{ fontSize: "12px", flexShrink: 0 }}>❓</span>
             <span style={{
-              fontSize: "10px", fontWeight: 600, color: "hsl(38 50% 30%)",
+              fontSize: "11px", fontWeight: 600, color: "hsl(38 50% 30%)",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
-              {gw.label.length > 28 ? gw.label.slice(0, 27) + "…" : gw.label}
+              {bubbleText}
             </span>
           </div>
         </foreignObject>
       )}
-      {/* AND label — just show text to the right */}
+      {/* AND label — text to the right */}
       {!gw.isMerge && gw.label && gw.type === "parallele" && (
         <text x={cx + half + 10} y={cy + 1} textAnchor="start" dominantBaseline="middle"
-          className="fill-foreground text-[11px] font-medium" fontFamily="inherit">
+          className="fill-foreground" fontSize="12" fontWeight="500" fontFamily="inherit">
           {gw.label.length > 40 ? gw.label.slice(0, 40) + "…" : gw.label}
         </text>
       )}
     </g>
+  );
+}
+
+// ─── Minimap Component ───
+function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX, minY, vbW, vbH, zoom, pan, containerW, containerH }: {
+  nodes: LayoutNode[]; gateways: LayoutGateway[]; edges: LayoutEdge[];
+  startCx: number; startCy: number; endCx: number; endCy: number;
+  minX: number; minY: number; vbW: number; vbH: number;
+  zoom: number; pan: { x: number; y: number };
+  containerW: number; containerH: number;
+}) {
+  const mmW = 180, mmH = 110;
+  const scale = Math.min(mmW / vbW, mmH / vbH) * 0.9;
+  const offX = (mmW - vbW * scale) / 2;
+  const offY = (mmH - vbH * scale) / 2;
+  const tx = (x: number) => (x - minX) * scale + offX;
+  const ty = (y: number) => (y - minY) * scale + offY;
+
+  // Viewport rectangle
+  const vpW = (containerW / zoom) * scale;
+  const vpH = (containerH / zoom) * scale;
+  const vpX = (-pan.x / zoom - minX) * scale + offX;
+  const vpY = (-pan.y / zoom - minY) * scale + offY;
+
+  return (
+    <div className="absolute bottom-12 right-3 z-20 bg-card/90 backdrop-blur-sm rounded-lg border border-border/50 shadow-md overflow-hidden" style={{ width: mmW, height: mmH }}>
+      <svg width={mmW} height={mmH}>
+        {/* Edges as simple lines */}
+        {edges.map((e, i) => (
+          <line key={i} x1={tx(e.fromX)} y1={ty(e.fromY)} x2={tx(e.toX)} y2={ty(e.toY)}
+            stroke="hsl(var(--border))" strokeWidth={0.5} opacity={0.5} />
+        ))}
+        {/* Nodes as small rectangles */}
+        {nodes.map((n, i) => (
+          <rect key={i} x={tx(n.x)} y={ty(n.y)} width={n.w * scale} height={n.h * scale}
+            fill="hsl(var(--primary) / 0.3)" stroke="hsl(var(--primary))" strokeWidth={0.5} rx={2} />
+        ))}
+        {/* Gateways as small diamonds */}
+        {gateways.map((gw, i) => {
+          const gcx = tx(gw.x + gw.s / 2);
+          const gcy = ty(gw.y + gw.s / 2);
+          const gs = gw.s * scale * 0.6;
+          return <polygon key={i} points={`${gcx},${gcy - gs} ${gcx + gs},${gcy} ${gcx},${gcy + gs} ${gcx - gs},${gcy}`}
+            fill="hsl(38 92% 50% / 0.3)" stroke="hsl(38 92% 50%)" strokeWidth={0.5} />;
+        })}
+        {/* Start/End circles */}
+        <circle cx={tx(startCx)} cy={ty(startCy)} r={3} fill="hsl(var(--primary))" />
+        <circle cx={tx(endCx)} cy={ty(endCy)} r={3} fill="none" stroke="hsl(var(--primary))" strokeWidth={1} />
+        {/* Viewport indicator */}
+        <rect x={vpX} y={vpY} width={vpW} height={vpH}
+          fill="hsl(var(--primary) / 0.08)" stroke="hsl(var(--primary))" strokeWidth={1} rx={2} strokeDasharray="3 2" />
+      </svg>
+    </div>
   );
 }
 
@@ -358,6 +422,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const [editorParentFluxType, setEditorParentFluxType] = useState<TaskFlowType | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchTasks = useCallback(async () => {
     const { data } = await supabase.from("process_tasks").select("*").eq("process_id", processId).order("ordre", { ascending: true });
@@ -375,7 +440,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const layout = useMemo(() => tasks.length > 0 ? computeLayout(tasks, processElements) : null, [tasks, processElements]);
   const dataFlowLinks = useMemo(() => layout ? computeDataFlowLinks(layout.nodes, processElements) : [], [layout, processElements]);
 
-  // Actor color map
   const actorColorMap = useMemo(() => {
     const map = new Map<string, string>();
     const uniqueIds = [...new Set(tasks.map(t => t.responsable_id).filter(Boolean))] as string[];
@@ -449,7 +513,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       if (error) { toast.error(error.message); return; }
       toast.success("Activité ajoutée");
 
-      // Guidance toast for parallel/inclusive gateways
       const savedFlux = parentCode ? "sequentiel" : data.type_flux;
       if (!parentCode && (savedFlux === "parallele" || savedFlux === "inclusif")) {
         const existingBranches = tasks.filter(t => t.parent_code === code);
@@ -500,6 +563,19 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   const resetView = () => { setZoom(0.8); setPan({ x: 0, y: 0 }); };
 
+  // Fit to view — auto-calculate zoom & pan to show entire diagram
+  const fitToView = useCallback(() => {
+    if (!layout || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const cW = rect.width;
+    const cH = rect.height;
+    const fitZoom = Math.min(cW / (vbW + 100), cH / (vbH + 100), 1.5);
+    const fitPanX = (cW - vbW * fitZoom) / 2 - minX * fitZoom;
+    const fitPanY = (cH - vbH * fitZoom) / 2 - minY * fitZoom;
+    setZoom(fitZoom);
+    setPan({ x: fitPanX, y: fitPanY });
+  }, [layout]);
+
   const acteurName = (id: string | null) => {
     if (!id) return null;
     const a = acteurs.find(a => a.id === id);
@@ -521,6 +597,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       ...layout.nodes.map(n => n.x), ...layout.nodes.map(n => n.x + n.w),
       ...layout.gateways.map(g => g.x), ...layout.gateways.map(g => g.x + g.s),
       layout.startCx + CIRCLE_R, layout.endCx + CIRCLE_R,
+      // Account for decision bubbles on the left
+      ...layout.gateways.filter(g => !g.isMerge && g.label && g.type !== "parallele").map(g => g.x - 220),
     ];
     const allY = [
       ...layout.nodes.map(n => n.y), ...layout.nodes.map(n => n.y + n.h),
@@ -528,16 +606,19 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       layout.startCy + CIRCLE_R, layout.endCy + CIRCLE_R,
       layout.processOutputsY + PROCESS_IO_BOX_H,
     ];
-    minX = Math.min(...allX) - 80;
+    minX = Math.min(...allX) - 100;
     minY = Math.min(...allY) - 80;
-    maxX = Math.max(...allX) + 80;
+    maxX = Math.max(...allX) + 100;
     maxY = Math.max(...allY) + 80;
   }
   const vbW = maxX - minX;
   const vbH = maxY - minY;
 
+  const containerW = containerRef.current?.getBoundingClientRect().width || 800;
+  const containerH = containerRef.current?.getBoundingClientRect().height || 600;
+
   const canvas = (
-    <div className={cn("relative bg-muted/20 rounded-xl border border-border/50 overflow-hidden", fullscreen ? "w-full h-full" : "w-full")}
+    <div ref={containerRef} className={cn("relative bg-muted/20 rounded-xl border border-border/50 overflow-hidden", fullscreen ? "w-full h-full" : "w-full")}
       style={{ height: fullscreen ? "100%" : "min(75vh, 800px)" }}>
       {/* Toolbar */}
       <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5">
@@ -546,11 +627,19 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
             <Plus className="h-3.5 w-3.5" /> Activité
           </Button>
         )}
+        {/* Activity count badge */}
+        {tasks.length > 0 && (
+          <span className="text-[11px] bg-card/90 backdrop-blur-sm text-muted-foreground px-2.5 py-1 rounded-md border border-border/40 shadow-sm font-medium">
+            {tasks.length} activité{tasks.length > 1 ? "s" : ""}
+          </span>
+        )}
       </div>
       <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setZoom(z => Math.min(2.5, z + 0.2))}><ZoomIn className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setZoom(z => Math.max(0.15, z - 0.2))}><ZoomOut className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={resetView}><RotateCcw className="h-3.5 w-3.5" /></Button>
+        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +"><ZoomIn className="h-3.5 w-3.5" /></Button>
+        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setZoom(z => Math.max(0.15, z - 0.2))} title="Zoom −"><ZoomOut className="h-3.5 w-3.5" /></Button>
+        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={fitToView} title="Ajuster à la vue"><Locate className="h-3.5 w-3.5" /></Button>
+        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={resetView} title="Réinitialiser"><RotateCcw className="h-3.5 w-3.5" /></Button>
+        <div className="w-px h-6 bg-border/50 mx-0.5" />
         <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setFullscreen(f => !f)}>
           {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </Button>
@@ -570,6 +659,16 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
             </div>
           ))}
         </div>
+      )}
+
+      {/* Minimap */}
+      {layout && (
+        <Minimap
+          nodes={layout.nodes} gateways={layout.gateways} edges={layout.edges}
+          startCx={layout.startCx} startCy={layout.startCy} endCx={layout.endCx} endCy={layout.endCy}
+          minX={minX} minY={minY} vbW={vbW} vbH={vbH}
+          zoom={zoom} pan={pan} containerW={containerW} containerH={containerH}
+        />
       )}
 
       <svg ref={svgRef} width="100%" height="100%" className="cursor-grab active:cursor-grabbing select-none"
@@ -594,12 +693,12 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
             <>
               {/* Process-level inputs */}
               {layout.processEntrees.length > 0 && (
-                <foreignObject x={layout.startCx - PROCESS_IO_BOX_W / 2} y={layout.processInputsY} width={PROCESS_IO_BOX_W} height={PROCESS_IO_BOX_H + layout.processEntrees.length * 18}>
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 text-center">
-                    <div className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1">Entrées du processus</div>
-                    <div className="flex flex-wrap justify-center gap-1">
+                <foreignObject x={layout.startCx - PROCESS_IO_BOX_W / 2} y={layout.processInputsY} width={PROCESS_IO_BOX_W} height={layout.realInputBoxH}>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center h-full">
+                    <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1.5">Entrées du processus</div>
+                    <div className="flex flex-wrap justify-center gap-1.5">
                       {layout.processEntrees.map(e => (
-                        <span key={e.id} className="text-[9px] bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded-full">{e.description}</span>
+                        <span key={e.id} className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">{e.description}</span>
                       ))}
                     </div>
                   </div>
@@ -618,7 +717,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                     markerEnd="url(#arrowhead-data)" opacity={0.7}
                   />
                   <text x={(link.fromX + link.toX) / 2 + 12} y={(link.fromY + link.toY) / 2}
-                    className="text-[8px]" fill="hsl(30 80% 50%)" fontFamily="inherit" fontStyle="italic">
+                    fontSize="9" fill="hsl(30 80% 50%)" fontFamily="inherit" fontStyle="italic">
                     {resolveDesc(link.code)}
                   </text>
                 </g>
@@ -626,7 +725,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
               {/* Start circle */}
               <circle cx={layout.startCx} cy={layout.startCy} r={CIRCLE_R} fill="hsl(var(--primary))" stroke="none" />
-              <text x={layout.startCx} y={layout.startCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="10" fontWeight="600" fontFamily="inherit">Début</text>
+              <text x={layout.startCx} y={layout.startCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="11" fontWeight="600" fontFamily="inherit">Début</text>
 
               {/* Gateways + incomplete warning badges */}
               {layout.gateways.map((gw, i) => {
@@ -674,58 +773,58 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                         onMouseLeave={() => setHoveredNodeId(null)}
                       >
                         {/* Left column — Inputs */}
-                        <div className="w-[100px] shrink-0 bg-blue-50/50 dark:bg-blue-950/20 border-r border-blue-200/30 dark:border-blue-800/30 p-1.5 flex flex-col gap-1 overflow-y-auto">
-                          <span className="text-[8px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Entrées</span>
+                        <div className="w-[110px] shrink-0 bg-blue-50/50 dark:bg-blue-950/20 border-r border-blue-200/30 dark:border-blue-800/30 p-2 flex flex-col gap-1 overflow-y-auto">
+                          <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Entrées</span>
                           {entrees.length > 0 ? entrees.map(code => (
-                            <div key={code} className="text-[9px] bg-blue-100/80 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded leading-tight truncate" title={resolveDesc(code)}>
+                            <div key={code} className="text-[10px] bg-blue-100/80 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded leading-tight truncate" title={resolveDesc(code)}>
                               {resolveDesc(code)}
                             </div>
                           )) : (
-                            <span className="text-[8px] text-muted-foreground italic">—</span>
+                            <span className="text-[9px] text-muted-foreground italic">—</span>
                           )}
                         </div>
 
                         {/* Center column — Code + Description + Actor */}
                         <div className="flex-1 flex flex-col min-w-0">
-                          <div className="flex-1 p-2.5 flex flex-col gap-1">
+                          <div className="flex-1 p-3 flex flex-col gap-1.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary shrink-0">{t.code}</span>
+                              <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary shrink-0">{t.code}</span>
                               {t.condition && (
-                                <span className="text-[9px] text-muted-foreground italic truncate">({t.condition})</span>
+                                <span className="text-[10px] text-muted-foreground italic truncate">({t.condition})</span>
                               )}
                             </div>
-                            <p className="text-[11px] leading-snug text-foreground font-medium line-clamp-3">{t.description}</p>
+                            <p className="text-[12px] leading-snug text-foreground font-medium line-clamp-4">{t.description}</p>
                           </div>
                           {/* Actor banner */}
                           <div
-                            className="h-7 flex items-center gap-1.5 px-2.5 shrink-0"
+                            className="h-8 flex items-center gap-1.5 px-3 shrink-0"
                             style={{
                               backgroundColor: actorColor ? actorColor : "hsl(var(--muted))",
                               opacity: actorColor ? 0.9 : 0.5,
                             }}
                           >
-                            <User className="h-3 w-3 text-white" />
-                            <span className="text-[10px] font-medium text-white truncate">
+                            <User className="h-3.5 w-3.5 text-white" />
+                            <span className="text-[11px] font-medium text-white truncate">
                               {resp || "Non assigné"}
                             </span>
                           </div>
                         </div>
 
                         {/* Right column — Outputs */}
-                        <div className="w-[100px] shrink-0 bg-green-50/50 dark:bg-green-950/20 border-l border-green-200/30 dark:border-green-800/30 p-1.5 flex flex-col gap-1 overflow-y-auto">
-                          <span className="text-[8px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">Sorties</span>
+                        <div className="w-[110px] shrink-0 bg-green-50/50 dark:bg-green-950/20 border-l border-green-200/30 dark:border-green-800/30 p-2 flex flex-col gap-1 overflow-y-auto">
+                          <span className="text-[9px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">Sorties</span>
                           {sorties.length > 0 ? sorties.map(code => (
-                            <div key={code} className="text-[9px] bg-green-100/80 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-1.5 py-0.5 rounded leading-tight truncate" title={resolveDesc(code)}>
+                            <div key={code} className="text-[10px] bg-green-100/80 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-1.5 py-0.5 rounded leading-tight truncate" title={resolveDesc(code)}>
                               {resolveDesc(code)}
                             </div>
                           )) : (
-                            <span className="text-[8px] text-muted-foreground italic">—</span>
+                            <span className="text-[9px] text-muted-foreground italic">—</span>
                           )}
                         </div>
                       </div>
                     </foreignObject>
 
-                    {/* Add branch button — rendered as SVG element outside foreignObject to avoid clipping */}
+                    {/* Add branch button */}
                     {canEdit && !t.parent_code && ["conditionnel", "parallele", "inclusif"].includes(t.type_flux) && (
                       <foreignObject
                         x={node.x + node.w / 2 - 16}
@@ -754,16 +853,16 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               {/* End circle */}
               <circle cx={layout.endCx} cy={layout.endCy} r={CIRCLE_R} fill="none" stroke="hsl(var(--primary))" strokeWidth={3} />
               <circle cx={layout.endCx} cy={layout.endCy} r={CIRCLE_R - 5} fill="hsl(var(--primary))" />
-              <text x={layout.endCx} y={layout.endCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="10" fontWeight="600" fontFamily="inherit">Fin</text>
+              <text x={layout.endCx} y={layout.endCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="11" fontWeight="600" fontFamily="inherit">Fin</text>
 
               {/* Process-level outputs */}
               {layout.processSorties.length > 0 && (
-                <foreignObject x={layout.endCx - PROCESS_IO_BOX_W / 2} y={layout.processOutputsY} width={PROCESS_IO_BOX_W} height={PROCESS_IO_BOX_H + layout.processSorties.length * 18}>
-                  <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-2 text-center">
-                    <div className="text-[10px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wider mb-1">Sorties du processus</div>
-                    <div className="flex flex-wrap justify-center gap-1">
+                <foreignObject x={layout.endCx - PROCESS_IO_BOX_W / 2} y={layout.processOutputsY} width={PROCESS_IO_BOX_W} height={PROCESS_IO_BOX_H + layout.processSorties.length * 20 + 12}>
+                  <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                    <div className="text-[11px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wider mb-1.5">Sorties du processus</div>
+                    <div className="flex flex-wrap justify-center gap-1.5">
                       {layout.processSorties.map(e => (
-                        <span key={e.id} className="text-[9px] bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 px-1.5 py-0.5 rounded-full">{e.description}</span>
+                        <span key={e.id} className="text-[10px] bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 px-2 py-0.5 rounded-full">{e.description}</span>
                       ))}
                     </div>
                   </div>
