@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,13 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Settings, Upload, Eye, Save, Mail, Server, Eye as EyeIcon, EyeOff } from "lucide-react";
+import { Settings, Upload, Eye, Save, Mail, Server, Eye as EyeIcon, EyeOff, SendHorizonal } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 
 export default function SuperAdmin() {
-  const { settings, updateSetting, refreshSettings } = useAppSettings();
+  const { settings, loading, updateSetting, refreshSettings } = useAppSettings();
   const { user } = useAuth();
   const [form, setForm] = useState({ ...settings });
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+
+  // Sync form when settings finish loading from DB
+  useEffect(() => {
+    if (!loading) {
+      setForm({ ...settings });
+    }
+  }, [loading, settings]);
   const [saving, setSaving] = useState(false);
   const [uploadingCompany, setUploadingCompany] = useState(false);
   const [uploadingBrand, setUploadingBrand] = useState(false);
@@ -225,7 +234,50 @@ export default function SuperAdmin() {
               </div>
             </CardContent>
           </Card>
-          {/* Logo Entreprise */}
+
+          {/* Test Email */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <SendHorizonal className="h-4 w-4" />
+                Tester l'envoi
+              </CardTitle>
+              <CardDescription>Envoyez un email de test pour vérifier la configuration SMTP</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="destinataire@exemple.com"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  disabled={!testEmail || sendingTest}
+                  onClick={async () => {
+                    setSendingTest(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke("send-test-email", {
+                        body: { to: testEmail },
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      toast.success("Email de test envoyé avec succès !");
+                    } catch (err: any) {
+                      toast.error("Échec : " + err.message);
+                    } finally {
+                      setSendingTest(false);
+                    }
+                  }}
+                >
+                  <SendHorizonal className="h-4 w-4 mr-2" />
+                  {sendingTest ? "Envoi..." : "Envoyer"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Logo Entreprise</CardTitle>
