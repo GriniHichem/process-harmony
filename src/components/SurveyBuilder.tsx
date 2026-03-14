@@ -151,6 +151,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
         objectif: editingSurvey?.objectif || "mesurer_satisfaction",
         type_sondage_autre: surveyTypes.find(t => t.value === editingSurvey?.type_sondage) ? "" : (editingSurvey?.type_sondage || ""),
         objectif_autre: surveyObjectives.find(t => t.value === editingSurvey?.objectif) ? "" : (editingSurvey?.objectif || ""),
+        mode_sondage: editingSurvey?.mode_sondage || "libre",
       });
       setQuestions(
         editingQuestions?.map((q: any) => ({
