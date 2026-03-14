@@ -164,7 +164,7 @@ export function AppSidebar() {
             <p className="text-xs font-medium text-sidebar-foreground truncate">
               {profile.prenom} {profile.nom}
             </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{roles.join(", ")}</p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{roles.map(r => ROLE_LABELS[r as AppRole] || r).join(", ")}</p>
           </div>
         )}
         <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={signOut}>
