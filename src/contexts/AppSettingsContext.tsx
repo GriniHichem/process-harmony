@@ -10,6 +10,7 @@ export interface AppSettings {
   info_credits: string;
   logo_url: string;
   brand_logo_url: string;
+  support_email: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
