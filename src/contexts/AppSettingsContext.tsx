@@ -9,6 +9,7 @@ export interface AppSettings {
   info_copyright: string;
   info_credits: string;
   logo_url: string;
+  brand_logo_url: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -19,6 +20,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   info_copyright: "© 2026 Groupe AMOUR. Tous droits réservés.",
   info_credits: "H. GRINI & F. SERRADJ — SI TEAM",
   logo_url: "",
+  brand_logo_url: "",
 };
 
 interface AppSettingsContextType {
