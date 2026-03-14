@@ -78,11 +78,12 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   journal: "Journal d'activité",
 };
 
-export type AppRole = "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
+export type AppRole = "super_admin" | "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
 
-export const ALL_ROLES: AppRole[] = ["admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
+export const ALL_ROLES: AppRole[] = ["super_admin", "admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
 
 export const ROLE_LABELS: Record<AppRole, string> = {
+  super_admin: "Super Admin",
   admin: "Admin",
   rmq: "RMQ",
   responsable_processus: "Resp. processus",
