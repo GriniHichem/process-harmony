@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
+      setDataLoaded(false);
       const [profileRes, rolesRes, permRes, userCustomRolesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
@@ -140,6 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error("Error fetching user data:", err);
+    } finally {
+      setDataLoaded(true);
     }
   };
 
