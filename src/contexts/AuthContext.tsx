@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [customRoleIds, setCustomRoleIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [permOverrides, setPermOverrides] = useState<Record<string, ModulePermissions>>({});
   const [customRolePerms, setCustomRolePerms] = useState<CustomRolePermissions>({});
 
