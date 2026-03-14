@@ -135,16 +135,21 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
           accX += span;
 
           const branch = branches[bi];
+          // Detect default path for XOR: branch without condition
+          const hasCondition = !!branch.condition;
+          const isDefaultPath = task.type_flux === "conditionnel" && !hasCondition;
+          const edgeLabel = isDefaultPath ? "Sinon" : (branch.condition || undefined);
+
           const nestedBranches = branchMap.get(branch.code);
           if (nestedBranches && nestedBranches.length > 0) {
             const res = layoutSequence([branch], branchStartY, bCx);
-            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: branch.condition || undefined });
+            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: edgeLabel, isDefault: isDefaultPath, flowType: task.type_flux });
             branchEnds.push({ x: res.connectFromX, y: res.connectFromY });
             maxEndY = Math.max(maxEndY, res.lastY);
           } else {
             const nx = bCx - CARD_W / 2;
             nodes.push({ task: branch, x: nx, y: branchStartY, w: CARD_W, h: CARD_H });
-            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: branch.condition || undefined });
+            edges.push({ fromX: gwCx, fromY: gwY + GW_S, toX: bCx, toY: branchStartY, label: edgeLabel, isDefault: isDefaultPath, flowType: task.type_flux });
             branchEnds.push({ x: bCx, y: branchStartY + CARD_H });
             maxEndY = Math.max(maxEndY, branchStartY + CARD_H);
           }
