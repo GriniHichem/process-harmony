@@ -42,7 +42,7 @@ const CARD_W = 440, CARD_MIN_H = 140, CARD_MAX_H = 260, GW_S = 44;
 const V_GAP = 100, H_GAP = 60;
 const CIRCLE_R = 22;
 const IO_COL_W = 110;
-const PROCESS_IO_BOX_W = 360, PROCESS_IO_BOX_H = 44;
+const PROCESS_IO_BOX_W = 440, PROCESS_IO_BOX_H = 44;
 
 const FLOW_COLORS: Record<TaskFlowType, string> = {
   sequentiel: "hsl(var(--primary))",
