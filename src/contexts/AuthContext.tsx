@@ -193,8 +193,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const priorityOrder: AppRole[] = ["super_admin", "admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
   const role = priorityOrder.find((r) => roles.includes(r)) ?? null;
 
+  const isFullyLoaded = !loading && (user ? dataLoaded : true);
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, roles, customRoles, role, loading, hasRole, hasPermission, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, roles, customRoles, role, loading: !isFullyLoaded, hasRole, hasPermission, signOut }}>
       {children}
     </AuthContext.Provider>
   );
