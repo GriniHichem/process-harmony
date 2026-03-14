@@ -752,6 +752,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         onDelete={editorTask?.id ? handleDelete : undefined}
         onAddElement={onAddElement}
         canDelete={canDelete}
+        parentFluxType={editorParentFluxType}
       />
     </div>
   );
