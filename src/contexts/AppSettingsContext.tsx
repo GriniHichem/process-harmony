@@ -11,6 +11,9 @@ export interface AppSettings {
   logo_url: string;
   brand_logo_url: string;
   support_email: string;
+  smtp_host: string;
+  smtp_port: string;
+  smtp_user: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
