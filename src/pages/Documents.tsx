@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, X, Eye, Download } from "lucide-react";
+import { Plus, FileText, Trash2, X, Eye, Download, Maximize2, Minimize2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { cn } from "@/lib/utils";
 
 
 type Doc = {
