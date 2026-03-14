@@ -248,7 +248,7 @@ export function getEffectivePermission(
   customRoleIds: string[] = [],
   customRolePerms: CustomRolePermissions = {}
 ): boolean {
-  if (roles.includes("admin")) return true;
+  if (roles.includes("super_admin") || roles.includes("admin")) return true;
 
   // Check standard roles
   const standardMatch = roles.some((role) => {

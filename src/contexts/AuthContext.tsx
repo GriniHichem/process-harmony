@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Backward compat: role = first role (priority: admin > rmq > others)
-  const priorityOrder: AppRole[] = ["admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
+  const priorityOrder: AppRole[] = ["super_admin", "admin", "rmq", "responsable_processus", "consultant", "auditeur", "acteur"];
   const role = priorityOrder.find((r) => roles.includes(r)) ?? null;
 
   return (
