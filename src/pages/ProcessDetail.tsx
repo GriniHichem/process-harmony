@@ -497,7 +497,7 @@ export default function ProcessDetail() {
             </div>
           </DialogHeader>
           <div className="flex-1 min-h-0">
-            {pdfViewerUrl && <iframe src={pdfViewerUrl} className="w-full h-full rounded-md border" title="PDF Viewer" />}
+            {pdfViewerUrl && <iframe key={pdfViewerUrl} src={pdfViewerUrl} className="w-full h-full rounded-md border" title="PDF Viewer" />}
           </div>
         </DialogContent>
       </Dialog>
