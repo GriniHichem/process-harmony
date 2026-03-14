@@ -1,9 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
-import type { AppModule, PermissionLevel } from "@/lib/defaultPermissions";
-
-type AppRole = "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
+import type { AppModule, PermissionLevel, AppRole } from "@/lib/defaultPermissions";
 
 interface RoleGuardProps {
   children: React.ReactNode;

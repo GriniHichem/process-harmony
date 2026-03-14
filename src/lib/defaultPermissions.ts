@@ -256,7 +256,7 @@ export function getEffectivePermission(
     const overrideKey = `${role}:${module}`;
     const override = dbOverrides[overrideKey];
     if (override) return override[level];
-    const defaults = DEFAULT_PERMISSIONS[role as Exclude<AppRole, "admin">];
+    const defaults = DEFAULT_PERMISSIONS[role as Exclude<AppRole, "admin" | "super_admin">];
     if (!defaults) return false;
     return defaults[module]?.[level] ?? false;
   });
