@@ -249,6 +249,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
           name: form.name, description: form.description,
           department: form.department, product_service: form.product_service,
           type_sondage: typeSondage, objectif: objectif,
+          mode_sondage: form.mode_sondage,
         }).eq("id", surveyId);
         if (error) throw error;
         await supabase.from("client_survey_questions").delete().eq("survey_id", surveyId);
@@ -257,6 +258,7 @@ export default function SurveyBuilder({ open, onOpenChange, editingSurvey, editi
           name: form.name, description: form.description,
           department: form.department, product_service: form.product_service,
           type_sondage: typeSondage, objectif: objectif,
+          mode_sondage: form.mode_sondage,
           created_by: user?.id,
         }).select().single();
         if (error) throw error;
