@@ -377,7 +377,7 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
   <!-- ═══ COMPANY HEADER ═══ -->
   <div class="company-header">
     <div class="left">
-      <img src="${logos.brandLogo}" alt="Logo marque" />
+      <img src="${logos.companyLogo}" alt="${esc(logos.companyName)}" />
       <div>
         <h2>${esc(logos.companyName)}</h2>
         <p>Système de Management de la Qualité — ISO 9001:2015</p>
@@ -390,7 +390,7 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
         Version : ${p.version_courante}<br>
         Date : ${now}
       </div>
-      <img src="${logos.companyLogo}" alt="${esc(logos.companyName)}" />
+      <img src="${logos.brandLogo}" alt="Logo marque" />
     </div>
   </div>
 
