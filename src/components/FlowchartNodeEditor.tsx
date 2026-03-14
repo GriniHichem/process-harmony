@@ -52,6 +52,7 @@ interface Props {
   onDelete?: () => void;
   onAddElement: (type: ElementType, description: string) => Promise<void>;
   canDelete: boolean;
+  parentFluxType?: TaskFlowType | null;
 }
 
 export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteurs, processElements, onSave, onDelete, onAddElement, canDelete }: Props) {
