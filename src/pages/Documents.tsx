@@ -313,6 +313,21 @@ export default function Documents() {
         </div>
       )}
 
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
+        <DialogContent className={cn("flex flex-col transition-all duration-300", pdfFullscreen ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0" : "max-w-5xl w-[90vw] h-[85vh]")} aria-describedby={undefined}>
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> {pdfViewerTitle}</DialogTitle>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPdfFullscreen(f => !f)} title={pdfFullscreen ? "Réduire" : "Plein écran"}>
+                {pdfFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {pdfViewerUrl && <iframe src={pdfViewerUrl} className="w-full h-full rounded-md border" title="PDF Viewer" />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
