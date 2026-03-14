@@ -56,6 +56,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-3">
                 <SidebarTrigger />
                 <img src={logoSrc} alt={settings.company_name} className="h-7 object-contain" />
+                {settings.brand_logo_url && (
+                  <img src={settings.brand_logo_url} alt="Logo marque" className="h-7 object-contain" />
+                )}
                 <div className="flex items-center gap-1.5">
                   <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                     {settings.app_name}
