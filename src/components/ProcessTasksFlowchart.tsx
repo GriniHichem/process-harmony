@@ -411,6 +411,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     setEditorTask(null);
     setEditorIsBranch(!!parentCode);
     setBranchParentCode(parentCode || null);
+    const parent = parentCode ? tasks.find(t => t.code === parentCode) : null;
+    setEditorParentFluxType(parent?.type_flux || null);
     setEditorOpen(true);
   };
 
@@ -418,6 +420,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     setEditorTask(task);
     setEditorIsBranch(false);
     setBranchParentCode(null);
+    const parent = task.parent_code ? tasks.find(t => t.code === task.parent_code) : null;
+    setEditorParentFluxType(parent?.type_flux || null);
     setSelectedTaskId(task.id);
     setEditorOpen(true);
   };
