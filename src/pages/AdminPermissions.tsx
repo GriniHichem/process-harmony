@@ -34,7 +34,7 @@ const PERM_LEVELS: { key: PermissionLevel; label: string }[] = [
   { key: "can_delete", label: "Supprimer" },
 ];
 
-const NON_ADMIN_ROLES = ALL_ROLES.filter((r) => r !== "admin") as Exclude<AppRole, "admin">[];
+const NON_ADMIN_ROLES = ALL_ROLES.filter((r) => r !== "admin" && r !== "super_admin") as Exclude<AppRole, "admin" | "super_admin">[];
 
 interface CustomRole {
   id: string;
