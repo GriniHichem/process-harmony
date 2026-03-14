@@ -163,7 +163,7 @@ function esc(str: string | null | undefined): string {
 
 // ─── HTML Builder ───────────────────────────────────────────────────
 
-function buildHtml(data: ProcessData): string {
+function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: string; companyName: string }): string {
   const {
     process: p, elements, tasks, interactions, targetProcesses, documents,
     indicators, indicatorValues, indicatorActions, indicatorMoyens,
