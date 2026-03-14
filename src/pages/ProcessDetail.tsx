@@ -407,10 +407,9 @@ export default function ProcessDetail() {
                                   {doc.chemin_fichier && doc.nom_fichier?.toLowerCase().endsWith(".pdf") && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7"
                                       onClick={async () => {
-                                        const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
-                                        if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
-                                        const blobUrl = URL.createObjectURL(data);
-                                        setPdfViewerTitle(doc.titre); setPdfViewerUrl(blobUrl);
+                                        const { data, error } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 3600);
+                                        if (error || !data?.signedUrl) { toast.error("Impossible d'accéder au fichier"); return; }
+                                        setPdfViewerTitle(doc.titre); setPdfViewerUrl(data.signedUrl);
                                       }}
                                       title="Consulter le PDF"
                                     >
