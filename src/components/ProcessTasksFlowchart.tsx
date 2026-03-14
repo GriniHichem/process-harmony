@@ -414,9 +414,17 @@ function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX,
 
 // ─── Main Component ───
 
+interface InteractionRow {
+  id: string; source_process_id: string; target_process_id: string;
+  element_id: string; direction: string;
+}
+interface ProcessName { id: string; code: string; nom: string; }
+
 export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processElements, onAddElement }: Props) {
   const [tasks, setTasks] = useState<ProcessTask[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
+  const [interactions, setInteractions] = useState<InteractionRow[]>([]);
+  const [processNames, setProcessNames] = useState<ProcessName[]>([]);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(0.8);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -444,7 +452,38 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     if (data) setActeurs(data);
   }, []);
 
-  useEffect(() => { fetchTasks(); fetchActeurs(); }, [fetchTasks, fetchActeurs]);
+  const fetchInteractions = useCallback(async () => {
+    const { data } = await supabase
+      .from("process_interactions")
+      .select("*")
+      .or(`source_process_id.eq.${processId},target_process_id.eq.${processId}`);
+    if (data) setInteractions(data as InteractionRow[]);
+  }, [processId]);
+
+  const fetchProcessNames = useCallback(async () => {
+    const { data } = await supabase.from("processes").select("id, code, nom").neq("id", processId).order("code");
+    if (data) setProcessNames(data);
+  }, [processId]);
+
+  useEffect(() => { fetchTasks(); fetchActeurs(); fetchInteractions(); fetchProcessNames(); }, [fetchTasks, fetchActeurs, fetchInteractions, fetchProcessNames]);
+
+  // Classify elements as external (in interactions) vs internal
+  const externalElementMap = useMemo(() => {
+    const map = new Map<string, { direction: string; linkedProcessId: string }>();
+    for (const inter of interactions) {
+      if (inter.source_process_id === processId) {
+        map.set(inter.element_id, { direction: inter.direction, linkedProcessId: inter.target_process_id });
+      } else {
+        map.set(inter.element_id, { direction: inter.direction, linkedProcessId: inter.source_process_id });
+      }
+    }
+    return map;
+  }, [interactions, processId]);
+
+  const getProcessLabel = useCallback((id: string) => {
+    const p = processNames.find(p => p.id === id);
+    return p ? p.code : "?";
+  }, [processNames]);
 
   const layout = useMemo(() => tasks.length > 0 ? computeLayout(tasks, processElements) : null, [tasks, processElements]);
   const dataFlowLinks = useMemo(() => layout ? computeDataFlowLinks(layout.nodes, processElements) : [], [layout, processElements]);
