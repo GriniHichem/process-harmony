@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +25,6 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller is super_admin
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch SMTP settings from app_settings
+    // Fetch SMTP settings
     const { data: settingsData } = await adminClient
       .from("app_settings")
       .select("key, value")
@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
     if (!cfg.smtp_host || !cfg.smtp_user || !cfg.smtp_password) {
       return new Response(
-        JSON.stringify({ error: "Configuration SMTP incomplète. Veuillez remplir Hôte, Utilisateur et Mot de passe." }),
+        JSON.stringify({ error: "Configuration SMTP incomplète. Veuillez remplir Hôte, Utilisateur et Mot de passe SMTP." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -80,8 +80,7 @@ Deno.serve(async (req) => {
     const fromEmail = cfg.support_email || cfg.smtp_user;
     const port = parseInt(cfg.smtp_port || "587", 10);
 
-    // Use Deno's built-in SMTP via denopkg
-    const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+    console.log(`Connecting to SMTP: ${cfg.smtp_host}:${port} as ${cfg.smtp_user}`);
 
     const client = new SMTPClient({
       connection: {
@@ -99,7 +98,7 @@ Deno.serve(async (req) => {
       from: fromEmail,
       to,
       subject: "✅ Test Email — Q-Process",
-      content: "auto",
+      content: "Ce message confirme que la configuration SMTP de Q-Process fonctionne correctement.",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #2563eb;">✅ Test Email Réussi</h2>
@@ -108,13 +107,14 @@ Deno.serve(async (req) => {
           <p style="font-size: 12px; color: #6b7280;">
             Serveur: ${cfg.smtp_host}:${port}<br/>
             Expéditeur: ${fromEmail}<br/>
-            Date: ${new Date().toLocaleString("fr-FR")}
+            Date: ${new Date().toISOString()}
           </p>
         </div>
       `,
     });
 
     await client.close();
+    console.log("Test email sent successfully to", to);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     console.error("Error sending test email:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err.message || "Erreur inconnue lors de l'envoi" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
