@@ -131,12 +131,96 @@ export default function SuperAdmin() {
                 <Label>Email support / expéditeur</Label>
                 <Input
                   type="email"
-                  placeholder="qualite@votreentreprise.com"
+                  placeholder="support.processus@groupeamour.com"
                   value={form.support_email}
                   onChange={(e) => handleChange("support_email", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Cet email sera utilisé comme adresse d'expédition pour les copies de réponses aux sondages et autres communications système.
+                  Adresse d'expédition pour les copies de sondage et notifications.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SMTP Server */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Server className="h-4 w-4" />
+                Serveur sortant (SMTP)
+              </CardTitle>
+              <CardDescription>Configuration du serveur webmail pour l'envoi des emails</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Hôte SMTP</Label>
+                  <Input
+                    placeholder="mail.groupeamour.com"
+                    value={form.smtp_host}
+                    onChange={(e) => handleChange("smtp_host", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Port</Label>
+                  <Input
+                    placeholder="587"
+                    value={form.smtp_port}
+                    onChange={(e) => handleChange("smtp_port", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Utilisateur SMTP</Label>
+                <Input
+                  placeholder="support.processus@groupeamour.com"
+                  value={form.smtp_user}
+                  onChange={(e) => handleChange("smtp_user", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mot de passe SMTP</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={smtpPassword}
+                      onChange={(e) => setSmtpPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!smtpPassword || savingPassword}
+                    onClick={async () => {
+                      setSavingPassword(true);
+                      try {
+                        const { error } = await supabase.functions.invoke("admin-save-smtp-password", {
+                          body: { password: smtpPassword },
+                        });
+                        if (error) throw error;
+                        toast.success("Mot de passe SMTP enregistré");
+                        setSmtpPassword("");
+                      } catch (err: any) {
+                        toast.error("Erreur : " + err.message);
+                      } finally {
+                        setSavingPassword(false);
+                      }
+                    }}
+                  >
+                    {savingPassword ? "..." : "Enregistrer"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Le mot de passe est stocké de manière sécurisée et n'est jamais affiché.
                 </p>
               </div>
             </CardContent>
