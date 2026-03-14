@@ -11,6 +11,9 @@ export interface AppSettings {
   logo_url: string;
   brand_logo_url: string;
   support_email: string;
+  smtp_host: string;
+  smtp_port: string;
+  smtp_user: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -23,6 +26,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   logo_url: "",
   brand_logo_url: "",
   support_email: "",
+  smtp_host: "",
+  smtp_port: "587",
+  smtp_user: "",
 };
 
 interface AppSettingsContextType {
