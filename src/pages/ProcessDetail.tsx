@@ -277,6 +277,7 @@ export default function ProcessDetail() {
             <Button variant="outline" size="sm" onClick={() => exportProcessPdf(id!)} className="gap-1.5">
               <FileDown className="h-3.5 w-3.5" /> PDF
             </Button>
+            <HelpTooltip term="export_pdf" />
             {canCreateNewVersion && (
               <Button variant="secondary" size="sm" onClick={handleCreateNewVersion} disabled={creatingVersion} className="gap-1.5">
                 <CopyPlus className="h-3.5 w-3.5" />{creatingVersion ? "Création..." : "Nouvelle version"}
