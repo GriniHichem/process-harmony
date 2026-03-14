@@ -407,10 +407,9 @@ export default function ProcessDetail() {
                                   {doc.chemin_fichier && doc.nom_fichier?.toLowerCase().endsWith(".pdf") && (
                                     <Button variant="ghost" size="icon" className="h-7 w-7"
                                       onClick={async () => {
-                                        const { data } = await supabase.storage.from("documents").download(doc.chemin_fichier);
-                                        if (!data) { toast.error("Impossible d'accéder au fichier"); return; }
-                                        const blobUrl = URL.createObjectURL(data);
-                                        setPdfViewerTitle(doc.titre); setPdfViewerUrl(blobUrl);
+                                        const { data, error } = await supabase.storage.from("documents").createSignedUrl(doc.chemin_fichier, 3600);
+                                        if (error || !data?.signedUrl) { toast.error("Impossible d'accéder au fichier"); return; }
+                                        setPdfViewerTitle(doc.titre); setPdfViewerUrl(data.signedUrl);
                                       }}
                                       title="Consulter le PDF"
                                     >
@@ -485,7 +484,7 @@ export default function ProcessDetail() {
         )}
       </Tabs>
 
-      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { if (pdfViewerUrl) URL.revokeObjectURL(pdfViewerUrl); setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
+      <Dialog open={!!pdfViewerUrl} onOpenChange={(open) => { if (!open) { setPdfViewerUrl(null); setPdfViewerTitle(""); setPdfFullscreen(false); } }}>
         <DialogContent className={cn("flex flex-col transition-all duration-300", pdfFullscreen ? "max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0" : "max-w-5xl w-[90vw] h-[85vh]")} aria-describedby={undefined}>
           <DialogHeader>
             <div className="flex items-center justify-between pr-8">
