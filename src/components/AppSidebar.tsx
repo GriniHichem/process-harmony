@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import type { AppModule } from "@/lib/defaultPermissions";
+import { ROLE_LABELS, type AppRole } from "@/lib/defaultPermissions";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -163,7 +164,7 @@ export function AppSidebar() {
             <p className="text-xs font-medium text-sidebar-foreground truncate">
               {profile.prenom} {profile.nom}
             </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{roles.join(", ")}</p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{roles.map(r => ROLE_LABELS[r as AppRole] || r).join(", ")}</p>
           </div>
         )}
         <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground" onClick={signOut}>
