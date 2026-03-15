@@ -1,53 +1,106 @@
 
 
-## Analyse et diagnostic
+# Plan d'implémentation — Application de gestion ISO 9001
 
-Le probleme est clair apres analyse du code. Sur votre serveur local (apres migration), deux bugs empechent le test email de fonctionner :
+## Phase 1 : Fondations
 
-### Bug 1 : Les parametres SMTP ne sont jamais enregistres en base
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-Dans `AppSettingsContext.tsx` ligne 78, la sauvegarde utilise `.update()` :
-```typescript
-await supabase.from("app_settings").update({ value }).eq("key", key);
-```
-Si les cles SMTP (`smtp_host`, `smtp_user`, `support_email`, `smtp_port`) n'existent pas encore dans la table `app_settings` de votre serveur migre, `.update()` met a jour 0 lignes sans erreur. Les parametres ne sont donc jamais sauvegardes. La fonction `send-test-email` lit ensuite une base vide et retourne 400 "Configuration SMTP incomplete".
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-### Bug 2 : L'UI masque le vrai message d'erreur
+## Phase 2 : Modules principaux
 
-Dans `SuperAdmin.tsx` ligne 264, le code fait :
-```typescript
-const { data, error } = await supabase.functions.invoke("send-test-email", ...);
-if (error) throw error;
-```
-Le SDK Supabase cree une erreur generique "Edge Function returned a non-2xx status code" sans inclure le message JSON du serveur. Le vrai message ("Configuration SMTP incomplete") est perdu.
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-### Bug 3 : Migration manque les cles SMTP dans app_settings
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-La migration initiale insere seulement les cles branding (app_name, company_name, etc.) mais pas les cles SMTP. Sur un nouveau serveur, ces cles n'existent pas.
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
----
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
-## Plan de correction
+## Phase 3 : Modules qualité
 
-### 1. Changer `.update()` en `.upsert()` dans AppSettingsContext
-Modifier `updateSetting` pour utiliser `.upsert({ key, value, updated_at }, { onConflict: "key" })` au lieu de `.update().eq("key", key)`. Cela garantit que les cles sont creees si elles n'existent pas.
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-### 2. Corriger l'affichage d'erreur dans SuperAdmin
-Modifier le catch du test email pour lire `data?.error` meme quand le status est non-2xx. Le SDK Supabase retourne quand meme `data` dans certains cas, ou utiliser `fetch` direct pour acceder au body JSON.
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-### 3. Migration de rattrapage pour les cles SMTP
-Ajouter une migration SQL qui insere les cles manquantes (`smtp_host`, `smtp_port`, `smtp_user`, `support_email`) avec des valeurs vides par defaut, en utilisant `ON CONFLICT DO NOTHING`.
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-### 4. Ajouter `verify_jwt = false` dans config.toml
-Pour `send-test-email`, `send-survey-copy`, et `admin-save-smtp-password`, ajouter la configuration JWT dans `config.toml` pour la portabilite sur serveur local.
+## Phase 4 : Modules audit & amélioration
 
----
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-### Fichiers modifies
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-| Fichier | Modification |
-|---|---|
-| `src/contexts/AppSettingsContext.tsx` | `.update()` → `.upsert()` |
-| `src/pages/SuperAdmin.tsx` | Parsing erreur ameliore pour afficher le vrai message |
-| `supabase/migrations/` (nouveau) | INSERT des cles SMTP manquantes |
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
+
+## Phase 5 : Tableaux de bord & Reporting
+
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
+
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
+
+## Contrôle d'accès (transversal)
+
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
 

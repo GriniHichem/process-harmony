@@ -77,8 +77,10 @@ export function AppSettingsProvider({ children }: { children: ReactNode }) {
   const updateSetting = useCallback(async (key: keyof AppSettings, value: string) => {
     const { error } = await supabase
       .from("app_settings")
-      .update({ value, updated_at: new Date().toISOString() })
-      .eq("key", key);
+      .upsert(
+        { key, value, updated_at: new Date().toISOString() },
+        { onConflict: "key" }
+      );
     if (error) throw error;
     setSettings((prev) => ({ ...prev, [key]: value }));
   }, []);
