@@ -1,5 +1,3 @@
-
-
 # Plan d'implémentation — Application de gestion ISO 9001
 
 ## Phase 1 : Fondations
@@ -96,6 +94,45 @@
 - Actions en retard
 - Indicateurs par processus
 
+## Phase 6 : Système de Notifications (IMPLEMENTÉ)
+
+### 6.1 Base de données
+- ✅ Table `notifications` avec RLS (user_id = auth.uid())
+- ✅ Table `notification_preferences` avec RLS (user_id = auth.uid())
+- ✅ Fonction trigger `notify_responsibility_change()` SECURITY DEFINER
+- ✅ Triggers sur 10 tables : actions, process_tasks, processes, quality_objectives, review_decisions, risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
+- ✅ Realtime activé sur table notifications
+
+### 6.2 Types de notifications
+- **assignation** : nouvelle assignation de responsabilité
+- **echeance_proche** : rappel J-N avant échéance
+- **retard** : action en retard (échéance dépassée)
+- **statut_change** : changement de statut d'un élément
+
+### 6.3 Canaux de distribution
+- **push** : notification in-app (temps réel via Realtime)
+- **email** : envoi SMTP via Edge Function
+- **both** : push + email
+- **none** : désactivé
+
+### 6.4 Composants UI
+- ✅ `NotificationBell` : icône cloche dans le header avec badge compteur, popover dropdown
+- ✅ Page `/notifications` : historique complet avec filtres (type, lu/non lu)
+- ✅ `NotificationPreferences` : préférences utilisateur par type de notification
+
+### 6.5 Configuration Super Admin
+- ✅ Toggle global email activé/désactivé (`notif_email_enabled`)
+- ✅ Délai de rappel par défaut (`notif_rappel_jours_defaut`)
+
+### 6.6 Edge Functions
+- ✅ `send-notification-email` : envoi SMTP réutilisant l'infrastructure existante
+- ✅ `check-deadlines` : scan quotidien (cron 7h) des échéances et retards
+
+### 6.7 Résolution utilisateur
+- `acteur_id` → `profiles.acteur_id` → `profiles.id` (= user_id auth)
+- Tables avec `responsable_id` (FK acteurs) : actions, process_tasks, processes, quality_objectives, review_decisions
+- Tables avec `responsable` (text = acteur_id) : risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
+
 ## Contrôle d'accès (transversal)
 
 Chaque module appliquera les restrictions RBAC :
@@ -103,4 +140,3 @@ Chaque module appliquera les restrictions RBAC :
 - **Responsable processus** : accès limité à ses processus
 - **Consultant** : consultation + propositions, pas de validation/suppression
 - **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
-
