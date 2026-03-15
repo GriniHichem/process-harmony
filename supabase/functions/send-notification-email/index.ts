@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,13 +7,100 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+interface EmailPayload {
+  user_id: string;
+  title: string;
+  message: string;
+  entity_url?: string;
+  notif_type?: string;
+}
+
+const TEMPLATE_COLORS: Record<string, { banner: string; accent: string; icon: string; label: string }> = {
+  assignation: {
+    banner: "#2563eb",
+    accent: "#dbeafe",
+    icon: "👤",
+    label: "Nouvelle assignation",
+  },
+  echeance_proche: {
+    banner: "#f59e0b",
+    accent: "#fef3c7",
+    icon: "⏰",
+    label: "Echeance proche",
+  },
+  retard: {
+    banner: "#ef4444",
+    accent: "#fee2e2",
+    icon: "⚠",
+    label: "Action en retard",
+  },
+  statut_change: {
+    banner: "#10b981",
+    accent: "#d1fae5",
+    icon: "🔄",
+    label: "Changement de statut",
+  },
+};
+
+function buildHtml(payload: EmailPayload, appName: string, appUrl: string): string {
+  const t = TEMPLATE_COLORS[payload.notif_type || ""] || TEMPLATE_COLORS.assignation;
+  const linkHtml = payload.entity_url
+    ? `<p style="margin-top:24px;text-align:center;">
+        <a href="${appUrl}${payload.entity_url}" style="background-color:${t.banner};color:#ffffff;padding:12px 28px;text-decoration:none;border-radius:6px;display:inline-block;font-weight:600;font-size:14px;">Voir dans ${appName}</a>
+      </p>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="font-family:Arial,Helvetica,sans-serif;background-color:#f4f4f5;padding:0;margin:0;">
+  <div style="max-width:600px;margin:0 auto;padding:20px;">
+    <!-- Banner -->
+    <div style="background-color:${t.banner};border-radius:8px 8px 0 0;padding:20px 30px;">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+        <td style="color:#ffffff;font-size:20px;font-weight:700;">${t.label}</td>
+        <td style="text-align:right;color:#ffffff;font-size:12px;opacity:0.8;">${appName}</td>
+      </tr></table>
+    </div>
+    <!-- Body -->
+    <div style="background:#ffffff;padding:30px;border:1px solid #e4e4e7;border-top:none;">
+      <h2 style="color:#18181b;margin-top:0;font-size:18px;">${payload.title}</h2>
+      <div style="background-color:${t.accent};border-left:4px solid ${t.banner};padding:16px;border-radius:4px;margin:20px 0;">
+        <p style="color:#18181b;margin:0;line-height:1.6;">${payload.message}</p>
+      </div>
+      ${linkHtml}
+    </div>
+    <!-- Footer -->
+    <div style="background:#fafafa;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 8px 8px;padding:16px 30px;text-align:center;">
+      <p style="color:#a1a1aa;font-size:12px;margin:0;">Ce message a ete envoye automatiquement par ${appName}.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function buildText(payload: EmailPayload, appName: string, appUrl: string): string {
+  let text = `${payload.title}\n\n${payload.message}`;
+  if (payload.entity_url) text += `\n\nLien: ${appUrl}${payload.entity_url}`;
+  text += `\n\n--\nEnvoye par ${appName}`;
+  return text;
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { user_id, title, message, entity_url } = await req.json();
+    const payload: EmailPayload = await req.json();
+    const { user_id, title, message } = payload;
+
+    if (!user_id || !title) {
+      return new Response(JSON.stringify({ error: "user_id and title required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -47,134 +134,76 @@ serve(async (req) => {
       });
     }
 
-    // Get SMTP settings
-    const { data: settings } = await supabase.from("app_settings").select("key, value");
+    // Get all SMTP settings from app_settings (portable, no vault)
+    const { data: settingsData } = await supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "support_email", "app_name", "app_url"]);
+
     const cfg: Record<string, string> = {};
-    for (const s of settings || []) cfg[s.key] = s.value;
+    for (const row of settingsData ?? []) cfg[row.key] = row.value;
 
     const smtpHost = cfg.smtp_host;
-    const smtpPort = parseInt(cfg.smtp_port || "587");
+    const smtpPort = parseInt(cfg.smtp_port || "587", 10);
     const smtpUser = cfg.smtp_user;
-    const supportEmail = cfg.support_email || smtpUser;
+    const smtpPassword = cfg.smtp_password;
+    const fromEmail = cfg.support_email || smtpUser;
     const appName = cfg.app_name || "Q-Process";
+    const appUrl = cfg.app_url || "";
 
-    if (!smtpHost || !smtpUser) {
+    if (!smtpHost || !smtpUser || !smtpPassword) {
+      console.error("SMTP config incomplete:", { hasHost: !!smtpHost, hasUser: !!smtpUser, hasPassword: !!smtpPassword });
       return new Response(JSON.stringify({ error: "SMTP not configured" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get SMTP password from vault
-    const { data: secretData } = await supabase.rpc("get_smtp_password");
-    const smtpPassword = secretData || "";
+    const domain = fromEmail.split("@")[1] || "localhost";
 
-    if (!smtpPassword) {
-      return new Response(JSON.stringify({ error: "SMTP password not set" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    console.log(`Sending notification email to ${profile.email} (type: ${payload.notif_type || "unknown"})`);
+
+    const client = new SMTPClient({
+      connection: {
+        hostname: smtpHost,
+        port: smtpPort,
+        tls: smtpPort === 465,
+        auth: {
+          username: smtpUser,
+          password: smtpPassword,
+        },
+      },
+    });
+
+    await client.send({
+      from: `${appName} <${fromEmail}>`,
+      to: profile.email,
+      subject: title,
+      content: buildText(payload, appName, appUrl),
+      html: buildHtml(payload, appName, appUrl),
+      headers: {
+        "Message-ID": `<notif-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
+        "Reply-To": fromEmail,
+        "X-Mailer": appName,
+      },
+    });
+
+    await client.close();
+    console.log("Notification email sent successfully to", profile.email);
+
+    // Mark email_sent if possible
+    if (payload.notif_type) {
+      // Best-effort update - don't fail if column doesn't exist yet
+      try {
+        await supabase
+          .from("notifications")
+          .update({ email_sent: true } as any)
+          .eq("user_id", user_id)
+          .eq("type", payload.notif_type)
+          .order("created_at", { ascending: false })
+          .limit(1);
+      } catch (_) { /* ignore */ }
     }
-
-    const useSSL = smtpPort === 465;
-    const appUrl = cfg.app_url || "";
-
-    const linkHtml = entity_url
-      ? `<p style="margin-top:20px;"><a href="${appUrl}${entity_url}" style="background-color:#2563eb;color:#ffffff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Voir dans ${appName}</a></p>`
-      : "";
-
-    const htmlBody = `<!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="font-family:Arial,Helvetica,sans-serif;background-color:#f4f4f5;padding:20px;margin:0;">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;padding:30px;border:1px solid #e4e4e7;">
-    <h2 style="color:#18181b;margin-top:0;">${title}</h2>
-    <p style="color:#52525b;line-height:1.6;">${message}</p>
-    ${linkHtml}
-    <hr style="border:none;border-top:1px solid #e4e4e7;margin:24px 0;">
-    <p style="color:#a1a1aa;font-size:12px;">Ce message a ete envoye automatiquement par ${appName}.</p>
-  </div>
-</body>
-</html>`;
-
-    const textBody = `${title}\n\n${message}\n\n${entity_url ? `Lien: ${appUrl}${entity_url}` : ""}`;
-
-    const domain = supportEmail.split("@")[1] || smtpHost;
-    const messageId = `<${crypto.randomUUID()}@${domain}>`;
-    const now = new Date();
-    const dateStr = now.toUTCString();
-    const boundary = "----=_Part_" + Date.now();
-
-    const emailContent = [
-      `From: ${appName} <${supportEmail}>`,
-      `To: ${profile.email}`,
-      `Subject: ${title}`,
-      `Date: ${dateStr}`,
-      `Message-ID: ${messageId}`,
-      `Reply-To: ${supportEmail}`,
-      `MIME-Version: 1.0`,
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
-      `X-Mailer: ${appName}`,
-      "",
-      `--${boundary}`,
-      `Content-Type: text/plain; charset=utf-8`,
-      `Content-Transfer-Encoding: 7bit`,
-      "",
-      textBody,
-      "",
-      `--${boundary}`,
-      `Content-Type: text/html; charset=utf-8`,
-      `Content-Transfer-Encoding: 7bit`,
-      "",
-      htmlBody,
-      "",
-      `--${boundary}--`,
-    ].join("\r\n");
-
-    // Connect and send via SMTP
-    const conn = useSSL
-      ? await Deno.connectTls({ hostname: smtpHost, port: smtpPort })
-      : await Deno.connect({ hostname: smtpHost, port: smtpPort });
-
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    async function readResponse(): Promise<string> {
-      const buf = new Uint8Array(1024);
-      const n = await conn.read(buf);
-      return n ? decoder.decode(buf.subarray(0, n)) : "";
-    }
-
-    async function sendCommand(cmd: string): Promise<string> {
-      await conn.write(encoder.encode(cmd + "\r\n"));
-      return await readResponse();
-    }
-
-    await readResponse(); // greeting
-    await sendCommand(`EHLO ${domain}`);
-
-    if (!useSSL) {
-      const starttlsResp = await sendCommand("STARTTLS");
-      if (starttlsResp.startsWith("220")) {
-        const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: smtpHost });
-        Object.assign(conn, tlsConn);
-        await sendCommand(`EHLO ${domain}`);
-      }
-    }
-
-    // Auth
-    await sendCommand("AUTH LOGIN");
-    await sendCommand(btoa(smtpUser));
-    await sendCommand(btoa(smtpPassword));
-
-    await sendCommand(`MAIL FROM:<${supportEmail}>`);
-    await sendCommand(`RCPT TO:<${profile.email}>`);
-    await sendCommand("DATA");
-    await conn.write(encoder.encode(emailContent + "\r\n.\r\n"));
-    await readResponse();
-    await sendCommand("QUIT");
-
-    try { conn.close(); } catch {}
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
