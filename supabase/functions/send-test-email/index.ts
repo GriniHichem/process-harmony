@@ -59,21 +59,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch SMTP settings
+    // Fetch SMTP settings (including password stored in app_settings)
     const { data: settingsData } = await adminClient
       .from("app_settings")
       .select("key, value")
-      .in("key", ["smtp_host", "smtp_port", "smtp_user", "support_email", "app_name"]);
+      .in("key", ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "support_email", "app_name"]);
 
     const cfg: Record<string, string> = {};
     for (const row of settingsData ?? []) {
       cfg[row.key] = row.value;
     }
 
-    // Get SMTP password from vault
-    const { data: smtpPassword } = await adminClient.rpc("get_smtp_password");
+    const smtpPassword = cfg.smtp_password;
 
     if (!cfg.smtp_host || !cfg.smtp_user || !smtpPassword) {
+      console.error("SMTP config incomplete:", { hasHost: !!cfg.smtp_host, hasUser: !!cfg.smtp_user, hasPassword: !!smtpPassword });
       return new Response(
         JSON.stringify({ error: "Configuration SMTP incomplete. Veuillez remplir Hote, Utilisateur et Mot de passe SMTP." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
