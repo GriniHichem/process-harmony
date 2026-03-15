@@ -137,7 +137,7 @@ export function CompetencesDashboard({ competences, formations, canEdit }: Props
               <TrendingUp className="h-4 w-4" />Budget
               {canEdit && <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto" onClick={() => { setBudgetForm({ annee: currentYear, budget_prevu: currentBudget?.budget_prevu || 0 }); setBudgetDialog(true); }}><Settings className="h-3 w-3" /></Button>}
             </div>
-            <p className="text-2xl font-bold">{totalCout.toLocaleString("fr-FR")} €</p>
+            <p className="text-2xl font-bold">{totalCout.toLocaleString("fr-FR")} DA</p>
             {budgetPrevu > 0 ? (
               <>
                 <Progress value={Math.min(budgetPct, 100)} className="h-1.5 mt-1" />
