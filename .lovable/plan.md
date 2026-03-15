@@ -1,106 +1,64 @@
 
 
-# Plan d'implémentation — Application de gestion ISO 9001
+## Analyse du probleme spam + portabilite
 
-## Phase 1 : Fondations
+### Pourquoi les emails arrivent en spam
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+Le probleme vient du fait que les emails sont envoyes via SMTP avec un `from` qui ne correspond pas forcement au domaine du serveur SMTP, et surtout il manque les headers email professionnels essentiels:
+- **Pas de Message-ID** conforme (RFC 5322)
+- **Pas de List-Unsubscribe** header
+- **Pas de DKIM/SPF alignment** (cote serveur mail, pas cote code -- mais on peut aider)
+- **Emojis dans le Subject** (les filtres anti-spam penalisent les emojis comme `📋`)
+- **Pas de text/plain fallback** propre
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+### Ce que je peux corriger cote code
 
-## Phase 2 : Modules principaux
+1. **Supprimer les emojis des sujets** -- les filtres spam (Outlook, Gmail) penalisent fortement
+2. **Ajouter des headers SMTP professionnels** (`Message-ID`, `X-Mailer`, `Reply-To`)
+3. **Assurer que le `from` utilise le format "Nom <email>"** au lieu d'un email brut
+4. **Ameliorer le ratio HTML/texte** -- ajouter un vrai contenu text/plain
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+### Portabilite / migration serveur
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+Le systeme actuel stocke deja toute la config SMTP en base (`app_settings`). C'est une bonne base. Pour garantir zero erreur lors d'une migration:
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+1. **Ajouter `verify_jwt = false` dans config.toml** pour les edge functions qui doivent fonctionner sans JWT (comme `send-survey-copy` appele par des anonymes)
+2. **Verifier que `send-survey-copy` n'exige pas d'auth** (c'est deja le cas -- OK)
+3. **Documenter dans le Super Admin** un bouton "Tester la connexion SMTP" -- deja present, OK
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+### Plan de modifications
 
-## Phase 3 : Modules qualité
+**Fichiers a modifier:**
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+| Fichier | Modification |
+|---|---|
+| `supabase/functions/send-survey-copy/index.ts` | Supprimer emoji sujet, ajouter headers pro (`Message-ID`, `Reply-To`, format `from`), ameliorer fallback texte |
+| `supabase/functions/send-test-email/index.ts` | Meme corrections headers + sujet sans emoji |
+| `supabase/config.toml` | Ajouter `[functions.send-survey-copy]` avec `verify_jwt = false` pour portabilite |
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+**Changements concrets dans les Edge Functions:**
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+```typescript
+// AVANT (spam-prone)
+subject: `📋 Copie de vos réponses — ${survey_name}`,
+from: fromEmail,
 
-## Phase 4 : Modules audit & amélioration
+// APRES (professionnel)
+subject: `Copie de vos réponses - ${survey_name}`,
+from: `${appName} <${fromEmail}>`,
+headers: {
+  "Message-ID": `<survey-${Date.now()}@${fromEmail.split("@")[1]}>`,
+  "Reply-To": fromEmail,
+  "X-Mailer": appName,
+},
+```
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+### Ce qui reste cote administrateur serveur (pas cote code)
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
+Pour une delivrabilite optimale, il faut aussi configurer cote DNS du domaine:
+- **SPF** : `v=spf1 include:mail.votredomaine.com ~all`
+- **DKIM** : signature numerique (configuration serveur mail)
+- **DMARC** : `v=DMARC1; p=none; rua=mailto:admin@votredomaine.com`
 
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
-
-## Phase 5 : Tableaux de bord & Reporting
-
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
-
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
-
-## Contrôle d'accès (transversal)
-
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
+Je mentionnerai ces recommandations dans l'interface Super Admin sous forme de guide.
 
