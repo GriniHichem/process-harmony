@@ -327,22 +327,33 @@ export default function SuperAdmin() {
                       onClick={async () => {
                         setSendingTest(true);
                         try {
-                          const response = await fetch(
-                            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-test-email`,
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-                                "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                              },
-                              body: JSON.stringify({ to: testEmail }),
-                            }
-                          );
-                          const result = await response.json();
-                          if (!response.ok || result.error) {
-                            throw new Error(result.error || `Erreur ${response.status}`);
+                          const { data: sessionData } = await supabase.auth.getSession();
+                          const accessToken = sessionData.session?.access_token;
+
+                          if (!accessToken) {
+                            throw new Error("Session expirée. Reconnectez-vous puis réessayez.");
                           }
+
+                          const { data, error } = await supabase.functions.invoke("send-test-email", {
+                            body: { to: testEmail },
+                            headers: { Authorization: `Bearer ${accessToken}` },
+                          });
+
+                          if (error) {
+                            let message = error.message || "Erreur lors de l'envoi";
+                            try {
+                              const parsed = JSON.parse((error as any).context?.body || "{}");
+                              if (parsed.error) message = parsed.error;
+                            } catch {
+                              // ignore parsing fallback
+                            }
+                            throw new Error(message);
+                          }
+
+                          if ((data as any)?.error) {
+                            throw new Error((data as any).error);
+                          }
+
                           toast.success("Email de test envoyé avec succès !");
                         } catch (err: any) {
                           toast.error("Échec : " + err.message);
