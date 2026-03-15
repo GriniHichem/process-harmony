@@ -51,6 +51,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Keep local/self-host dispatch config in sync for notification trigger
+    await adminClient.from("app_settings").upsert(
+      {
+        key: "supabase_url",
+        value: supabaseUrl,
+        updated_at: new Date().toISOString(),
+        updated_by: user.id,
+      },
+      { onConflict: "key" }
+    );
+
     const { to } = await req.json();
     if (!to || typeof to !== "string") {
       return new Response(JSON.stringify({ error: "Adresse email destinataire requise" }), {

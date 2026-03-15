@@ -38,13 +38,9 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Ensure dispatch trigger config is populated (portable: self-configures on first run)
+    // Ensure dispatch trigger base URL is populated (portable: self-configures on first run)
     await supabase.from("app_settings").upsert(
       { key: "supabase_url", value: supabaseUrl, updated_at: new Date().toISOString() },
-      { onConflict: "key" }
-    );
-    await supabase.from("app_settings").upsert(
-      { key: "supabase_service_role_key", value: serviceRoleKey, updated_at: new Date().toISOString() },
       { onConflict: "key" }
     );
 
