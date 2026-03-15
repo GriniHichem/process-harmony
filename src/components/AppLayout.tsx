@@ -4,12 +4,13 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { HelpModeProvider, useHelpMode } from "@/contexts/HelpModeContext";
-import { Info, ScrollText, Eye, EyeOff, HelpCircle } from "lucide-react";
+import { Info, ScrollText, Eye, EyeOff, HelpCircle, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import defaultLogo from "@/assets/logo.jpg";
 
 function HeaderHelpButton() {
@@ -36,6 +37,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, hasRole } = useAuth();
   const { settings } = useAppSettings();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [accessible, setAccessible] = useState(() => localStorage.getItem("qprocess-accessible") === "true");
   const navigate = useNavigate();
 
@@ -104,6 +106,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </TooltipTrigger>
                   <TooltipContent>{accessible ? "Désactiver le mode confort visuel" : "Activer le mode confort visuel"}</TooltipContent>
                 </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => setPasswordOpen(true)}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Modifier mon mot de passe</TooltipContent>
+                </Tooltip>
                 {profile && (
                   <div className="text-right">
                     <p className="text-sm font-medium">{profile.prenom} {profile.nom}</p>
@@ -147,6 +162,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </DialogContent>
         </Dialog>
+
+        <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
       </SidebarProvider>
     </HelpModeProvider>
   );
