@@ -130,7 +130,7 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
               <TableHead>Date</TableHead>
               <TableHead>Formateur</TableHead>
               <TableHead>Durée (h)</TableHead>
-              <TableHead>Coût (€)</TableHead>
+              <TableHead>Coût (DA)</TableHead>
               <TableHead>Efficacité</TableHead>
               {canEdit && <TableHead className="w-20">Actions</TableHead>}
             </TableRow>
