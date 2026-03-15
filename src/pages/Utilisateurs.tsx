@@ -139,9 +139,16 @@ export default function Utilisateurs() {
         body: { email: newUser.email, password: newUser.password, nom: newUser.nom, prenom: newUser.prenom, fonction: newUser.fonction },
       });
       if (error) {
-        const msg = error.message?.includes("non-2xx")
-          ? "Erreur serveur : vérifiez que les migrations ont été exécutées et que les variables d'environnement (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) sont configurées."
-          : (error.message || "Erreur lors de la création");
+        // Try to parse the actual error from the response body
+        let msg = error.message || "Erreur lors de la création";
+        try {
+          const parsed = JSON.parse((error as any).context?.body || '{}');
+          if (parsed.error) msg = parsed.error;
+        } catch {
+          // If the error contains a JSON body in the message, try to extract it
+          const match = msg.match(/\{.*"error"\s*:\s*"([^"]+)"/);
+          if (match) msg = match[1];
+        }
         toast.error(msg, { duration: 8000 });
         setCreating(false);
         return;
