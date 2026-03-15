@@ -1043,6 +1043,7 @@ export type Database = {
         Row: {
           acteur_id: string
           commentaire: string
+          competence_liee: string | null
           cout: number
           created_at: string
           date_formation: string
@@ -1054,11 +1055,13 @@ export type Database = {
           preuve: string | null
           profile_id: string | null
           titre: string
+          type_formation: string
           updated_at: string
         }
         Insert: {
           acteur_id: string
           commentaire?: string
+          competence_liee?: string | null
           cout?: number
           created_at?: string
           date_formation?: string
@@ -1070,11 +1073,13 @@ export type Database = {
           preuve?: string | null
           profile_id?: string | null
           titre?: string
+          type_formation?: string
           updated_at?: string
         }
         Update: {
           acteur_id?: string
           commentaire?: string
+          competence_liee?: string | null
           cout?: number
           created_at?: string
           date_formation?: string
@@ -1086,6 +1091,7 @@ export type Database = {
           preuve?: string | null
           profile_id?: string | null
           titre?: string
+          type_formation?: string
           updated_at?: string
         }
         Relationships: [
