@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import defaultLogo from "@/assets/logo.jpg";
 
 function HeaderHelpButton() {
