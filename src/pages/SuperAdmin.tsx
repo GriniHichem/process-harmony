@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Settings, Upload, Eye, Save, Mail, Server, EyeOff, SendHorizonal, Bell, Paintbrush, Image } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { NotificationConfigMatrix } from "@/components/NotificationConfigMatrix";
 import logo from "@/assets/logo.jpg";
 
 export default function SuperAdmin() {
