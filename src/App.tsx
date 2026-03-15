@@ -37,6 +37,7 @@ import EvaluationProcessus from "./pages/EvaluationProcessus";
 import AdminPermissions from "./pages/AdminPermissions";
 import SuperAdmin from "./pages/SuperAdmin";
 import SurveyPublicPage from "./pages/SurveyPublicPage";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
