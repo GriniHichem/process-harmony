@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { HelpModeProvider, useHelpMode } from "@/contexts/HelpModeContext";
-import { Info, ScrollText, Eye, EyeOff, HelpCircle } from "lucide-react";
+import { Info, ScrollText, Eye, EyeOff, HelpCircle, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
