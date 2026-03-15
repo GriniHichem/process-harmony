@@ -160,8 +160,12 @@ export default function SuperAdmin() {
                   <Input value={form.info_copyright} onChange={(e) => handleChange("info_copyright", e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Crédits</Label>
+                  <Label>Crédits développement</Label>
                   <Input value={form.info_credits} onChange={(e) => handleChange("info_credits", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Crédits aide contextuelle</Label>
+                  <Input value={form.info_credits_help} onChange={(e) => handleChange("info_credits_help", e.target.value)} placeholder="Ex: Radja BENHAMIDA" />
                 </div>
               </CardContent>
             </Card>
