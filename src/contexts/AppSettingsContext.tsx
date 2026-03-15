@@ -31,6 +31,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   smtp_host: "",
   smtp_port: "587",
   smtp_user: "",
+  notif_email_enabled: "true",
+  notif_rappel_jours_defaut: "3",
 };
 
 interface AppSettingsContextType {
