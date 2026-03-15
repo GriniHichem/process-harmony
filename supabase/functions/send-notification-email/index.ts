@@ -77,18 +77,17 @@ serve(async (req) => {
     }
 
     const useSSL = smtpPort === 465;
-    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", "") || "";
-    const appUrl = cfg.app_url || `https://${baseUrl}`;
+    const appUrl = cfg.app_url || "";
 
     const linkHtml = entity_url
-      ? `<p style="margin-top:20px;"><a href="${appUrl}${entity_url}" style="background-color:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Voir dans ${appName}</a></p>`
+      ? `<p style="margin-top:20px;"><a href="${appUrl}${entity_url}" style="background-color:#2563eb;color:#ffffff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block;">Voir dans ${appName}</a></p>`
       : "";
 
     const htmlBody = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family:Arial,sans-serif;background-color:#f4f4f5;padding:20px;">
-  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:30px;border:1px solid #e4e4e7;">
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="font-family:Arial,Helvetica,sans-serif;background-color:#f4f4f5;padding:20px;margin:0;">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;padding:30px;border:1px solid #e4e4e7;">
     <h2 style="color:#18181b;margin-top:0;">${title}</h2>
     <p style="color:#52525b;line-height:1.6;">${message}</p>
     ${linkHtml}
@@ -100,27 +99,32 @@ serve(async (req) => {
 
     const textBody = `${title}\n\n${message}\n\n${entity_url ? `Lien: ${appUrl}${entity_url}` : ""}`;
 
+    const domain = supportEmail.split("@")[1] || smtpHost;
+    const messageId = `<${crypto.randomUUID()}@${domain}>`;
+    const now = new Date();
+    const dateStr = now.toUTCString();
     const boundary = "----=_Part_" + Date.now();
-    const messageId = `<${crypto.randomUUID()}@${smtpHost}>`;
 
     const emailContent = [
       `From: ${appName} <${supportEmail}>`,
       `To: ${profile.email}`,
       `Subject: ${title}`,
+      `Date: ${dateStr}`,
       `Message-ID: ${messageId}`,
+      `Reply-To: ${supportEmail}`,
       `MIME-Version: 1.0`,
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       `X-Mailer: ${appName}`,
       "",
       `--${boundary}`,
       `Content-Type: text/plain; charset=utf-8`,
-      `Content-Transfer-Encoding: quoted-printable`,
+      `Content-Transfer-Encoding: 7bit`,
       "",
       textBody,
       "",
       `--${boundary}`,
       `Content-Type: text/html; charset=utf-8`,
-      `Content-Transfer-Encoding: quoted-printable`,
+      `Content-Transfer-Encoding: 7bit`,
       "",
       htmlBody,
       "",
@@ -147,14 +151,14 @@ serve(async (req) => {
     }
 
     await readResponse(); // greeting
-    await sendCommand(`EHLO ${smtpHost}`);
+    await sendCommand(`EHLO ${domain}`);
 
     if (!useSSL) {
       const starttlsResp = await sendCommand("STARTTLS");
       if (starttlsResp.startsWith("220")) {
         const tlsConn = await Deno.startTls(conn as Deno.TcpConn, { hostname: smtpHost });
         Object.assign(conn, tlsConn);
-        await sendCommand(`EHLO ${smtpHost}`);
+        await sendCommand(`EHLO ${domain}`);
       }
     }
 

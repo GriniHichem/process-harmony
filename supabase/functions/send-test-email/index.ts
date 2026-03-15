@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), {
+      return new Response(JSON.stringify({ error: "Non autorise" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), {
+      return new Response(JSON.stringify({ error: "Non autorise" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Accès refusé" }), {
+      return new Response(JSON.stringify({ error: "Acces refuse" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -63,16 +63,19 @@ Deno.serve(async (req) => {
     const { data: settingsData } = await adminClient
       .from("app_settings")
       .select("key, value")
-      .in("key", ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "support_email", "app_name"]);
+      .in("key", ["smtp_host", "smtp_port", "smtp_user", "support_email", "app_name"]);
 
     const cfg: Record<string, string> = {};
     for (const row of settingsData ?? []) {
       cfg[row.key] = row.value;
     }
 
-    if (!cfg.smtp_host || !cfg.smtp_user || !cfg.smtp_password) {
+    // Get SMTP password from vault
+    const { data: smtpPassword } = await adminClient.rpc("get_smtp_password");
+
+    if (!cfg.smtp_host || !cfg.smtp_user || !smtpPassword) {
       return new Response(
-        JSON.stringify({ error: "Configuration SMTP incomplète. Veuillez remplir Hôte, Utilisateur et Mot de passe SMTP." }),
+        JSON.stringify({ error: "Configuration SMTP incomplete. Veuillez remplir Hote, Utilisateur et Mot de passe SMTP." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -91,7 +94,7 @@ Deno.serve(async (req) => {
         tls: port === 465,
         auth: {
           username: cfg.smtp_user,
-          password: cfg.smtp_password,
+          password: smtpPassword,
         },
       },
     });
@@ -104,7 +107,7 @@ Deno.serve(async (req) => {
       subject: `Test Email - ${appName}`,
       content: `Ce message confirme que la configuration SMTP de ${appName} fonctionne correctement.\n\nServeur: ${cfg.smtp_host}:${port}\nExpediteur: ${fromEmail}\nDate: ${now.toISOString()}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+        <div style="font-family: Arial, Helvetica, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #2563eb;">Test Email Reussi</h2>
           <p>Ce message confirme que la configuration SMTP de <strong>${appName}</strong> fonctionne correctement.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
