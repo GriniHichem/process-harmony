@@ -54,14 +54,11 @@ Deno.serve(async (req) => {
     const appName = cfg.app_name || "Q-Process";
     const fromEmail = cfg.support_email || cfg.smtp_user;
     const port = parseInt(cfg.smtp_port || "587", 10);
+    const domain = fromEmail.split("@")[1] || "localhost";
 
-    // Build questions/answers recap HTML
-    const questionMap = new Map<string, any>();
-    for (const q of questions || []) {
-      questionMap.set(q.question_text, q);
-    }
-
+    // Build questions/answers recap HTML + plain text
     let recapHtml = "";
+    let recapText = "";
     for (let i = 0; i < (questions || []).length; i++) {
       const q = questions[i];
       const a = answers?.[i];
@@ -77,13 +74,17 @@ Deno.serve(async (req) => {
           </td>
         </tr>
       `;
+      recapText += `${i + 1}. ${q.question_text}\n   Reponse: ${answerDisplay}\n\n`;
     }
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
         <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <h2 style="color: #1f2937; margin: 0 0 8px 0; font-size: 20px;">
-            📋 Copie de vos réponses
+            Copie de vos reponses
           </h2>
           <p style="color: #6b7280; margin: 0 0 24px 0; font-size: 14px;">
             Sondage : <strong>${escapeHtml(survey_name)}</strong>
@@ -93,7 +94,7 @@ Deno.serve(async (req) => {
             <thead>
               <tr style="background-color: #f3f4f6;">
                 <th style="padding: 10px 12px; text-align: left; font-size: 13px; color: #6b7280; font-weight: 600;">Question</th>
-                <th style="padding: 10px 12px; text-align: left; font-size: 13px; color: #6b7280; font-weight: 600;">Votre réponse</th>
+                <th style="padding: 10px 12px; text-align: left; font-size: 13px; color: #6b7280; font-weight: 600;">Votre reponse</th>
               </tr>
             </thead>
             <tbody>
@@ -103,13 +104,15 @@ Deno.serve(async (req) => {
 
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
           <p style="font-size: 12px; color: #9ca3af; margin: 0;">
-            Répondant : ${escapeHtml(respondent_name || "—")}<br/>
-            Date : ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}<br/>
-            Ce message a été envoyé automatiquement par ${escapeHtml(appName)}.
+            Repondant : ${escapeHtml(respondent_name || "—")}<br/>
+            Date : ${dateStr}<br/>
+            Ce message a ete envoye automatiquement par ${escapeHtml(appName)}.
           </p>
         </div>
       </div>
     `;
+
+    const plainText = `Copie de vos reponses - Sondage: ${survey_name}\n\nRepondant: ${respondent_name || "—"}\nDate: ${dateStr}\n\n${recapText}Ce message a ete envoye automatiquement par ${appName}.`;
 
     const client = new SMTPClient({
       connection: {
@@ -124,11 +127,16 @@ Deno.serve(async (req) => {
     });
 
     await client.send({
-      from: fromEmail,
+      from: `${appName} <${fromEmail}>`,
       to: respondent_email,
-      subject: `📋 Copie de vos réponses — ${survey_name}`,
-      content: `Copie de vos réponses au sondage "${survey_name}". Merci pour votre participation !`,
+      subject: `Copie de vos reponses - ${survey_name}`,
+      content: plainText,
       html,
+      headers: {
+        "Message-ID": `<survey-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
+        "Reply-To": fromEmail,
+        "X-Mailer": appName,
+      },
     });
 
     await client.close();

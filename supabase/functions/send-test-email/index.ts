@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     const { data: settingsData } = await adminClient
       .from("app_settings")
       .select("key, value")
-      .in("key", ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "support_email"]);
+      .in("key", ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "support_email", "app_name"]);
 
     const cfg: Record<string, string> = {};
     for (const row of settingsData ?? []) {
@@ -77,8 +77,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    const appName = cfg.app_name || "Q-Process";
     const fromEmail = cfg.support_email || cfg.smtp_user;
     const port = parseInt(cfg.smtp_port || "587", 10);
+    const domain = fromEmail.split("@")[1] || "localhost";
 
     console.log(`Connecting to SMTP: ${cfg.smtp_host}:${port} as ${cfg.smtp_user}`);
 
@@ -94,23 +96,30 @@ Deno.serve(async (req) => {
       },
     });
 
+    const now = new Date();
+
     await client.send({
-      from: fromEmail,
+      from: `${appName} <${fromEmail}>`,
       to,
-      subject: "✅ Test Email — Q-Process",
-      content: "Ce message confirme que la configuration SMTP de Q-Process fonctionne correctement.",
+      subject: `Test Email - ${appName}`,
+      content: `Ce message confirme que la configuration SMTP de ${appName} fonctionne correctement.\n\nServeur: ${cfg.smtp_host}:${port}\nExpediteur: ${fromEmail}\nDate: ${now.toISOString()}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #2563eb;">✅ Test Email Réussi</h2>
-          <p>Ce message confirme que la configuration SMTP de <strong>Q-Process</strong> fonctionne correctement.</p>
+          <h2 style="color: #2563eb;">Test Email Reussi</h2>
+          <p>Ce message confirme que la configuration SMTP de <strong>${appName}</strong> fonctionne correctement.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
           <p style="font-size: 12px; color: #6b7280;">
             Serveur: ${cfg.smtp_host}:${port}<br/>
-            Expéditeur: ${fromEmail}<br/>
-            Date: ${new Date().toISOString()}
+            Expediteur: ${fromEmail}<br/>
+            Date: ${now.toISOString()}
           </p>
         </div>
       `,
+      headers: {
+        "Message-ID": `<test-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
+        "Reply-To": fromEmail,
+        "X-Mailer": appName,
+      },
     });
 
     await client.close();
