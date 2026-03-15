@@ -52,6 +52,19 @@ serve(async (req) => {
     const prefsMap: Record<string, any> = {};
     for (const p of allPrefs || []) prefsMap[p.user_id] = p;
 
+    // Load notification_config for channel resolution
+    const { data: allConfig } = await supabase.from("notification_config").select("*");
+    const configMap: Record<string, string> = {};
+    for (const c of allConfig || []) {
+      configMap[`${c.scope}:${c.entity_type}:${c.notif_type}`] = c.channel;
+    }
+
+    function resolveChannel(userId: string, entityType: string, notifType: string): string {
+      return configMap[`${userId}:${entityType}:${notifType}`]
+        ?? configMap[`global:${entityType}:${notifType}`]
+        ?? "both";
+    }
+
     // Build profiles lookup: acteur_id -> user_id
     const { data: profiles } = await supabase.from("profiles").select("id, acteur_id");
     const acteurToUser: Record<string, string> = {};
@@ -86,13 +99,8 @@ serve(async (req) => {
 
         // Resolve user_id
         let userId: string | null = null;
-        if (source.responsible_type === "uuid") {
-          const acteurId = row[source.responsible_col];
-          if (acteurId) userId = acteurToUser[acteurId] || null;
-        } else {
-          const acteurId = row[source.responsible_col];
-          if (acteurId) userId = acteurToUser[acteurId] || null;
-        }
+        const acteurId = row[source.responsible_col];
+        if (acteurId) userId = acteurToUser[acteurId] || null;
         if (!userId) continue;
 
         // Get user rappel_jours
@@ -123,11 +131,8 @@ serve(async (req) => {
 
         if (existing && existing.length > 0) continue;
 
-        // Get pref channel for this type
-        let prefChannel = "both";
-        if (userPrefs) {
-          prefChannel = userPrefs[notifType] || "both";
-        }
+        // Resolve channel from notification_config
+        const prefChannel = resolveChannel(userId, source.table, notifType);
         if (prefChannel === "none") continue;
 
         const desc = (row[source.description_col] || "").substring(0, 100);
