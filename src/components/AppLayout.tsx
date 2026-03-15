@@ -37,6 +37,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, hasRole } = useAuth();
   const { settings } = useAppSettings();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [accessible, setAccessible] = useState(() => localStorage.getItem("qprocess-accessible") === "true");
   const navigate = useNavigate();
 
