@@ -141,7 +141,7 @@ export function CompetencesDashboard({ competences, formations, canEdit }: Props
             {budgetPrevu > 0 ? (
               <>
                 <Progress value={Math.min(budgetPct, 100)} className="h-1.5 mt-1" />
-                <p className="text-xs text-muted-foreground mt-0.5">{budgetPct}% de {budgetPrevu.toLocaleString("fr-FR")} €</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{budgetPct}% de {budgetPrevu.toLocaleString("fr-FR")} DA</p>
               </>
             ) : (
               <p className="text-xs text-muted-foreground">Aucun budget défini</p>
