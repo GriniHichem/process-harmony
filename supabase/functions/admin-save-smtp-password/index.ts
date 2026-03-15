@@ -59,11 +59,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Store password in app_settings with key smtp_password (encrypted at rest by Supabase)
+    // Store SMTP password and keep local/self-host dispatch URL configured
+    const now = new Date().toISOString();
     const { error: upsertError } = await adminClient
       .from("app_settings")
       .upsert(
-        { key: "smtp_password", value: password, updated_at: new Date().toISOString(), updated_by: user.id },
+        [
+          { key: "smtp_password", value: password, updated_at: now, updated_by: user.id },
+          { key: "supabase_url", value: supabaseUrl, updated_at: now, updated_by: user.id },
+        ],
         { onConflict: "key" }
       );
 
