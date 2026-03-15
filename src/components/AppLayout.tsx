@@ -155,10 +155,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 Cette application a été développée par<br />
                 <span className="font-semibold text-foreground">{settings.info_credits}</span>
               </p>
-              <p className="text-xs text-muted-foreground">
-                Textes d'aide contextuelle rédigés par<br />
-                <span className="font-semibold text-foreground">Radja BENHAMIDA</span>
-              </p>
+              {settings.info_credits_help && (
+                <p className="text-xs text-muted-foreground">
+                  Textes d'aide contextuelle rédigés par<br />
+                  <span className="font-semibold text-foreground">{settings.info_credits_help}</span>
+                </p>
+              )}
             </div>
           </DialogContent>
         </Dialog>

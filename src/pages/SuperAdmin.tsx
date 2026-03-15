@@ -160,8 +160,12 @@ export default function SuperAdmin() {
                   <Input value={form.info_copyright} onChange={(e) => handleChange("info_copyright", e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Crédits</Label>
+                  <Label>Crédits développement</Label>
                   <Input value={form.info_credits} onChange={(e) => handleChange("info_credits", e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Crédits aide contextuelle</Label>
+                  <Input value={form.info_credits_help} onChange={(e) => handleChange("info_credits_help", e.target.value)} placeholder="Ex: Radja BENHAMIDA" />
                 </div>
               </CardContent>
             </Card>
@@ -205,6 +209,11 @@ export default function SuperAdmin() {
                       <p className="text-xs text-muted-foreground">
                         Développé par <span className="font-semibold text-foreground">{form.info_credits}</span>
                       </p>
+                      {form.info_credits_help && (
+                        <p className="text-xs text-muted-foreground">
+                          Aide contextuelle par <span className="font-semibold text-foreground">{form.info_credits_help}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
