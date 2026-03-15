@@ -106,6 +106,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </TooltipTrigger>
                   <TooltipContent>{accessible ? "Désactiver le mode confort visuel" : "Activer le mode confort visuel"}</TooltipContent>
                 </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => setPasswordOpen(true)}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Modifier mon mot de passe</TooltipContent>
+                </Tooltip>
                 {profile && (
                   <div className="text-right">
                     <p className="text-sm font-medium">{profile.prenom} {profile.nom}</p>
