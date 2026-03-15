@@ -8,6 +8,7 @@ export interface AppSettings {
   app_description: string;
   info_copyright: string;
   info_credits: string;
+  info_credits_help: string;
   logo_url: string;
   brand_logo_url: string;
   support_email: string;
