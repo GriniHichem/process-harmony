@@ -130,7 +130,7 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
               <TableHead>Date</TableHead>
               <TableHead>Formateur</TableHead>
               <TableHead>Durée (h)</TableHead>
-              <TableHead>Coût (€)</TableHead>
+              <TableHead>Coût (DA)</TableHead>
               <TableHead>Efficacité</TableHead>
               {canEdit && <TableHead className="w-20">Actions</TableHead>}
             </TableRow>
@@ -145,7 +145,7 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
                 <TableCell>{format(new Date(f.date_formation), "dd/MM/yyyy")}</TableCell>
                 <TableCell>{f.formateur}</TableCell>
                 <TableCell>{f.duree_heures}</TableCell>
-                <TableCell>{(Number(f.cout) || 0).toLocaleString("fr-FR")} €</TableCell>
+                <TableCell>{(Number(f.cout) || 0).toLocaleString("fr-FR")} DA</TableCell>
                 <TableCell><Badge className={efficaciteColors[f.efficacite]}>{efficaciteLabels[f.efficacite]}</Badge></TableCell>
                 {canEdit && (
                   <TableCell>
@@ -190,7 +190,7 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
               <div><Label>Durée (heures)</Label><Input type="number" value={form.duree_heures} onChange={e => setForm(f => ({ ...f, duree_heures: parseFloat(e.target.value) || 0 }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Coût (€)</Label><Input type="number" value={form.cout} onChange={e => setForm(f => ({ ...f, cout: parseFloat(e.target.value) || 0 }))} /></div>
+              <div><Label>Coût (DA)</Label><Input type="number" value={form.cout} onChange={e => setForm(f => ({ ...f, cout: parseFloat(e.target.value) || 0 }))} /></div>
               <div><Label>Efficacité</Label>
                 <Select value={form.efficacite} onValueChange={v => setForm(f => ({ ...f, efficacite: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>

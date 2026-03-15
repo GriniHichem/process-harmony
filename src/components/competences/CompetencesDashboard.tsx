@@ -137,11 +137,11 @@ export function CompetencesDashboard({ competences, formations, canEdit }: Props
               <TrendingUp className="h-4 w-4" />Budget
               {canEdit && <Button variant="ghost" size="icon" className="h-5 w-5 ml-auto" onClick={() => { setBudgetForm({ annee: currentYear, budget_prevu: currentBudget?.budget_prevu || 0 }); setBudgetDialog(true); }}><Settings className="h-3 w-3" /></Button>}
             </div>
-            <p className="text-2xl font-bold">{totalCout.toLocaleString("fr-FR")} €</p>
+            <p className="text-2xl font-bold">{totalCout.toLocaleString("fr-FR")} DA</p>
             {budgetPrevu > 0 ? (
               <>
                 <Progress value={Math.min(budgetPct, 100)} className="h-1.5 mt-1" />
-                <p className="text-xs text-muted-foreground mt-0.5">{budgetPct}% de {budgetPrevu.toLocaleString("fr-FR")} €</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{budgetPct}% de {budgetPrevu.toLocaleString("fr-FR")} DA</p>
               </>
             ) : (
               <p className="text-xs text-muted-foreground">Aucun budget défini</p>
@@ -218,7 +218,7 @@ export function CompetencesDashboard({ competences, formations, canEdit }: Props
           <DialogHeader><DialogTitle>Budget formation annuel</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>Année</Label><Input type="number" value={budgetForm.annee} onChange={e => setBudgetForm(f => ({ ...f, annee: parseInt(e.target.value) || currentYear }))} /></div>
-            <div><Label>Budget prévu (€)</Label><Input type="number" value={budgetForm.budget_prevu} onChange={e => setBudgetForm(f => ({ ...f, budget_prevu: parseFloat(e.target.value) || 0 }))} /></div>
+            <div><Label>Budget prévu (DA)</Label><Input type="number" value={budgetForm.budget_prevu} onChange={e => setBudgetForm(f => ({ ...f, budget_prevu: parseFloat(e.target.value) || 0 }))} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBudgetDialog(false)}>Annuler</Button>
