@@ -34,9 +34,18 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Ensure dispatch trigger config is populated (portable: self-configures on first run)
+    await supabase.from("app_settings").upsert(
+      { key: "supabase_url", value: supabaseUrl, updated_at: new Date().toISOString() },
+      { onConflict: "key" }
+    );
+    await supabase.from("app_settings").upsert(
+      { key: "supabase_service_role_key", value: serviceRoleKey, updated_at: new Date().toISOString() },
+      { onConflict: "key" }
     );
 
     // Get global rappel_jours setting
