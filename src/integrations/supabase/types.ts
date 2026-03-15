@@ -391,6 +391,30 @@ export type Database = {
           },
         ]
       }
+      budget_formation: {
+        Row: {
+          annee: number
+          budget_prevu: number
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          annee: number
+          budget_prevu?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          annee?: number
+          budget_prevu?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_survey_answers: {
         Row: {
           answer_text: string
@@ -648,6 +672,7 @@ export type Database = {
           id: string
           niveau: string
           prochaine_evaluation: string | null
+          profile_id: string | null
           updated_at: string
         }
         Insert: {
@@ -659,6 +684,7 @@ export type Database = {
           id?: string
           niveau?: string
           prochaine_evaluation?: string | null
+          profile_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -670,6 +696,7 @@ export type Database = {
           id?: string
           niveau?: string
           prochaine_evaluation?: string | null
+          profile_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -678,6 +705,13 @@ export type Database = {
             columns: ["acteur_id"]
             isOneToOne: false
             referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1009,6 +1043,7 @@ export type Database = {
         Row: {
           acteur_id: string
           commentaire: string
+          cout: number
           created_at: string
           date_formation: string
           description: string
@@ -1017,12 +1052,14 @@ export type Database = {
           formateur: string
           id: string
           preuve: string | null
+          profile_id: string | null
           titre: string
           updated_at: string
         }
         Insert: {
           acteur_id: string
           commentaire?: string
+          cout?: number
           created_at?: string
           date_formation?: string
           description?: string
@@ -1031,12 +1068,14 @@ export type Database = {
           formateur?: string
           id?: string
           preuve?: string | null
+          profile_id?: string | null
           titre?: string
           updated_at?: string
         }
         Update: {
           acteur_id?: string
           commentaire?: string
+          cout?: number
           created_at?: string
           date_formation?: string
           description?: string
@@ -1045,6 +1084,7 @@ export type Database = {
           formateur?: string
           id?: string
           preuve?: string | null
+          profile_id?: string | null
           titre?: string
           updated_at?: string
         }
@@ -1054,6 +1094,13 @@ export type Database = {
             columns: ["acteur_id"]
             isOneToOne: false
             referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
