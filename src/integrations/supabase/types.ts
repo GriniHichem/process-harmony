@@ -1039,11 +1039,58 @@ export type Database = {
           },
         ]
       }
+      formation_participants: {
+        Row: {
+          acteur_id: string
+          created_at: string
+          formation_id: string
+          id: string
+          profile_id: string | null
+        }
+        Insert: {
+          acteur_id: string
+          created_at?: string
+          formation_id: string
+          id?: string
+          profile_id?: string | null
+        }
+        Update: {
+          acteur_id?: string
+          created_at?: string
+          formation_id?: string
+          id?: string
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_participants_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formation_participants_formation_id_fkey"
+            columns: ["formation_id"]
+            isOneToOne: false
+            referencedRelation: "formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formation_participants_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formations: {
         Row: {
           acteur_id: string
           commentaire: string
           competence_liee: string | null
+          competences_liees: string[] | null
           cout: number
           created_at: string
           date_formation: string
@@ -1062,6 +1109,7 @@ export type Database = {
           acteur_id: string
           commentaire?: string
           competence_liee?: string | null
+          competences_liees?: string[] | null
           cout?: number
           created_at?: string
           date_formation?: string
@@ -1080,6 +1128,7 @@ export type Database = {
           acteur_id?: string
           commentaire?: string
           competence_liee?: string | null
+          competences_liees?: string[] | null
           cout?: number
           created_at?: string
           date_formation?: string
