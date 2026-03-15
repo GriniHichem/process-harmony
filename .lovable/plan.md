@@ -1,142 +1,111 @@
-# Plan d'implémentation — Application de gestion ISO 9001
 
-## Phase 1 : Fondations
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+## Plan : Fiabilisation email et portabilité hors Lovable
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+### Problèmes identifiés
 
-## Phase 2 : Modules principaux
+1. **`send-notification-email` cassé** : appelle `get_smtp_password` (RPC inexistante). Le mot de passe SMTP est dans `app_settings.smtp_password`
+2. **SMTP raw bugué** : `Object.assign(conn, tlsConn)` après STARTTLS ne fonctionne pas en Deno — `send-test-email` utilise `denomailer` et fonctionne
+3. **Pas de dispatch email automatique** : quand une notification est insérée avec `channel = 'email'` ou `'both'`, aucun mécanisme ne déclenche l'envoi
+4. **Triggers absents en base** : la configuration montre "no triggers" malgré les migrations — ils doivent être recréés de manière idempotente
+5. **Templates génériques** : un seul template pour tous les types de notification
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+### Principes de portabilité (migration hors Lovable)
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+- **Zéro dépendance Vault** : mot de passe SMTP lu depuis `app_settings` (table portable)
+- **Triggers idempotents** : `DROP TRIGGER IF EXISTS` + `CREATE TRIGGER` pour éviter les erreurs sur serveur vierge
+- **Edge Functions autonomes** : utilisent uniquement `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` (variables standard Supabase)
+- **Librairie stable** : `denomailer` pour tous les envois SMTP (plus de raw socket)
+- **Config centralisée** : tout dans `app_settings` (SMTP, app_url, app_name) — aucun secret externe requis
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+### Implémentation
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+**1. Réécriture `send-notification-email/index.ts`**
+- Remplacer le SMTP raw par `denomailer` (même pattern que `send-test-email`)
+- Lire `smtp_password` depuis `app_settings` (pas de RPC vault)
+- Ajouter 4 templates HTML professionnels par type :
+  - **Assignation** (bandeau bleu `#2563eb`) — "Vous avez été assigné(e) à..."
+  - **Échéance proche** (bandeau orange `#f59e0b`) — "Rappel : échéance dans X jours"
+  - **Retard** (bandeau rouge `#ef4444`) — "Action en retard de X jours"
+  - **Changement de statut** (bandeau vert `#10b981`) — "Statut modifié : ancien → nouveau"
+- Chaque template inclut : nom de l'app, lien d'action, pied de page, fallback texte
 
-## Phase 3 : Modules qualité
+**2. Migration SQL — Triggers idempotents + dispatch email**
+```sql
+-- Recréer les 10 triggers de manière idempotente
+DROP TRIGGER IF EXISTS notify_actions_change ON actions;
+CREATE TRIGGER notify_actions_change AFTER INSERT OR UPDATE ON actions
+  FOR EACH ROW EXECUTE FUNCTION notify_responsibility_change();
+-- (× 10 tables)
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+-- Trigger auto-dispatch email sur INSERT notifications
+CREATE OR REPLACE FUNCTION dispatch_notification_email()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF NEW.channel IN ('email', 'both') THEN
+    PERFORM net.http_post(
+      url := current_setting('app.supabase_url') || '/functions/v1/send-notification-email',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || current_setting('app.service_role_key')
+      ),
+      body := jsonb_build_object(
+        'user_id', NEW.user_id,
+        'title', NEW.title,
+        'message', NEW.message,
+        'entity_url', NEW.entity_url,
+        'notif_type', NEW.type
+      )
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+DROP TRIGGER IF EXISTS dispatch_email_on_notification ON notifications;
+CREATE TRIGGER dispatch_email_on_notification AFTER INSERT ON notifications
+  FOR EACH ROW EXECUTE FUNCTION dispatch_notification_email();
+```
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+> **Note portabilité** : `pg_net` (`net.http_post`) est pré-installé sur Supabase. Sur un serveur PostgreSQL classique, remplacer par un worker externe (cron job) qui lit les notifications non envoyées. Le plan inclut un flag `email_sent` sur la table `notifications` pour ce scénario.
 
-## Phase 4 : Modules audit & amélioration
+**3. Ajout colonne `email_sent` sur `notifications`**
+- `email_sent boolean DEFAULT false` — permet à un worker externe de traiter les emails en file d'attente si `pg_net` n'est pas disponible
+- La fonction `dispatch_notification_email` met à jour ce flag après l'appel HTTP
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+**4. Correction `check-deadlines/index.ts`**
+- Supprimer l'appel direct à `send-notification-email` (le trigger DB s'en charge maintenant)
+- La fonction insère juste dans `notifications` avec le bon `channel` — le trigger dispatch automatiquement
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
+**5. Mise à jour `send-test-email/index.ts`**
+- Déjà fonctionnel, aucune modification nécessaire
 
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
+### Fichiers impactés
 
-## Phase 5 : Tableaux de bord & Reporting
+| Fichier | Action |
+|---|---|
+| `supabase/functions/send-notification-email/index.ts` | Réécriture complète (denomailer + templates) |
+| `supabase/functions/check-deadlines/index.ts` | Suppression appel email direct |
+| Migration SQL | Triggers idempotents + dispatch + colonne `email_sent` |
 
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
+### Templates email (aperçu)
 
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
+```text
+┌─────────────────────────────────────┐
+│  ██████  Bandeau couleur par type   │
+│  ┌───────────────────────────────┐  │
+│  │  [Logo App]                   │  │
+│  │                               │  │
+│  │  Titre notification           │  │
+│  │  ─────────────────────        │  │
+│  │  Message détaillé avec        │  │
+│  │  contexte de l'entité         │  │
+│  │                               │  │
+│  │  [ Voir dans Q-Process ]      │  │
+│  │                               │  │
+│  │  ─────────────────────        │  │
+│  │  Envoyé par Q-Process         │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+```
 
-## Phase 6 : Système de Notifications (IMPLEMENTÉ)
-
-### 6.1 Base de données
-- ✅ Table `notifications` avec RLS (user_id = auth.uid())
-- ✅ Table `notification_preferences` avec RLS (user_id = auth.uid())
-- ✅ Fonction trigger `notify_responsibility_change()` SECURITY DEFINER
-- ✅ Triggers sur 10 tables : actions, process_tasks, processes, quality_objectives, review_decisions, risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
-- ✅ Realtime activé sur table notifications
-
-### 6.2 Types de notifications
-- **assignation** : nouvelle assignation de responsabilité
-- **echeance_proche** : rappel J-N avant échéance
-- **retard** : action en retard (échéance dépassée)
-- **statut_change** : changement de statut d'un élément
-
-### 6.3 Canaux de distribution
-- **push** : notification in-app (temps réel via Realtime)
-- **email** : envoi SMTP via Edge Function
-- **both** : push + email
-- **none** : désactivé
-
-### 6.4 Composants UI
-- ✅ `NotificationBell` : icône cloche dans le header avec badge compteur, popover dropdown
-- ✅ Page `/notifications` : historique complet avec filtres (type, lu/non lu)
-- ✅ `NotificationPreferences` : préférences utilisateur par type de notification
-
-### 6.5 Configuration Super Admin
-- ✅ Toggle global email activé/désactivé (`notif_email_enabled`)
-- ✅ Délai de rappel par défaut (`notif_rappel_jours_defaut`)
-
-### 6.6 Edge Functions
-- ✅ `send-notification-email` : envoi SMTP réutilisant l'infrastructure existante
-- ✅ `check-deadlines` : scan quotidien (cron 7h) des échéances et retards
-
-### 6.7 Résolution utilisateur
-- `acteur_id` → `profiles.acteur_id` → `profiles.id` (= user_id auth)
-- Tables avec `responsable_id` (FK acteurs) : actions, process_tasks, processes, quality_objectives, review_decisions
-- Tables avec `responsable` (text = acteur_id) : risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
-
-## Contrôle d'accès (transversal)
-
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
