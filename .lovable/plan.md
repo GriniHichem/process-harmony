@@ -1,142 +1,74 @@
-# Plan d'implémentation — Application de gestion ISO 9001
 
-## Phase 1 : Fondations
 
-### 1.1 Base de données & Authentification
-- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
-- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
-- Mettre en place l'authentification (login, reset password)
-- Trigger auto-création profil à l'inscription
+## Plan : Refonte du module Compétences & Formations (ISO 9001 §7.2)
 
-### 1.2 Layout & Navigation
-- Sidebar avec navigation par module (icônes + labels en français)
-- Header avec info utilisateur connecté et déconnexion
-- Routes protégées selon le rôle
-- Thème professionnel, interface entièrement en français
+### Probleme actuel
 
-## Phase 2 : Modules principaux
+1. **Assignation par acteur (fonction), pas par utilisateur** -- Un acteur peut avoir plusieurs utilisateurs rattachés. Actuellement on assigne une compétence/formation à un acteur (fonction), mais on ne sait pas quel utilisateur spécifique est concerné.
+2. **Aucun tableau de bord** -- Pas de KPIs, pas de statistiques, pas de vue d'ensemble.
+3. **Pas de suivi budgétaire** -- Aucun champ coût, pas de budget formation, pas de consommation.
+4. **Pas de filtres ni recherche** -- Tables brutes sans possibilité de filtrer par utilisateur, niveau, période.
+5. **Pas de matrice visuelle** -- La "matrice des compétences" est juste un tableau plat, pas une vraie matrice croisée utilisateurs x compétences.
 
-### 2.1 Gestion des utilisateurs
-- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
-- Création/modification/désactivation de comptes (RMQ uniquement)
-- Attribution des rôles
+### Solution
 
-### 2.2 Gestion des processus
-- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
-- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
-- Versionnement automatique à chaque modification
-- Archivage logique (pas de suppression physique)
+#### 1. Migration SQL -- Ajouter `profile_id` + champs budgétaires
 
-### 2.3 Cartographie des processus
-- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
-- Visualisation des interactions entre processus (liens)
-- Clic pour accéder à la fiche détaillée
+**Tables `competences` et `formations`** : ajouter `profile_id uuid REFERENCES profiles(id)` (nullable pour rétrocompatibilité). Quand on crée une compétence/formation, on choisit d'abord l'acteur (fonction), puis l'utilisateur rattaché à cet acteur.
 
-### 2.4 Visualisation BPMN simplifiée
-- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
-- Association d'un diagramme à un processus
-- Gestion des versions de diagrammes
-- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
+**Table `formations`** : ajouter `cout numeric DEFAULT 0` (coût de la formation).
 
-## Phase 3 : Modules qualité
+**Nouvelle table `budget_formation`** : `id, annee integer, budget_prevu numeric, created_at, updated_at` -- permet de définir le budget annuel et de calculer la consommation.
 
-### 3.1 Gestion documentaire
-- Upload/téléchargement de fichiers via Supabase Storage
-- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
-- Versionnement des documents, métadonnées, archivage logique
-- Contrôle d'accès par rôle
+RLS : mêmes politiques que `competences`/`formations` (admin + rmq en écriture, authenticated en lecture).
 
-### 3.2 Indicateurs & Performance
-- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
-- Saisie des valeurs avec historique
-- Visualisation graphique (courbes/barres via Recharts)
-- Alertes visuelles quand seuil dépassé
+#### 2. Sélection Acteur → Utilisateur dans les formulaires
 
-### 3.3 Risques & Opportunités
-- Identification et évaluation par processus (probabilité, impact, criticité)
-- Association d'actions de traitement
-- Suivi du statut
+Dans les dialogs compétence et formation :
+- Etape 1 : Sélectionner un acteur (fonction) -- comme actuellement
+- Etape 2 : Sélectionner un utilisateur parmi ceux rattachés à cet acteur (query `profiles` WHERE `acteur_id = selected_acteur_id`)
+- Si un seul utilisateur est rattaché, il est auto-sélectionné
+- Le champ `profile_id` est enregistré en plus de `acteur_id`
 
-## Phase 4 : Modules audit & amélioration
+Affichage dans les tables : "Prénom Nom (Fonction)" au lieu de juste "Fonction".
 
-### 4.1 Gestion des audits
-- Programme d'audit et planification
-- Périmètre, auditeur désigné, date
-- Saisie des constats/écarts avec preuves
-- Génération d'un rapport d'audit
-- Suivi des actions issues de l'audit
+#### 3. Onglet Tableau de bord (nouvel onglet)
 
-### 4.2 Non-conformités & Actions
-- Enregistrement NC avec référence, origine, gravité, processus lié
-- Création d'actions (correctives, préventives, amélioration)
-- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
-- Lien NC → actions et audit → actions
+Ajouter un 3e onglet "Tableau de bord" avec :
 
-### 4.3 Traçabilité & Journal d'activité
-- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
-- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
-- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
+**KPIs en cartes** :
+- Total compétences evaluées
+- Evaluations en retard (prochaine_evaluation < today)
+- Formations réalisées (année en cours)
+- Taux d'efficacité (% formations efficaces)
+- Budget consommé / Budget prévu (avec barre de progression)
 
-## Phase 5 : Tableaux de bord & Reporting
+**Graphiques** (recharts, composants existants dans `chart.tsx`) :
+- Répartition des niveaux de compétence (donut : débutant/intermédiaire/avancé/expert)
+- Formations par mois (bar chart, année en cours)
+- Consommation budget cumulée vs budget (line chart)
+- Efficacité des formations (pie chart : efficace/non efficace/non évaluée)
 
-### 5.1 Tableau de bord global (page d'accueil)
-- Nombre de processus par type et statut
-- Indicateurs clés avec alertes
-- Audits planifiés/en cours
-- Actions en retard
-- NC ouvertes
-- Activité récente
+#### 4. Filtres et recherche
 
-### 5.2 Reporting
-- Liste des processus par type/statut
-- Synthèse des audits
-- État des écarts ouverts
-- Actions en retard
-- Indicateurs par processus
+Ajouter au-dessus de chaque table :
+- Recherche textuelle (compétence, titre formation, nom utilisateur)
+- Filtre par acteur/fonction
+- Filtre par niveau (compétences) ou efficacité (formations)
+- Filtre par période (année)
 
-## Phase 6 : Système de Notifications (IMPLEMENTÉ)
+#### 5. Matrice croisée des compétences
 
-### 6.1 Base de données
-- ✅ Table `notifications` avec RLS (user_id = auth.uid())
-- ✅ Table `notification_preferences` avec RLS (user_id = auth.uid())
-- ✅ Fonction trigger `notify_responsibility_change()` SECURITY DEFINER
-- ✅ Triggers sur 10 tables : actions, process_tasks, processes, quality_objectives, review_decisions, risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
-- ✅ Realtime activé sur table notifications
+Nouvelle vue optionnelle dans l'onglet Compétences : matrice où les lignes sont les utilisateurs et les colonnes les compétences distinctes, avec des badges de niveau colorés dans chaque cellule. Permet de visualiser rapidement les gaps.
 
-### 6.2 Types de notifications
-- **assignation** : nouvelle assignation de responsabilité
-- **echeance_proche** : rappel J-N avant échéance
-- **retard** : action en retard (échéance dépassée)
-- **statut_change** : changement de statut d'un élément
+### Fichiers impactes
 
-### 6.3 Canaux de distribution
-- **push** : notification in-app (temps réel via Realtime)
-- **email** : envoi SMTP via Edge Function
-- **both** : push + email
-- **none** : désactivé
+| Fichier | Modification |
+|---|---|
+| Migration SQL | `profile_id` sur competences + formations, `cout` sur formations, table `budget_formation` |
+| `src/pages/Competences.tsx` | Refonte complete : 3 onglets (Dashboard, Competences, Formations), filtres, sélection utilisateur, matrice, graphiques budget |
 
-### 6.4 Composants UI
-- ✅ `NotificationBell` : icône cloche dans le header avec badge compteur, popover dropdown
-- ✅ Page `/notifications` : historique complet avec filtres (type, lu/non lu)
-- ✅ `NotificationPreferences` : préférences utilisateur par type de notification
+### Ordre d'execution
+1. Migration SQL (nouvelles colonnes + table budget)
+2. Refonte `Competences.tsx` (dashboard + filtres + sélecteur utilisateur + matrice + budget)
 
-### 6.5 Configuration Super Admin
-- ✅ Toggle global email activé/désactivé (`notif_email_enabled`)
-- ✅ Délai de rappel par défaut (`notif_rappel_jours_defaut`)
-
-### 6.6 Edge Functions
-- ✅ `send-notification-email` : envoi SMTP réutilisant l'infrastructure existante
-- ✅ `check-deadlines` : scan quotidien (cron 7h) des échéances et retards
-
-### 6.7 Résolution utilisateur
-- `acteur_id` → `profiles.acteur_id` → `profiles.id` (= user_id auth)
-- Tables avec `responsable_id` (FK acteurs) : actions, process_tasks, processes, quality_objectives, review_decisions
-- Tables avec `responsable` (text = acteur_id) : risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
-
-## Contrôle d'accès (transversal)
-
-Chaque module appliquera les restrictions RBAC :
-- **RMQ** : accès total, validation, administration
-- **Responsable processus** : accès limité à ses processus
-- **Consultant** : consultation + propositions, pas de validation/suppression
-- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs
