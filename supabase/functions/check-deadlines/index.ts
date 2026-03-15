@@ -34,9 +34,18 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Ensure dispatch trigger config is populated (portable: self-configures on first run)
+    await supabase.from("app_settings").upsert(
+      { key: "supabase_url", value: supabaseUrl, updated_at: new Date().toISOString() },
+      { onConflict: "key" }
+    );
+    await supabase.from("app_settings").upsert(
+      { key: "supabase_service_role_key", value: serviceRoleKey, updated_at: new Date().toISOString() },
+      { onConflict: "key" }
     );
 
     // Get global rappel_jours setting
@@ -77,7 +86,6 @@ serve(async (req) => {
     const todayStr = today.toISOString().split("T")[0];
 
     let totalCreated = 0;
-    let emailsSent = 0;
 
     for (const source of SOURCES) {
       const { data: rows } = await supabase
@@ -145,7 +153,8 @@ serve(async (req) => {
 
         const entityUrl = source.entity_url_fn(row);
 
-        // Insert notification
+        // Insert notification — the DB trigger dispatch_email_on_notification
+        // will automatically call send-notification-email if channel is email/both
         await supabase.from("notifications").insert({
           user_id: userId,
           type: notifType,
@@ -157,29 +166,11 @@ serve(async (req) => {
           channel: prefChannel,
         });
         totalCreated++;
-
-        // Send email if needed
-        if (prefChannel === "email" || prefChannel === "both") {
-          try {
-            const funcUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification-email`;
-            await fetch(funcUrl, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-              },
-              body: JSON.stringify({ user_id: userId, title, message, entity_url: entityUrl }),
-            });
-            emailsSent++;
-          } catch (e) {
-            console.error("Email send failed:", e);
-          }
-        }
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, notifications_created: totalCreated, emails_sent: emailsSent }),
+      JSON.stringify({ success: true, notifications_created: totalCreated }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {

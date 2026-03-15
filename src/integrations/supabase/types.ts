@@ -1442,6 +1442,7 @@ export type Database = {
         Row: {
           channel: string
           created_at: string
+          email_sent: boolean | null
           entity_id: string | null
           entity_type: string | null
           entity_url: string | null
@@ -1455,6 +1456,7 @@ export type Database = {
         Insert: {
           channel?: string
           created_at?: string
+          email_sent?: boolean | null
           entity_id?: string | null
           entity_type?: string | null
           entity_url?: string | null
@@ -1468,6 +1470,7 @@ export type Database = {
         Update: {
           channel?: string
           created_at?: string
+          email_sent?: boolean | null
           entity_id?: string | null
           entity_type?: string | null
           entity_url?: string | null
