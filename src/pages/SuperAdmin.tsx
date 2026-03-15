@@ -388,6 +388,43 @@ export default function SuperAdmin() {
         </div>
       </div>
 
+      {/* Notification Config */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </CardTitle>
+          <CardDescription>Configuration globale des notifications</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Notifications email activées</Label>
+              <p className="text-xs text-muted-foreground">Activer l'envoi d'emails de notification aux utilisateurs</p>
+            </div>
+            <Switch
+              checked={form.notif_email_enabled !== "false"}
+              onCheckedChange={(checked) => handleChange("notif_email_enabled", checked ? "true" : "false")}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Délai de rappel par défaut (jours)</Label>
+              <p className="text-xs text-muted-foreground">Nombre de jours avant l'échéance pour envoyer un rappel</p>
+            </div>
+            <Input
+              type="number"
+              min={1}
+              max={30}
+              className="w-20"
+              value={form.notif_rappel_jours_defaut || "3"}
+              onChange={(e) => handleChange("notif_rappel_jours_defaut", e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} size="lg">
           <Save className="h-4 w-4 mr-2" />
