@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Settings, Upload, Eye, Save, Mail, Server, Eye as EyeIcon, EyeOff, SendHorizonal } from "lucide-react";
+import { Settings, Upload, Eye, Save, Mail, Server, Eye as EyeIcon, EyeOff, SendHorizonal, Bell } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import logo from "@/assets/logo.jpg";
 
 export default function SuperAdmin() {
