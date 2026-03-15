@@ -1,175 +1,142 @@
+# Plan d'implémentation — Application de gestion ISO 9001
 
+## Phase 1 : Fondations
 
-## Systeme de Notifications — Plan Final
+### 1.1 Base de données & Authentification
+- Créer les tables Supabase : `profiles`, `user_roles` (enum: rmq, responsable_processus, consultant, auditeur), `processes`, `process_versions`, `bpmn_diagrams`, `documents`, `indicators`, `indicator_values`, `risks_opportunities`, `audits`, `audit_findings`, `nonconformities`, `actions`, `audit_logs`
+- Configurer les politiques RLS par rôle avec fonction `has_role()` security definer
+- Mettre en place l'authentification (login, reset password)
+- Trigger auto-création profil à l'inscription
 
-### Inventaire complet des sources de notifications
+### 1.2 Layout & Navigation
+- Sidebar avec navigation par module (icônes + labels en français)
+- Header avec info utilisateur connecté et déconnexion
+- Routes protégées selon le rôle
+- Thème professionnel, interface entièrement en français
 
-Apres analyse, voici toutes les tables avec responsabilites et echeances :
+## Phase 2 : Modules principaux
 
-```text
-Tables avec responsable_id (FK acteurs)     Tables avec responsable (text = acteur_id)
-─────────────────────────────────────────    ──────────────────────────────────────────
-actions          (echeance)                  risk_actions       (deadline)
-process_tasks    (pas d'echeance)            risk_moyens        (deadline)
-processes        (pas d'echeance)            indicator_actions   (deadline)
-quality_objectives (echeance)                indicator_moyens    (deadline)
-review_decisions  (echeance)                 context_issue_actions (date_revue)
+### 2.1 Gestion des utilisateurs
+- Liste des utilisateurs (nom, prénom, email, fonction, rôle, statut)
+- Création/modification/désactivation de comptes (RMQ uniquement)
+- Attribution des rôles
 
-Resolution utilisateur : acteur_id → profiles.acteur_id → profiles.id (= user_id)
-```
+### 2.2 Gestion des processus
+- Liste des processus avec filtres par type (pilotage, réalisation, support) et statut
+- Fiche processus complète : code, intitulé, finalité, type, pilote, parties prenantes, entrées/sorties, activités, interactions, ressources, version, statut (brouillon → en validation → validé → archivé)
+- Versionnement automatique à chaque modification
+- Archivage logique (pas de suppression physique)
 
-### Architecture
+### 2.3 Cartographie des processus
+- Vue visuelle des processus classés par type (3 colonnes : pilotage, réalisation, support)
+- Visualisation des interactions entre processus (liens)
+- Clic pour accéder à la fiche détaillée
 
-```text
-┌──────────────────────────────────────────────────────┐
-│              SOURCES DE NOTIFICATIONS                 │
-│                                                       │
-│  1. Triggers DB (INSERT/UPDATE sur 10 tables)         │
-│     → Detecte assignation + changement statut         │
-│     → Insere dans table notifications                 │
-│                                                       │
-│  2. Edge Function CRON (check-deadlines)              │
-│     → Quotidien, scanne echeances J-N et retards      │
-│     → Insere notifs push + appelle send-notif-email   │
-└──────────┬───────────────────────┬────────────────────┘
-           │                       │
-           ▼                       ▼
-┌─────────────────────┐  ┌─────────────────────────────┐
-│  Table notifications │  │  Edge Function               │
-│  + Realtime channel  │  │  send-notification-email     │
-│                      │  │  (reutilise SMTP existant)   │
-└──────────┬───────────┘  └─────────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────┐
-│  UI                                      │
-│  - NotificationBell (header, badge)      │
-│  - Panneau dropdown (liste, marquer lu)  │
-│  - Page /notifications (historique)      │
-│  - Preferences (profil utilisateur)      │
-│  - Config globale (Super Admin)          │
-└──────────────────────────────────────────┘
-```
+### 2.4 Visualisation BPMN simplifiée
+- Affichage graphique simple des flux d'un processus (activités, décisions, début/fin)
+- Association d'un diagramme à un processus
+- Gestion des versions de diagrammes
+- Rendu visuel basique avec les éléments : tâches, événements, passerelles, flux, annotations
 
----
+## Phase 3 : Modules qualité
 
-### Etape 1 — Migration SQL
+### 3.1 Gestion documentaire
+- Upload/téléchargement de fichiers via Supabase Storage
+- Association documents ↔ processus (procédures, instructions, formulaires, rapports…)
+- Versionnement des documents, métadonnées, archivage logique
+- Contrôle d'accès par rôle
 
-**Table `notifications`**
+### 3.2 Indicateurs & Performance
+- Définition d'indicateurs par processus (nom, formule, unité, cible, seuil d'alerte, fréquence)
+- Saisie des valeurs avec historique
+- Visualisation graphique (courbes/barres via Recharts)
+- Alertes visuelles quand seuil dépassé
 
-| Colonne | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| user_id | uuid NOT NULL | Destinataire (ref profiles.id) |
-| type | text NOT NULL | `assignation`, `echeance_proche`, `retard`, `statut_change` |
-| title | text NOT NULL | Ex: "Nouvelle action assignee" |
-| message | text | Detail |
-| entity_type | text | `action`, `risk_action`, `process_task`, etc. |
-| entity_id | uuid | Lien vers l'element |
-| entity_url | text | Route frontend pour redirection |
-| is_read | boolean DEFAULT false | |
-| channel | text DEFAULT 'push' | `push`, `email`, `both` |
-| created_at | timestamptz DEFAULT now() | |
+### 3.3 Risques & Opportunités
+- Identification et évaluation par processus (probabilité, impact, criticité)
+- Association d'actions de traitement
+- Suivi du statut
 
-RLS : SELECT/UPDATE/DELETE uniquement pour `user_id = auth.uid()`. INSERT via trigger (SECURITY DEFINER).
+## Phase 4 : Modules audit & amélioration
 
-**Table `notification_preferences`**
+### 4.1 Gestion des audits
+- Programme d'audit et planification
+- Périmètre, auditeur désigné, date
+- Saisie des constats/écarts avec preuves
+- Génération d'un rapport d'audit
+- Suivi des actions issues de l'audit
 
-| Colonne | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| user_id | uuid UNIQUE NOT NULL | Ref profiles.id |
-| assignation | text DEFAULT 'both' | `push`, `email`, `both`, `none` |
-| echeance_proche | text DEFAULT 'push' | |
-| retard | text DEFAULT 'both' | |
-| statut_change | text DEFAULT 'push' | |
-| rappel_jours | int DEFAULT 3 | Jours avant echeance |
+### 4.2 Non-conformités & Actions
+- Enregistrement NC avec référence, origine, gravité, processus lié
+- Création d'actions (correctives, préventives, amélioration)
+- Chaque action : responsable, échéance, statut, preuve de réalisation, commentaire de clôture
+- Lien NC → actions et audit → actions
 
-RLS : chaque utilisateur lit/modifie ses propres preferences.
+### 4.3 Traçabilité & Journal d'activité
+- Journalisation automatique de toutes les opérations critiques dans `audit_logs`
+- Interface de consultation du journal (filtres par utilisateur, entité, date, type d'action)
+- Stockage : utilisateur, date/heure, action, entité, ancienne/nouvelle valeur
 
-**Fonction DB `notify_responsibility_change()`** (SECURITY DEFINER)
+## Phase 5 : Tableaux de bord & Reporting
 
-Trigger generique appele sur INSERT/UPDATE des 10 tables. Logique :
-1. Extraire le `responsable_id` ou `responsable` (acteur_id en text)
-2. Resoudre vers `user_id` via `SELECT id FROM profiles WHERE acteur_id = ...`
-3. Si assignation change (OLD vs NEW) → inserer notification type `assignation`
-4. Si statut change → inserer notification type `statut_change`
-5. Respecter les preferences utilisateur (table `notification_preferences`)
+### 5.1 Tableau de bord global (page d'accueil)
+- Nombre de processus par type et statut
+- Indicateurs clés avec alertes
+- Audits planifiés/en cours
+- Actions en retard
+- NC ouvertes
+- Activité récente
 
-Triggers attaches a : `actions`, `process_tasks`, `risk_actions`, `risk_moyens`, `indicator_actions`, `indicator_moyens`, `context_issue_actions`, `quality_objectives`, `review_decisions`, `processes`.
+### 5.2 Reporting
+- Liste des processus par type/statut
+- Synthèse des audits
+- État des écarts ouverts
+- Actions en retard
+- Indicateurs par processus
 
-**Activer Realtime** sur la table `notifications`.
+## Phase 6 : Système de Notifications (IMPLEMENTÉ)
 
----
+### 6.1 Base de données
+- ✅ Table `notifications` avec RLS (user_id = auth.uid())
+- ✅ Table `notification_preferences` avec RLS (user_id = auth.uid())
+- ✅ Fonction trigger `notify_responsibility_change()` SECURITY DEFINER
+- ✅ Triggers sur 10 tables : actions, process_tasks, processes, quality_objectives, review_decisions, risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
+- ✅ Realtime activé sur table notifications
 
-### Etape 2 — Edge Functions
+### 6.2 Types de notifications
+- **assignation** : nouvelle assignation de responsabilité
+- **echeance_proche** : rappel J-N avant échéance
+- **retard** : action en retard (échéance dépassée)
+- **statut_change** : changement de statut d'un élément
 
-**`check-deadlines`** (appele par pg_cron quotidiennement)
-- Scanne les 10 tables pour trouver les echeances a J-N (configurable) et les retards
-- Evite les doublons (verifie si notif deja envoyee pour cette entite+type+date)
-- Insere des notifications push
-- Appelle `send-notification-email` pour les utilisateurs qui ont choisi `email` ou `both`
+### 6.3 Canaux de distribution
+- **push** : notification in-app (temps réel via Realtime)
+- **email** : envoi SMTP via Edge Function
+- **both** : push + email
+- **none** : désactivé
 
-**`send-notification-email`** (HTTP interne)
-- Recoit `{ user_id, title, message, entity_url }`
-- Charge l'email du profil et les settings SMTP existants
-- Envoie un email HTML professionnel avec lien direct
-- Reutilise l'infrastructure SMTP deja en place
+### 6.4 Composants UI
+- ✅ `NotificationBell` : icône cloche dans le header avec badge compteur, popover dropdown
+- ✅ Page `/notifications` : historique complet avec filtres (type, lu/non lu)
+- ✅ `NotificationPreferences` : préférences utilisateur par type de notification
 
----
+### 6.5 Configuration Super Admin
+- ✅ Toggle global email activé/désactivé (`notif_email_enabled`)
+- ✅ Délai de rappel par défaut (`notif_rappel_jours_defaut`)
 
-### Etape 3 — Composants UI
+### 6.6 Edge Functions
+- ✅ `send-notification-email` : envoi SMTP réutilisant l'infrastructure existante
+- ✅ `check-deadlines` : scan quotidien (cron 7h) des échéances et retards
 
-**`NotificationBell`** (dans AppLayout header)
-- Icone cloche avec badge compteur (non lus)
-- Popover/dropdown avec liste des 20 dernieres notifications
-- Chaque item : icone type, titre, message tronque, date relative, indicateur lu/non lu
-- Clic → navigation vers l'entite (`entity_url`) + marquer comme lu
-- Bouton "Tout marquer comme lu"
-- Lien vers "/notifications" pour l'historique complet
-- Abonnement Realtime pour mise a jour instantanee
+### 6.7 Résolution utilisateur
+- `acteur_id` → `profiles.acteur_id` → `profiles.id` (= user_id auth)
+- Tables avec `responsable_id` (FK acteurs) : actions, process_tasks, processes, quality_objectives, review_decisions
+- Tables avec `responsable` (text = acteur_id) : risk_actions, risk_moyens, indicator_actions, indicator_moyens, context_issue_actions
 
-**Page `/notifications`**
-- Liste complete paginee avec filtres (type, lu/non lu, date)
-- Actions en masse (marquer lu, supprimer)
+## Contrôle d'accès (transversal)
 
-**`NotificationPreferences`** (section dans profil ou page dediee)
-- Pour chaque type de notification : choix push/email/both/none
-- Nombre de jours de rappel avant echeance
-
----
-
-### Etape 4 — Configuration Super Admin
-
-Ajouter une section "Notifications" dans SuperAdmin avec :
-- Toggle global activer/desactiver les notifications email
-- Delai de rappel par defaut (jours avant echeance)
-- Cles `app_settings` : `notif_email_enabled` (true/false), `notif_rappel_jours_defaut` (3)
-
----
-
-### Fichiers concernes
-
-| Element | Fichier |
-|---|---|
-| Migration SQL | `supabase/migrations/` (tables, fonction, triggers, realtime, cron) |
-| Edge Function cron | `supabase/functions/check-deadlines/index.ts` |
-| Edge Function email | `supabase/functions/send-notification-email/index.ts` |
-| Composant cloche | `src/components/NotificationBell.tsx` |
-| Preferences | `src/components/NotificationPreferences.tsx` |
-| Page historique | `src/pages/Notifications.tsx` |
-| Header | `src/components/AppLayout.tsx` (ajout NotificationBell) |
-| Super Admin | `src/pages/SuperAdmin.tsx` (section notifications) |
-| Routes | `src/App.tsx` (route /notifications) |
-| Sidebar | `src/components/AppSidebar.tsx` (lien optionnel) |
-
-### Ordre d'implementation
-
-1. Migration : tables + fonction + triggers + realtime
-2. NotificationBell + popover + realtime subscription
-3. Page /notifications + route
-4. NotificationPreferences
-5. Section Super Admin
-6. Edge Function send-notification-email
-7. Edge Function check-deadlines + cron pg_cron
-
+Chaque module appliquera les restrictions RBAC :
+- **RMQ** : accès total, validation, administration
+- **Responsable processus** : accès limité à ses processus
+- **Consultant** : consultation + propositions, pas de validation/suppression
+- **Auditeur** : consultation + saisie audit, pas de modification processus/indicateurs

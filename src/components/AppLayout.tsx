@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { NotificationBell } from "@/components/NotificationBell";
 import defaultLogo from "@/assets/logo.jpg";
 
 function HeaderHelpButton() {
@@ -88,6 +89,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
               </div>
               <div className="flex items-center gap-3">
+                <NotificationBell />
                 <HeaderHelpButton />
                 <Tooltip>
                   <TooltipTrigger asChild>
