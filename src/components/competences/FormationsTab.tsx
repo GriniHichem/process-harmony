@@ -190,7 +190,7 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
               <div><Label>Durée (heures)</Label><Input type="number" value={form.duree_heures} onChange={e => setForm(f => ({ ...f, duree_heures: parseFloat(e.target.value) || 0 }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Coût (€)</Label><Input type="number" value={form.cout} onChange={e => setForm(f => ({ ...f, cout: parseFloat(e.target.value) || 0 }))} /></div>
+              <div><Label>Coût (DA)</Label><Input type="number" value={form.cout} onChange={e => setForm(f => ({ ...f, cout: parseFloat(e.target.value) || 0 }))} /></div>
               <div><Label>Efficacité</Label>
                 <Select value={form.efficacite} onValueChange={v => setForm(f => ({ ...f, efficacite: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>

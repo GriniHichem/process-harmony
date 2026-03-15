@@ -218,7 +218,7 @@ export function CompetencesDashboard({ competences, formations, canEdit }: Props
           <DialogHeader><DialogTitle>Budget formation annuel</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>Année</Label><Input type="number" value={budgetForm.annee} onChange={e => setBudgetForm(f => ({ ...f, annee: parseInt(e.target.value) || currentYear }))} /></div>
-            <div><Label>Budget prévu (€)</Label><Input type="number" value={budgetForm.budget_prevu} onChange={e => setBudgetForm(f => ({ ...f, budget_prevu: parseFloat(e.target.value) || 0 }))} /></div>
+            <div><Label>Budget prévu (DA)</Label><Input type="number" value={budgetForm.budget_prevu} onChange={e => setBudgetForm(f => ({ ...f, budget_prevu: parseFloat(e.target.value) || 0 }))} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBudgetDialog(false)}>Annuler</Button>
