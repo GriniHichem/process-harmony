@@ -138,8 +138,19 @@ export default function Utilisateurs() {
       const { data, error } = await supabase.functions.invoke("admin-create-user", {
         body: { email: newUser.email, password: newUser.password, nom: newUser.nom, prenom: newUser.prenom, fonction: newUser.fonction },
       });
-      if (error) { toast.error(error.message || "Erreur"); setCreating(false); return; }
-      if (data?.error) { toast.error(data.error); setCreating(false); return; }
+      if (error) {
+        const msg = error.message?.includes("non-2xx")
+          ? "Erreur serveur : vérifiez que les migrations ont été exécutées et que les variables d'environnement (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) sont configurées."
+          : (error.message || "Erreur lors de la création");
+        toast.error(msg, { duration: 8000 });
+        setCreating(false);
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.error + (data.detail ? ` (${data.detail})` : ''), { duration: 8000 });
+        setCreating(false);
+        return;
+      }
       toast.success("Utilisateur créé");
       setCreateOpen(false);
       setNewUser({ email: "", password: "", nom: "", prenom: "", fonction: "" });
@@ -157,8 +168,19 @@ export default function Utilisateurs() {
       const { data, error } = await supabase.functions.invoke("admin-reset-password", {
         body: { user_id: resetUserId, new_password: resetPassword },
       });
-      if (error) { toast.error(error.message || "Erreur"); setResetting(false); return; }
-      if (data?.error) { toast.error(data.error); setResetting(false); return; }
+      if (error) {
+        const msg = error.message?.includes("non-2xx")
+          ? "Erreur serveur : vérifiez que les migrations ont été exécutées et que les variables d'environnement sont configurées."
+          : (error.message || "Erreur");
+        toast.error(msg, { duration: 8000 });
+        setResetting(false);
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.error + (data.detail ? ` (${data.detail})` : ''), { duration: 8000 });
+        setResetting(false);
+        return;
+      }
       toast.success("Mot de passe réinitialisé");
       setResetUserId(null);
       setResetPassword("");
