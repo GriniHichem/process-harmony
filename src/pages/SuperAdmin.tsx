@@ -209,6 +209,11 @@ export default function SuperAdmin() {
                       <p className="text-xs text-muted-foreground">
                         Développé par <span className="font-semibold text-foreground">{form.info_credits}</span>
                       </p>
+                      {form.info_credits_help && (
+                        <p className="text-xs text-muted-foreground">
+                          Aide contextuelle par <span className="font-semibold text-foreground">{form.info_credits_help}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

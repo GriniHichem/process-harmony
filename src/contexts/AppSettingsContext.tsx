@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   app_description: "Système intégré ISO 9001 et gestion par processus",
   info_copyright: "© 2026 Groupe AMOUR. Tous droits réservés.",
   info_credits: "H. GRINI & F. SERRADJ — SI TEAM",
+  info_credits_help: "Radja BENHAMIDA",
   logo_url: "",
   brand_logo_url: "",
   support_email: "",
