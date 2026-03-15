@@ -1372,6 +1372,84 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          assignation: string
+          created_at: string
+          echeance_proche: string
+          id: string
+          rappel_jours: number
+          retard: string
+          statut_change: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assignation?: string
+          created_at?: string
+          echeance_proche?: string
+          id?: string
+          rappel_jours?: number
+          retard?: string
+          statut_change?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assignation?: string
+          created_at?: string
+          echeance_proche?: string
+          id?: string
+          rappel_jours?: number
+          retard?: string
+          statut_change?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          channel: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          entity_url: string | null
+          id: string
+          is_read: boolean
+          message: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          entity_url?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          title?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          entity_url?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       process_elements: {
         Row: {
           code: string
