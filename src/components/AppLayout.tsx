@@ -162,6 +162,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </DialogContent>
         </Dialog>
+
+        <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
       </SidebarProvider>
     </HelpModeProvider>
   );
