@@ -14,6 +14,8 @@ export interface AppSettings {
   smtp_host: string;
   smtp_port: string;
   smtp_user: string;
+  notif_email_enabled: string;
+  notif_rappel_jours_defaut: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
