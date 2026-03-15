@@ -1372,6 +1372,36 @@ export type Database = {
           },
         ]
       }
+      notification_config: {
+        Row: {
+          channel: string
+          created_at: string
+          entity_type: string
+          id: string
+          notif_type: string
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          entity_type: string
+          id?: string
+          notif_type: string
+          scope: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          entity_type?: string
+          id?: string
+          notif_type?: string
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           assignation: string
@@ -2435,6 +2465,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      resolve_notification_channel: {
+        Args: { _entity_type: string; _notif_type: string; _user_id: string }
+        Returns: string
       }
     }
     Enums: {
