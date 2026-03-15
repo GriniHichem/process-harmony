@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -20,6 +21,7 @@ const efficaciteColors: Record<string, string> = {
   non_efficace: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 const efficaciteLabels: Record<string, string> = { non_evaluee: "Non évaluée", efficace: "Efficace", non_efficace: "Non efficace" };
+const typeFormationLabels: Record<string, string> = { individuelle: "Individuelle", collective: "Collective" };
 
 interface Props {
   formations: any[];
@@ -31,12 +33,23 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
   const qc = useQueryClient();
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ acteur_id: "", profile_id: "", titre: "", description: "", date_formation: "", formateur: "", duree_heures: 0, cout: 0, efficacite: "non_evaluee", preuve: "", commentaire: "" });
+  const [form, setForm] = useState({ acteur_id: "", profile_id: "", titre: "", description: "", date_formation: "", formateur: "", duree_heures: 0, cout: 0, efficacite: "non_evaluee", preuve: "", commentaire: "", type_formation: "individuelle", competence_liee: "", lier_competence: false });
   const [search, setSearch] = useState("");
   const [filterEfficacite, setFilterEfficacite] = useState("all");
   const [filterActeur, setFilterActeur] = useState("all");
+  const [filterUser, setFilterUser] = useState("all");
+  const [filterType, setFilterType] = useState("all");
 
-  // Profiles for selected acteur
+  // All profiles for user filter
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ["all_profiles_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, nom, prenom, acteur_id").eq("actif", true).order("nom");
+      return data || [];
+    },
+  });
+
+  // Profiles for selected acteur (in dialog)
   const { data: profilesForActeur = [] } = useQuery({
     queryKey: ["profiles_for_acteur", form.acteur_id],
     queryFn: async () => {
@@ -45,6 +58,16 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
       return data || [];
     },
     enabled: !!form.acteur_id,
+  });
+
+  // Existing competences for autocomplete
+  const { data: existingCompetences = [] } = useQuery({
+    queryKey: ["competences_names"],
+    queryFn: async () => {
+      const { data } = await supabase.from("competences").select("competence");
+      const unique = [...new Set((data || []).map((c: any) => c.competence).filter(Boolean))];
+      return unique.sort();
+    },
   });
 
   const handleActeurChange = (v: string) => {
@@ -59,11 +82,35 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
 
   const saveMut = useMutation({
     mutationFn: async (f: typeof form & { id?: string }) => {
-      const payload = { acteur_id: f.acteur_id, profile_id: f.profile_id || null, titre: f.titre, description: f.description, date_formation: f.date_formation || new Date().toISOString().split("T")[0], formateur: f.formateur, duree_heures: f.duree_heures, cout: f.cout, efficacite: f.efficacite, preuve: f.preuve || null, commentaire: f.commentaire };
+      const payload: any = { acteur_id: f.acteur_id, profile_id: f.profile_id || null, titre: f.titre, description: f.description, date_formation: f.date_formation || new Date().toISOString().split("T")[0], formateur: f.formateur, duree_heures: f.duree_heures, cout: f.cout, efficacite: f.efficacite, preuve: f.preuve || null, commentaire: f.commentaire, type_formation: f.type_formation, competence_liee: f.competence_liee || null };
       if (f.id) { const { error } = await supabase.from("formations").update(payload).eq("id", f.id); if (error) throw error; }
       else { const { error } = await supabase.from("formations").insert(payload); if (error) throw error; }
+
+      // Auto-create/update competence if linked
+      if (f.lier_competence && f.competence_liee && f.acteur_id) {
+        const competencePayload = {
+          acteur_id: f.acteur_id,
+          profile_id: f.profile_id || null,
+          competence: f.competence_liee,
+          niveau: f.efficacite === "efficace" ? "intermediaire" : "debutant",
+          date_evaluation: f.date_formation || new Date().toISOString().split("T")[0],
+          commentaire: `Acquise via formation: ${f.titre}`,
+        };
+
+        // Check if competence already exists for this acteur+profile+competence
+        let query = supabase.from("competences").select("id").eq("acteur_id", f.acteur_id).eq("competence", f.competence_liee);
+        if (f.profile_id) query = query.eq("profile_id", f.profile_id);
+        else query = query.is("profile_id", null);
+        const { data: existing } = await query.maybeSingle();
+
+        if (existing) {
+          await supabase.from("competences").update({ niveau: competencePayload.niveau, date_evaluation: competencePayload.date_evaluation, commentaire: competencePayload.commentaire }).eq("id", existing.id);
+        } else {
+          await supabase.from("competences").insert(competencePayload);
+        }
+      }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["formations"] }); setDialog(false); toast({ title: "Formation enregistrée" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["formations"] }); qc.invalidateQueries({ queryKey: ["competences"] }); setDialog(false); toast({ title: "Formation enregistrée" }); },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
@@ -81,20 +128,24 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
       }
       if (filterEfficacite !== "all" && f.efficacite !== filterEfficacite) return false;
       if (filterActeur !== "all" && f.acteur_id !== filterActeur) return false;
+      if (filterUser !== "all" && f.profile_id !== filterUser) return false;
+      if (filterType !== "all" && f.type_formation !== filterType) return false;
       return true;
     });
-  }, [formations, search, filterEfficacite, filterActeur]);
+  }, [formations, search, filterEfficacite, filterActeur, filterUser, filterType]);
 
   const getDisplayName = (f: any) => {
     if (f.profiles) return `${f.profiles.prenom} ${f.profiles.nom}`;
     return f.acteurs?.fonction || "—";
   };
 
+  const emptyForm = { acteur_id: "", profile_id: "", titre: "", description: "", date_formation: "", formateur: "", duree_heures: 0, cout: 0, efficacite: "non_evaluee", preuve: "", commentaire: "", type_formation: "individuelle", competence_liee: "", lier_competence: false };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-between items-center gap-2">
         <h2 className="text-lg font-semibold">Registre des formations</h2>
-        {canEdit && <Button onClick={() => { setEditing(null); setForm({ acteur_id: "", profile_id: "", titre: "", description: "", date_formation: "", formateur: "", duree_heures: 0, cout: 0, efficacite: "non_evaluee", preuve: "", commentaire: "" }); setDialog(true); }}><Plus className="h-4 w-4 mr-1" />Ajouter</Button>}
+        {canEdit && <Button onClick={() => { setEditing(null); setForm(emptyForm); setDialog(true); }}><Plus className="h-4 w-4 mr-1" />Ajouter</Button>}
       </div>
 
       {/* Filters */}
@@ -105,6 +156,13 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
             <Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8" />
           </div>
         </div>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous types</SelectItem>
+            {Object.entries(typeFormationLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={filterEfficacite} onValueChange={setFilterEfficacite}>
           <SelectTrigger className="w-[170px]"><SelectValue placeholder="Efficacité" /></SelectTrigger>
           <SelectContent>
@@ -119,6 +177,13 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
             {acteurs.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.fonction} — {a.organisation}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterUser} onValueChange={setFilterUser}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Utilisateur" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous utilisateurs</SelectItem>
+            {allProfiles.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.prenom} {p.nom}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -126,31 +191,35 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Titre</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Utilisateur</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Formateur</TableHead>
               <TableHead>Durée (h)</TableHead>
               <TableHead>Coût (DA)</TableHead>
+              <TableHead>Compétence liée</TableHead>
               <TableHead>Efficacité</TableHead>
               {canEdit && <TableHead className="w-20">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={canEdit ? 8 : 7} className="text-center text-muted-foreground py-8">Aucune formation enregistrée.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={canEdit ? 10 : 9} className="text-center text-muted-foreground py-8">Aucune formation enregistrée.</TableCell></TableRow>
             ) : filtered.map((f: any) => (
               <TableRow key={f.id}>
                 <TableCell className="font-medium">{f.titre}</TableCell>
+                <TableCell><Badge variant="outline">{typeFormationLabels[f.type_formation] || "Individuelle"}</Badge></TableCell>
                 <TableCell className="text-sm">{getDisplayName(f)}</TableCell>
                 <TableCell>{format(new Date(f.date_formation), "dd/MM/yyyy")}</TableCell>
                 <TableCell>{f.formateur}</TableCell>
                 <TableCell>{f.duree_heures}</TableCell>
                 <TableCell>{(Number(f.cout) || 0).toLocaleString("fr-FR")} DA</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{f.competence_liee || "—"}</TableCell>
                 <TableCell><Badge className={efficaciteColors[f.efficacite]}>{efficaciteLabels[f.efficacite]}</Badge></TableCell>
                 {canEdit && (
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => { setEditing(f); setForm({ acteur_id: f.acteur_id, profile_id: f.profile_id || "", titre: f.titre, description: f.description, date_formation: f.date_formation, formateur: f.formateur, duree_heures: f.duree_heures, cout: Number(f.cout) || 0, efficacite: f.efficacite, preuve: f.preuve || "", commentaire: f.commentaire }); setDialog(true); }}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => { setEditing(f); setForm({ acteur_id: f.acteur_id, profile_id: f.profile_id || "", titre: f.titre, description: f.description, date_formation: f.date_formation, formateur: f.formateur, duree_heures: f.duree_heures, cout: Number(f.cout) || 0, efficacite: f.efficacite, preuve: f.preuve || "", commentaire: f.commentaire, type_formation: f.type_formation || "individuelle", competence_liee: f.competence_liee || "", lier_competence: false }); setDialog(true); }}><Edit className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(f.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </TableCell>
@@ -163,14 +232,24 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
 
       {/* Dialog */}
       <Dialog open={dialog} onOpenChange={setDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? "Modifier" : "Nouvelle"} formation</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label>Acteur (fonction)</Label>
-              <Select value={form.acteur_id} onValueChange={handleActeurChange}>
-                <SelectTrigger><SelectValue placeholder="Sélectionner un acteur" /></SelectTrigger>
-                <SelectContent>{acteurs.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.fonction} — {a.organisation}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Type de formation</Label>
+                <Select value={form.type_formation} onValueChange={v => setForm(f => ({ ...f, type_formation: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(typeFormationLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Acteur (fonction)</Label>
+                <Select value={form.acteur_id} onValueChange={handleActeurChange}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner un acteur" /></SelectTrigger>
+                  <SelectContent>{acteurs.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.fonction} — {a.organisation}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
             {form.acteur_id && profilesForActeur.length > 0 && (
               <div><Label>Utilisateur</Label>
@@ -200,6 +279,34 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
                 </Select>
               </div>
             </div>
+
+            {/* Competence link */}
+            <div className="border rounded-md p-3 space-y-3 bg-muted/30">
+              <div><Label>Compétence liée</Label>
+                <Input 
+                  value={form.competence_liee} 
+                  onChange={e => setForm(f => ({ ...f, competence_liee: e.target.value }))} 
+                  placeholder="Nom de la compétence à associer"
+                  list="competences-list"
+                />
+                <datalist id="competences-list">
+                  {existingCompetences.map((c: string) => <option key={c} value={c} />)}
+                </datalist>
+              </div>
+              {form.competence_liee && (
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    id="lier-comp" 
+                    checked={form.lier_competence} 
+                    onCheckedChange={(v) => setForm(f => ({ ...f, lier_competence: !!v }))} 
+                  />
+                  <Label htmlFor="lier-comp" className="text-sm font-normal cursor-pointer">
+                    Créer/mettre à jour automatiquement la compétence pour cet acteur
+                  </Label>
+                </div>
+              )}
+            </div>
+
             <div><Label>Commentaire</Label><Textarea value={form.commentaire} onChange={e => setForm(f => ({ ...f, commentaire: e.target.value }))} /></div>
           </div>
           <DialogFooter>

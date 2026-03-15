@@ -36,9 +36,19 @@ export function CompetencesTab({ competences, acteurs, canEdit }: Props) {
   const [search, setSearch] = useState("");
   const [filterNiveau, setFilterNiveau] = useState("all");
   const [filterActeur, setFilterActeur] = useState("all");
+  const [filterUser, setFilterUser] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
 
-  // Profiles for selected acteur
+  // All profiles for user filter
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ["all_profiles_active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("id, nom, prenom, acteur_id").eq("actif", true).order("nom");
+      return data || [];
+    },
+  });
+
+  // Profiles for selected acteur (in dialog)
   const { data: profilesForActeur = [] } = useQuery({
     queryKey: ["profiles_for_acteur", form.acteur_id],
     queryFn: async () => {
@@ -49,12 +59,10 @@ export function CompetencesTab({ competences, acteurs, canEdit }: Props) {
     enabled: !!form.acteur_id,
   });
 
-  // Auto-select if single profile
   const handleActeurChange = (v: string) => {
     setForm(f => ({ ...f, acteur_id: v, profile_id: "" }));
   };
 
-  // When profiles load and there's only one, auto-select
   useMemo(() => {
     if (profilesForActeur.length === 1 && form.acteur_id) {
       setForm(f => ({ ...f, profile_id: profilesForActeur[0].id }));
@@ -85,9 +93,10 @@ export function CompetencesTab({ competences, acteurs, canEdit }: Props) {
       }
       if (filterNiveau !== "all" && c.niveau !== filterNiveau) return false;
       if (filterActeur !== "all" && c.acteur_id !== filterActeur) return false;
+      if (filterUser !== "all" && c.profile_id !== filterUser) return false;
       return true;
     });
-  }, [competences, search, filterNiveau, filterActeur]);
+  }, [competences, search, filterNiveau, filterActeur, filterUser]);
 
   // Matrix data
   const matrixData = useMemo(() => {
@@ -101,11 +110,6 @@ export function CompetencesTab({ competences, acteurs, canEdit }: Props) {
     });
     return { compNames, users: [...users.entries()] };
   }, [competences]);
-
-  const getDisplayName = (c: any) => {
-    if (c.profiles) return `${c.profiles.prenom} ${c.profiles.nom}`;
-    return c.acteurs?.fonction || "—";
-  };
 
   return (
     <div className="space-y-4">
@@ -138,6 +142,13 @@ export function CompetencesTab({ competences, acteurs, canEdit }: Props) {
           <SelectContent>
             <SelectItem value="all">Tous acteurs</SelectItem>
             {acteurs.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.fonction} — {a.organisation}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterUser} onValueChange={setFilterUser}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Utilisateur" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous utilisateurs</SelectItem>
+            {allProfiles.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.prenom} {p.nom}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -227,7 +238,6 @@ export function CompetencesTab({ competences, acteurs, canEdit }: Props) {
                     {profilesForActeur.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.prenom} {p.nom}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                {profilesForActeur.length === 0 && <p className="text-xs text-muted-foreground mt-1">Aucun utilisateur rattaché à cet acteur</p>}
               </div>
             )}
             <div><Label>Compétence</Label><Input value={form.competence} onChange={e => setForm(f => ({ ...f, competence: e.target.value }))} /></div>
