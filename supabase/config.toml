@@ -1,1 +1,22 @@
 project_id = "jyqbbfmsvaqnowdhnqof"
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-reset-password]
+verify_jwt = false
+
+[functions.admin-save-smtp-password]
+verify_jwt = false
+
+[functions.send-test-email]
+verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
+
+[functions.send-survey-copy]
+verify_jwt = false
+
+[functions.check-deadlines]
+verify_jwt = false
