@@ -33,7 +33,7 @@ export default function Competences() {
   const { data: formations = [] } = useQuery({
     queryKey: ["formations"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("formations").select("*, acteurs(fonction, organisation), profiles(nom, prenom)").order("date_formation", { ascending: false });
+      const { data, error } = await supabase.from("formations").select("*, acteurs(fonction, organisation), profiles(nom, prenom)").order("date_formation", { ascending: false }) as any;
       if (error) throw error;
       return data;
     },
