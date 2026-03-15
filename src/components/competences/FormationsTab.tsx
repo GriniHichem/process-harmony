@@ -145,7 +145,7 @@ export function FormationsTab({ formations, acteurs, canEdit }: Props) {
                 <TableCell>{format(new Date(f.date_formation), "dd/MM/yyyy")}</TableCell>
                 <TableCell>{f.formateur}</TableCell>
                 <TableCell>{f.duree_heures}</TableCell>
-                <TableCell>{(Number(f.cout) || 0).toLocaleString("fr-FR")} €</TableCell>
+                <TableCell>{(Number(f.cout) || 0).toLocaleString("fr-FR")} DA</TableCell>
                 <TableCell><Badge className={efficaciteColors[f.efficacite]}>{efficaciteLabels[f.efficacite]}</Badge></TableCell>
                 {canEdit && (
                   <TableCell>
