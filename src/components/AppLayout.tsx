@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
 import { HelpModeProvider, useHelpMode } from "@/contexts/HelpModeContext";
 import { Info, ScrollText, Eye, EyeOff, HelpCircle, KeyRound } from "lucide-react";
+import { GlobalSearch } from "@/components/GlobalSearch";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -90,7 +92,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Button>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <GlobalSearch />
                 <NotificationBell />
                 <HeaderHelpButton />
                 <Tooltip>
@@ -106,6 +109,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </TooltipTrigger>
                   <TooltipContent>{accessible ? "Désactiver le mode confort visuel" : "Activer le mode confort visuel"}</TooltipContent>
                 </Tooltip>
+                <DarkModeToggle />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button

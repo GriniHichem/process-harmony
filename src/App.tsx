@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,41 +11,51 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { AppLayout } from "@/components/AppLayout";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Processus from "./pages/Processus";
-import ProcessDetail from "./pages/ProcessDetail";
-import Cartographie from "./pages/Cartographie";
-import Bpmn from "./pages/Bpmn";
-import Documents from "./pages/Documents";
-import Indicateurs from "./pages/Indicateurs";
-import Risques from "./pages/Risques";
-import Audits from "./pages/Audits";
-import NonConformites from "./pages/NonConformites";
-import Actions from "./pages/Actions";
-import Journal from "./pages/Journal";
-import Utilisateurs from "./pages/Utilisateurs";
-import Acteurs from "./pages/Acteurs";
-import Incidents from "./pages/Incidents";
-import DashboardAuditNC from "./pages/DashboardAuditNC";
-import EnjeuContexte from "./pages/EnjeuContexte";
-import GroupesActeurs from "./pages/GroupesActeurs";
-import PolitiqueQualite from "./pages/PolitiqueQualite";
-import RevueDirection from "./pages/RevueDirection";
-import CompetencesPage from "./pages/Competences";
-import SatisfactionClient from "./pages/SatisfactionClient";
-import Fournisseurs from "./pages/Fournisseurs";
-import EvaluationProcessus from "./pages/EvaluationProcessus";
-import AdminPermissions from "./pages/AdminPermissions";
-import SuperAdmin from "./pages/SuperAdmin";
-import SurveyPublicPage from "./pages/SurveyPublicPage";
-import Notifications from "./pages/Notifications";
-import NotFound from "./pages/NotFound";
+
+// Lazy loaded pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Processus = lazy(() => import("./pages/Processus"));
+const ProcessDetail = lazy(() => import("./pages/ProcessDetail"));
+const Cartographie = lazy(() => import("./pages/Cartographie"));
+const Bpmn = lazy(() => import("./pages/Bpmn"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Indicateurs = lazy(() => import("./pages/Indicateurs"));
+const Risques = lazy(() => import("./pages/Risques"));
+const Audits = lazy(() => import("./pages/Audits"));
+const NonConformites = lazy(() => import("./pages/NonConformites"));
+const Actions = lazy(() => import("./pages/Actions"));
+const Journal = lazy(() => import("./pages/Journal"));
+const Utilisateurs = lazy(() => import("./pages/Utilisateurs"));
+const Acteurs = lazy(() => import("./pages/Acteurs"));
+const Incidents = lazy(() => import("./pages/Incidents"));
+const DashboardAuditNC = lazy(() => import("./pages/DashboardAuditNC"));
+const EnjeuContexte = lazy(() => import("./pages/EnjeuContexte"));
+const GroupesActeurs = lazy(() => import("./pages/GroupesActeurs"));
+const PolitiqueQualite = lazy(() => import("./pages/PolitiqueQualite"));
+const RevueDirection = lazy(() => import("./pages/RevueDirection"));
+const CompetencesPage = lazy(() => import("./pages/Competences"));
+const SatisfactionClient = lazy(() => import("./pages/SatisfactionClient"));
+const Fournisseurs = lazy(() => import("./pages/Fournisseurs"));
+const EvaluationProcessus = lazy(() => import("./pages/EvaluationProcessus"));
+const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
+const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
+const SurveyPublicPage = lazy(() => import("./pages/SurveyPublicPage"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
+
 const ProtectedPage = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
-    <AppLayout>{children}</AppLayout>
+    <AppLayout>
+      <Suspense fallback={<PageLoader />}>{children}</Suspense>
+    </AppLayout>
   </ProtectedRoute>
 );
 
@@ -59,7 +70,7 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/survey/:token" element={<SurveyPublicPage />} />
+              <Route path="/survey/:token" element={<Suspense fallback={<PageLoader />}><SurveyPublicPage /></Suspense>} />
               {/* Principal */}
               <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
               <Route path="/acteurs" element={<ProtectedPage><RoleGuard requiredModule="acteurs"><Acteurs /></RoleGuard></ProtectedPage>} />
@@ -95,7 +106,7 @@ const App = () => (
               <Route path="/notifications" element={<ProtectedPage><Notifications /></ProtectedPage>} />
               {/* Super Admin */}
               <Route path="/super-admin" element={<ProtectedPage><RoleGuard allowedRoles={["super_admin"]}><SuperAdmin /></RoleGuard></ProtectedPage>} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
             </Routes>
           </AppSettingsProvider>
         </AuthProvider>
