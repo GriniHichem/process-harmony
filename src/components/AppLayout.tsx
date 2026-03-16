@@ -109,6 +109,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </TooltipTrigger>
                   <TooltipContent>{accessible ? "Désactiver le mode confort visuel" : "Activer le mode confort visuel"}</TooltipContent>
                 </Tooltip>
+                <DarkModeToggle />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
