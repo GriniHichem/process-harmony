@@ -60,12 +60,12 @@ export function useGlobalSearch() {
 
         if (f === "all" || f === "processus") {
           queries.push(
-            supabase
-              .from("processes")
-              .select("id, nom, code, type_processus, statut")
-              .or(`nom.ilike.${term},code.ilike.${term},description.ilike.${term},finalite.ilike.${term}`)
-              .limit(10)
-              .then(({ data }) => {
+            (async () => {
+              const { data } = await supabase
+                .from("processes")
+                .select("id, nom, code, type_processus, statut")
+                .or(`nom.ilike.${term},code.ilike.${term},description.ilike.${term},finalite.ilike.${term}`)
+                .limit(10);
                 (data ?? []).forEach((p) =>
                   items.push({
                     id: p.id,
