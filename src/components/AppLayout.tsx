@@ -57,59 +57,88 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
           <div className="flex-1 flex flex-col">
-            <header className="h-14 flex items-center justify-between border-b bg-card px-4">
+            <header className="h-14 flex items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-4 sticky top-0 z-30" style={{ boxShadow: 'var(--shadow-sm)' }}>
+              {/* Left: Trigger + Brand */}
               <div className="flex items-center gap-3">
-                <SidebarTrigger />
+                <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+                <div className="h-6 w-px bg-border/60" />
                 <img src={logoSrc} alt={settings.company_name} className="h-7 object-contain" />
                 {settings.brand_logo_url && (
                   <img src={settings.brand_logo_url} alt="Logo marque" className="h-7 object-contain" />
                 )}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  <span className="text-lg font-bold tracking-tight text-gradient">
                     {settings.app_name}
                   </span>
-                  <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold text-primary-foreground bg-primary/90 px-1.5 py-0.5 rounded-full leading-none">
                     SMQ
                   </span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-primary"
-                  onClick={() => setInfoOpen(true)}
-                >
-                  <Info className="h-4 w-4" />
-                </Button>
-                {showLogs && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-muted-foreground hover:text-primary"
-                    onClick={() => navigate("/journal")}
-                  >
-                    <ScrollText className="h-4 w-4 mr-1" />
-                    Logs
-                  </Button>
-                )}
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* Center: Search */}
+              <div className="hidden md:flex flex-1 justify-center max-w-md mx-4">
                 <GlobalSearch />
+              </div>
+
+              {/* Right: Actions + Profile */}
+              <div className="flex items-center gap-1">
+                <div className="md:hidden">
+                  <GlobalSearch />
+                </div>
+
+                {showLogs && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        onClick={() => navigate("/journal")}
+                      >
+                        <ScrollText className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Journal d'activité</TooltipContent>
+                  </Tooltip>
+                )}
+
                 <NotificationBell />
                 <HeaderHelpButton />
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant={accessible ? "default" : "ghost"}
+                      variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setAccessible(a => !a)}
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      onClick={() => setInfoOpen(true)}
                     >
-                      {accessible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      <Info className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{accessible ? "Désactiver le mode confort visuel" : "Activer le mode confort visuel"}</TooltipContent>
+                  <TooltipContent>À propos</TooltipContent>
                 </Tooltip>
-                <DarkModeToggle />
+
+                <div className="flex items-center gap-0.5 border border-border/50 rounded-lg p-0.5 bg-muted/40">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={accessible ? "default" : "ghost"}
+                        size="icon"
+                        className="h-7 w-7 rounded-md"
+                        onClick={() => setAccessible(a => !a)}
+                      >
+                        {accessible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{accessible ? "Désactiver le confort visuel" : "Confort visuel"}</TooltipContent>
+                  </Tooltip>
+                  <DarkModeToggle />
+                </div>
+
+                <div className="h-6 w-px bg-border/60 mx-1" />
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -123,15 +152,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </TooltipTrigger>
                   <TooltipContent>Modifier mon mot de passe</TooltipContent>
                 </Tooltip>
+
                 {profile && (
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{profile.prenom} {profile.nom}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{roles.join(", ").replace(/_/g, " ")}</p>
-                  </div>
+                  <button
+                    className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-muted/60 transition-colors cursor-default"
+                    tabIndex={-1}
+                  >
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-xs font-semibold shadow-sm shrink-0">
+                      {profile.prenom?.[0] ?? ""}{profile.nom?.[0] ?? ""}
+                    </div>
+                    <div className="text-right hidden lg:block">
+                      <p className="text-sm font-medium text-foreground leading-tight">{profile.prenom} {profile.nom}</p>
+                      <p className="text-[11px] text-muted-foreground capitalize leading-tight">{roles.join(", ").replace(/_/g, " ")}</p>
+                    </div>
+                  </button>
                 )}
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-medium">
-                  {profile ? `${profile.prenom?.[0] ?? ""}${profile.nom?.[0] ?? ""}` : "?"}
-                </div>
               </div>
             </header>
             <main className="flex-1 p-6 overflow-auto">{children}</main>
