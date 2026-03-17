@@ -203,6 +203,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
       date_prevue: moyenForm.date_prevue || null,
       deadline: moyenForm.deadline || null,
       responsable: moyenForm.responsable || null,
+      responsable_user_id: moyenForm.responsable_user_id || null,
       statut: moyenForm.statut,
     };
     if (editingMoyen) {
