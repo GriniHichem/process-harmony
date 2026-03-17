@@ -101,10 +101,14 @@ serve(async (req) => {
         const deadline = new Date(deadlineStr);
         deadline.setHours(0, 0, 0, 0);
 
-        // Resolve user_id
-        let userId: string | null = null;
-        const acteurId = row[source.responsible_col];
-        if (acteurId) userId = acteurToUser[acteurId] || null;
+        // Prefer responsable_user_id (direct user reference) over acteur_id lookup
+        let userId: string | null = row.responsable_user_id || null;
+
+        if (!userId) {
+          // Fallback: resolve user_id from acteur_id via profiles
+          const acteurId = row[source.responsible_col];
+          if (acteurId) userId = acteurToUser[acteurId] || null;
+        }
         if (!userId) continue;
 
         // Get user rappel_jours
