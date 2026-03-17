@@ -119,6 +119,7 @@ function AddDecisionForm({ reviewId, inputItems, existingDecisions, onAdded, fil
         type,
         description: description.trim(),
         responsable_id: responsableId || null,
+        responsable_user_id: responsableUserId || null,
         echeance: echeance || null,
         ordre: 999,
       });
