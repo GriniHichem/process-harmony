@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Import, CheckCircle2, Clock, Circle, Link2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useActeurs } from "@/hooks/useActeurs";
-import { ActeurSelect } from "@/components/ActeurSelect";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
 import { format } from "date-fns";
 
 interface ReviewDecision {
