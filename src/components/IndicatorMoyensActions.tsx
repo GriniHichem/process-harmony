@@ -239,6 +239,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
       date_prevue: a.date_prevue ?? "",
       deadline: a.deadline ?? "",
       responsable: a.responsable ?? "",
+      responsable_user_id: (a as any).responsable_user_id ?? "",
     });
     setActionDialogOpen(true);
   };
