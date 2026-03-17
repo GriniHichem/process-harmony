@@ -173,7 +173,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
   // Action CRUD
   const openEditAction = (a: RiskAction) => {
     setEditingAction(a);
-    setActionForm({ description: a.description, statut: a.statut, date_prevue: a.date_prevue || "", deadline: a.deadline || "", responsable: a.responsable || "" });
+    setActionForm({ description: a.description, statut: a.statut, date_prevue: a.date_prevue || "", deadline: a.deadline || "", responsable: a.responsable || "", responsable_user_id: (a as any).responsable_user_id || "" });
     setActionDialogOpen(true);
   };
 
