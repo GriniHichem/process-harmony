@@ -238,7 +238,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
   const openEditAction = (action: ContextIssueAction) => {
     setCurrentIssueId(action.context_issue_id);
     setEditingAction(action);
-    setActionForm({ description: action.description, responsable: action.responsable || "", date_revue: action.date_revue || "", statut: action.statut });
+    setActionForm({ description: action.description, responsable: action.responsable || "", responsable_user_id: (action as any).responsable_user_id || "", date_revue: action.date_revue || "", statut: action.statut });
     setActionDialogOpen(true);
   };
 
