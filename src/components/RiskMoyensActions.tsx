@@ -154,8 +154,8 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
   const [editingAction, setEditingAction] = useState<RiskAction | null>(null);
   const [editingMoyen, setEditingMoyen] = useState<RiskMoyen | null>(null);
 
-  const emptyActionForm = { description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" };
-  const emptyMoyenForm = { description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" };
+  const emptyActionForm = { description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "" };
+  const emptyMoyenForm = { description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "", statut: "a_faire" };
   const [actionForm, setActionForm] = useState(emptyActionForm);
   const [moyenForm, setMoyenForm] = useState(emptyMoyenForm);
 
