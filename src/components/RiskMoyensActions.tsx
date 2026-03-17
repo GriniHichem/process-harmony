@@ -211,7 +211,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
 
   const handleSaveMoyen = async () => {
     if (!moyenForm.description) { toast.error("Description requise"); return; }
-    const data: any = { description: moyenForm.description, type_moyen: moyenForm.type_moyen, budget: moyenForm.budget ? Number(moyenForm.budget) : null, date_prevue: moyenForm.date_prevue || null, deadline: moyenForm.deadline || null, responsable: moyenForm.responsable || null, statut: moyenForm.statut };
+    const data: any = { description: moyenForm.description, type_moyen: moyenForm.type_moyen, budget: moyenForm.budget ? Number(moyenForm.budget) : null, date_prevue: moyenForm.date_prevue || null, deadline: moyenForm.deadline || null, responsable: moyenForm.responsable || null, responsable_user_id: moyenForm.responsable_user_id || null, statut: moyenForm.statut };
     if (editingMoyen) {
       const { error } = await supabase.from("risk_moyens").update(data).eq("id", editingMoyen.id);
       if (error) { toast.error(error.message); return; }
