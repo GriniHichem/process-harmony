@@ -251,6 +251,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
       date_prevue: actionForm.date_prevue || null,
       deadline: actionForm.deadline || null,
       responsable: actionForm.responsable || null,
+      responsable_user_id: actionForm.responsable_user_id || null,
     };
     if (editingAction) {
       const { error } = await supabase.from("indicator_actions").update(payload as any).eq("id", editingAction.id);
