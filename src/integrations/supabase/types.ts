@@ -130,6 +130,7 @@ export type Database = {
           id: string
           preuve: string | null
           responsable_id: string | null
+          responsable_user_id: string | null
           source_id: string | null
           source_type: string
           statut: Database["public"]["Enums"]["action_status"]
@@ -145,6 +146,7 @@ export type Database = {
           id?: string
           preuve?: string | null
           responsable_id?: string | null
+          responsable_user_id?: string | null
           source_id?: string | null
           source_type: string
           statut?: Database["public"]["Enums"]["action_status"]
@@ -160,6 +162,7 @@ export type Database = {
           id?: string
           preuve?: string | null
           responsable_id?: string | null
+          responsable_user_id?: string | null
           source_id?: string | null
           source_type?: string
           statut?: Database["public"]["Enums"]["action_status"]
@@ -724,6 +727,7 @@ export type Database = {
           description: string
           id: string
           responsable: string | null
+          responsable_user_id: string | null
           statut: string
           updated_at: string
         }
@@ -734,6 +738,7 @@ export type Database = {
           description?: string
           id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           statut?: string
           updated_at?: string
         }
@@ -744,6 +749,7 @@ export type Database = {
           description?: string
           id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           statut?: string
           updated_at?: string
         }
@@ -1169,6 +1175,7 @@ export type Database = {
           id: string
           indicator_id: string
           responsable: string | null
+          responsable_user_id: string | null
           statut: string
           updated_at: string
         }
@@ -1180,6 +1187,7 @@ export type Database = {
           id?: string
           indicator_id: string
           responsable?: string | null
+          responsable_user_id?: string | null
           statut?: string
           updated_at?: string
         }
@@ -1191,6 +1199,7 @@ export type Database = {
           id?: string
           indicator_id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           statut?: string
           updated_at?: string
         }
@@ -1214,6 +1223,7 @@ export type Database = {
           id: string
           indicator_id: string
           responsable: string | null
+          responsable_user_id: string | null
           statut: string
           type_moyen: string
           updated_at: string
@@ -1227,6 +1237,7 @@ export type Database = {
           id?: string
           indicator_id: string
           responsable?: string | null
+          responsable_user_id?: string | null
           statut?: string
           type_moyen?: string
           updated_at?: string
@@ -1240,6 +1251,7 @@ export type Database = {
           id?: string
           indicator_id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           statut?: string
           type_moyen?: string
           updated_at?: string
@@ -1747,6 +1759,7 @@ export type Database = {
           parent_code: string | null
           process_id: string
           responsable_id: string | null
+          responsable_user_id: string | null
           sorties: string | null
           type_flux: Database["public"]["Enums"]["task_flow_type"]
           updated_at: string
@@ -1763,6 +1776,7 @@ export type Database = {
           parent_code?: string | null
           process_id: string
           responsable_id?: string | null
+          responsable_user_id?: string | null
           sorties?: string | null
           type_flux?: Database["public"]["Enums"]["task_flow_type"]
           updated_at?: string
@@ -1779,6 +1793,7 @@ export type Database = {
           parent_code?: string | null
           process_id?: string
           responsable_id?: string | null
+          responsable_user_id?: string | null
           sorties?: string | null
           type_flux?: Database["public"]["Enums"]["task_flow_type"]
           updated_at?: string
@@ -1954,6 +1969,7 @@ export type Database = {
           process_id: string | null
           reference: string
           responsable_id: string | null
+          responsable_user_id: string | null
           statut: string
           updated_at: string
         }
@@ -1968,6 +1984,7 @@ export type Database = {
           process_id?: string | null
           reference?: string
           responsable_id?: string | null
+          responsable_user_id?: string | null
           statut?: string
           updated_at?: string
         }
@@ -1982,6 +1999,7 @@ export type Database = {
           process_id?: string | null
           reference?: string
           responsable_id?: string | null
+          responsable_user_id?: string | null
           statut?: string
           updated_at?: string
         }
@@ -2043,6 +2061,7 @@ export type Database = {
           input_item_id: string | null
           ordre: number
           responsable_id: string | null
+          responsable_user_id: string | null
           review_id: string
           source_entity_id: string | null
           source_entity_type: string | null
@@ -2058,6 +2077,7 @@ export type Database = {
           input_item_id?: string | null
           ordre?: number
           responsable_id?: string | null
+          responsable_user_id?: string | null
           review_id: string
           source_entity_id?: string | null
           source_entity_type?: string | null
@@ -2073,6 +2093,7 @@ export type Database = {
           input_item_id?: string | null
           ordre?: number
           responsable_id?: string | null
+          responsable_user_id?: string | null
           review_id?: string
           source_entity_id?: string | null
           source_entity_type?: string | null
@@ -2166,6 +2187,7 @@ export type Database = {
           description: string
           id: string
           responsable: string | null
+          responsable_user_id: string | null
           risk_id: string
           statut: string
           updated_at: string
@@ -2177,6 +2199,7 @@ export type Database = {
           description?: string
           id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           risk_id: string
           statut?: string
           updated_at?: string
@@ -2188,6 +2211,7 @@ export type Database = {
           description?: string
           id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           risk_id?: string
           statut?: string
           updated_at?: string
@@ -2268,6 +2292,7 @@ export type Database = {
           description: string
           id: string
           responsable: string | null
+          responsable_user_id: string | null
           risk_id: string
           statut: string
           type_moyen: string
@@ -2281,6 +2306,7 @@ export type Database = {
           description?: string
           id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           risk_id: string
           statut?: string
           type_moyen?: string
@@ -2294,6 +2320,7 @@ export type Database = {
           description?: string
           id?: string
           responsable?: string | null
+          responsable_user_id?: string | null
           risk_id?: string
           statut?: string
           type_moyen?: string
