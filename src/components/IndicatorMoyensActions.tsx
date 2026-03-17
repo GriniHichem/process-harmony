@@ -152,7 +152,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
   // Action dialog
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<IndicatorAction | null>(null);
-  const [actionForm, setActionForm] = useState({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
+  const [actionForm, setActionForm] = useState({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "" });
 
   const fetchMoyens = useCallback(async () => {
     const { data } = await supabase
