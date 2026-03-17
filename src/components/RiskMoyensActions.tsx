@@ -310,7 +310,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} /></div>
+                  <div className="space-y-1"><Label>Responsable</Label><ActeurUserSelect acteurValue={actionForm.responsable} userValue={actionForm.responsable_user_id} onActeurChange={(v) => setActionForm({ ...actionForm, responsable: v, responsable_user_id: "" })} onUserChange={(v) => setActionForm({ ...actionForm, responsable_user_id: v })} acteurs={acteurs} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><Label>Date prévue</Label><Input type="date" value={actionForm.date_prevue} onChange={(e) => setActionForm({ ...actionForm, date_prevue: e.target.value })} /></div>
                     <div className="space-y-1"><Label>Deadline</Label><Input type="date" value={actionForm.deadline} onChange={(e) => setActionForm({ ...actionForm, deadline: e.target.value })} /></div>
