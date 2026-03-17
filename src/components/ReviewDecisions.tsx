@@ -186,8 +186,8 @@ function AddDecisionForm({ reviewId, inputItems, existingDecisions, onAdded, fil
 
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Responsable</Label>
-            <div className="w-44">
-              <ActeurSelect value={responsableId} onChange={setResponsableId} acteurs={acteurs} placeholder="Responsable" />
+            <div className="w-56">
+              <ActeurUserSelect acteurValue={responsableId} userValue={responsableUserId} onActeurChange={(v) => { setResponsableId(v); setResponsableUserId(""); }} onUserChange={setResponsableUserId} acteurs={acteurs} placeholder="Responsable" />
             </div>
           </div>
 
