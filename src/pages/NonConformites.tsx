@@ -259,12 +259,12 @@ export default function NonConformites() {
                     <XCircle className="h-5 w-5 text-destructive" /> {detailNC.reference}
                   </DialogTitle>
                    {canEdit && (
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-4">
                       <Button variant="outline" size="sm" onClick={() => { setEditNC({ ...detailNC }); setDetailNC(null); }}>
                         <Pencil className="mr-2 h-4 w-4" /> Modifier
                       </Button>
                       {canDelete && (
-                        <Button variant="destructive" size="sm" onClick={() => setDeleteNC(detailNC)}>
+                        <Button variant="destructive" size="sm" className="ml-4" onClick={() => setDeleteNC(detailNC)}>
                           <Trash2 className="mr-2 h-4 w-4" /> Supprimer
                         </Button>
                       )}
