@@ -125,7 +125,7 @@ function AddDecisionForm({ reviewId, inputItems, existingDecisions, onAdded, fil
       });
       if (error) throw error;
     },
-    onSuccess: () => { setDescription(""); setResponsableId(""); setEcheance(""); setInputItemId("none"); onAdded(); },
+    onSuccess: () => { setDescription(""); setResponsableId(""); setResponsableUserId(""); setEcheance(""); setInputItemId("none"); onAdded(); },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
