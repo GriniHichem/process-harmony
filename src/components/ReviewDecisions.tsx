@@ -95,6 +95,7 @@ function AddDecisionForm({ reviewId, inputItems, existingDecisions, onAdded, fil
   const [type, setType] = useState<string>(filterType || "decision");
   const [description, setDescription] = useState("");
   const [responsableId, setResponsableId] = useState("");
+  const [responsableUserId, setResponsableUserId] = useState("");
   const [echeance, setEcheance] = useState("");
   const [inputItemId, setInputItemId] = useState<string>("none");
   const [showImport, setShowImport] = useState(false);
