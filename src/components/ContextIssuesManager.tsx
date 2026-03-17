@@ -90,7 +90,7 @@ type FormType = {
 };
 
 const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false, domaine: "strategique", process_ids: [] };
-const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
+const emptyAction = { description: "", responsable: "", responsable_user_id: "", date_revue: "", statut: "a_faire" };
 
 export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds, acteurId, initialExpandIssueId }: Props) {
   const { acteurs, getActeurLabel } = useActeurs();
