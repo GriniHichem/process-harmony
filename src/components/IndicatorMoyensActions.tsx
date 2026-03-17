@@ -147,7 +147,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
   // Moyen dialog
   const [moyenDialogOpen, setMoyenDialogOpen] = useState(false);
   const [editingMoyen, setEditingMoyen] = useState<IndicatorMoyen | null>(null);
-  const [moyenForm, setMoyenForm] = useState({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" });
+  const [moyenForm, setMoyenForm] = useState({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "", statut: "a_faire" });
 
   // Action dialog
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
