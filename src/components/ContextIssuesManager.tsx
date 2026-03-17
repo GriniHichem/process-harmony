@@ -247,6 +247,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
     if (editingAction) {
       const { error } = await supabase.from("context_issue_actions").update({
         description: actionForm.description, responsable: actionForm.responsable,
+        responsable_user_id: actionForm.responsable_user_id || null,
         date_revue: actionForm.date_revue || null, statut: actionForm.statut,
       }).eq("id", editingAction.id);
       if (error) { toast.error(error.message); return; }
