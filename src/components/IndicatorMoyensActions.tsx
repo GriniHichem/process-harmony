@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Check, X, Wrench, ClipboardList, CalendarClock, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { useActeurs } from "@/hooks/useActeurs";
-import { ActeurSelect } from "@/components/ActeurSelect";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
 import { ElementNotes } from "@/components/ElementNotes";
 
 interface IndicatorMoyen {
@@ -147,12 +147,12 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
   // Moyen dialog
   const [moyenDialogOpen, setMoyenDialogOpen] = useState(false);
   const [editingMoyen, setEditingMoyen] = useState<IndicatorMoyen | null>(null);
-  const [moyenForm, setMoyenForm] = useState({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" });
+  const [moyenForm, setMoyenForm] = useState({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "", statut: "a_faire" });
 
   // Action dialog
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<IndicatorAction | null>(null);
-  const [actionForm, setActionForm] = useState({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
+  const [actionForm, setActionForm] = useState({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "" });
 
   const fetchMoyens = useCallback(async () => {
     const { data } = await supabase
@@ -177,7 +177,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
   // === MOYENS CRUD ===
   const openAddMoyen = () => {
     setEditingMoyen(null);
-    setMoyenForm({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" });
+    setMoyenForm({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "", statut: "a_faire" });
     setMoyenDialogOpen(true);
   };
   const openEditMoyen = (m: IndicatorMoyen) => {
@@ -189,6 +189,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
       date_prevue: m.date_prevue ?? "",
       deadline: m.deadline ?? "",
       responsable: m.responsable ?? "",
+      responsable_user_id: (m as any).responsable_user_id ?? "",
       statut: m.statut,
     });
     setMoyenDialogOpen(true);
@@ -202,6 +203,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
       date_prevue: moyenForm.date_prevue || null,
       deadline: moyenForm.deadline || null,
       responsable: moyenForm.responsable || null,
+      responsable_user_id: moyenForm.responsable_user_id || null,
       statut: moyenForm.statut,
     };
     if (editingMoyen) {
@@ -226,7 +228,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
   // === ACTIONS CRUD ===
   const openAddAction = () => {
     setEditingAction(null);
-    setActionForm({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
+    setActionForm({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "" });
     setActionDialogOpen(true);
   };
   const openEditAction = (a: IndicatorAction) => {
@@ -237,6 +239,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
       date_prevue: a.date_prevue ?? "",
       deadline: a.deadline ?? "",
       responsable: a.responsable ?? "",
+      responsable_user_id: (a as any).responsable_user_id ?? "",
     });
     setActionDialogOpen(true);
   };
@@ -248,6 +251,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
       date_prevue: actionForm.date_prevue || null,
       deadline: actionForm.deadline || null,
       responsable: actionForm.responsable || null,
+      responsable_user_id: actionForm.responsable_user_id || null,
     };
     if (editingAction) {
       const { error } = await supabase.from("indicator_actions").update(payload as any).eq("id", editingAction.id);
@@ -395,7 +399,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
             </div>
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <ActeurSelect value={moyenForm.responsable} onChange={(v) => setMoyenForm({ ...moyenForm, responsable: v })} acteurs={acteurs} />
+              <ActeurUserSelect acteurValue={moyenForm.responsable} userValue={moyenForm.responsable_user_id} onActeurChange={(v) => setMoyenForm({ ...moyenForm, responsable: v, responsable_user_id: "" })} onUserChange={(v) => setMoyenForm({ ...moyenForm, responsable_user_id: v })} acteurs={acteurs} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -436,7 +440,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
             </div>
             <div className="space-y-2">
               <Label>Responsable</Label>
-              <ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} />
+              <ActeurUserSelect acteurValue={actionForm.responsable} userValue={actionForm.responsable_user_id} onActeurChange={(v) => setActionForm({ ...actionForm, responsable: v, responsable_user_id: "" })} onUserChange={(v) => setActionForm({ ...actionForm, responsable_user_id: v })} acteurs={acteurs} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

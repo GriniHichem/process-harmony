@@ -14,7 +14,7 @@ import { Plus, Pencil, Trash2, Calendar, DollarSign, User, Clock } from "lucide-
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useActeurs } from "@/hooks/useActeurs";
-import { ActeurSelect } from "@/components/ActeurSelect";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
 import { ElementNotes } from "@/components/ElementNotes";
 
 interface RiskAction {
@@ -154,8 +154,8 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
   const [editingAction, setEditingAction] = useState<RiskAction | null>(null);
   const [editingMoyen, setEditingMoyen] = useState<RiskMoyen | null>(null);
 
-  const emptyActionForm = { description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" };
-  const emptyMoyenForm = { description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" };
+  const emptyActionForm = { description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "" };
+  const emptyMoyenForm = { description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "", statut: "a_faire" };
   const [actionForm, setActionForm] = useState(emptyActionForm);
   const [moyenForm, setMoyenForm] = useState(emptyMoyenForm);
 
@@ -173,13 +173,13 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
   // Action CRUD
   const openEditAction = (a: RiskAction) => {
     setEditingAction(a);
-    setActionForm({ description: a.description, statut: a.statut, date_prevue: a.date_prevue || "", deadline: a.deadline || "", responsable: a.responsable || "" });
+    setActionForm({ description: a.description, statut: a.statut, date_prevue: a.date_prevue || "", deadline: a.deadline || "", responsable: a.responsable || "", responsable_user_id: (a as any).responsable_user_id || "" });
     setActionDialogOpen(true);
   };
 
   const handleSaveAction = async () => {
     if (!actionForm.description) { toast.error("Description requise"); return; }
-    const data: any = { description: actionForm.description, statut: actionForm.statut, date_prevue: actionForm.date_prevue || null, deadline: actionForm.deadline || null, responsable: actionForm.responsable || null };
+    const data: any = { description: actionForm.description, statut: actionForm.statut, date_prevue: actionForm.date_prevue || null, deadline: actionForm.deadline || null, responsable: actionForm.responsable || null, responsable_user_id: actionForm.responsable_user_id || null };
     if (editingAction) {
       const { error } = await supabase.from("risk_actions").update(data).eq("id", editingAction.id);
       if (error) { toast.error(error.message); return; }
@@ -205,13 +205,13 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
   // Moyen CRUD
   const openEditMoyen = (m: RiskMoyen) => {
     setEditingMoyen(m);
-    setMoyenForm({ description: m.description, type_moyen: m.type_moyen, budget: m.budget?.toString() || "", date_prevue: m.date_prevue || "", deadline: m.deadline || "", responsable: m.responsable || "", statut: m.statut });
+    setMoyenForm({ description: m.description, type_moyen: m.type_moyen, budget: m.budget?.toString() || "", date_prevue: m.date_prevue || "", deadline: m.deadline || "", responsable: m.responsable || "", responsable_user_id: (m as any).responsable_user_id || "", statut: m.statut });
     setMoyenDialogOpen(true);
   };
 
   const handleSaveMoyen = async () => {
     if (!moyenForm.description) { toast.error("Description requise"); return; }
-    const data: any = { description: moyenForm.description, type_moyen: moyenForm.type_moyen, budget: moyenForm.budget ? Number(moyenForm.budget) : null, date_prevue: moyenForm.date_prevue || null, deadline: moyenForm.deadline || null, responsable: moyenForm.responsable || null, statut: moyenForm.statut };
+    const data: any = { description: moyenForm.description, type_moyen: moyenForm.type_moyen, budget: moyenForm.budget ? Number(moyenForm.budget) : null, date_prevue: moyenForm.date_prevue || null, deadline: moyenForm.deadline || null, responsable: moyenForm.responsable || null, responsable_user_id: moyenForm.responsable_user_id || null, statut: moyenForm.statut };
     if (editingMoyen) {
       const { error } = await supabase.from("risk_moyens").update(data).eq("id", editingMoyen.id);
       if (error) { toast.error(error.message); return; }
@@ -268,7 +268,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
                     </div>
                   </div>
                   <div className="space-y-1"><Label>Budget (DH)</Label><Input type="number" value={moyenForm.budget} onChange={(e) => setMoyenForm({ ...moyenForm, budget: e.target.value })} /></div>
-                  <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={moyenForm.responsable} onChange={(v) => setMoyenForm({ ...moyenForm, responsable: v })} acteurs={acteurs} /></div>
+                  <div className="space-y-1"><Label>Responsable</Label><ActeurUserSelect acteurValue={moyenForm.responsable} userValue={moyenForm.responsable_user_id} onActeurChange={(v) => setMoyenForm({ ...moyenForm, responsable: v, responsable_user_id: "" })} onUserChange={(v) => setMoyenForm({ ...moyenForm, responsable_user_id: v })} acteurs={acteurs} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><Label>Date prévue</Label><Input type="date" value={moyenForm.date_prevue} onChange={(e) => setMoyenForm({ ...moyenForm, date_prevue: e.target.value })} /></div>
                     <div className="space-y-1"><Label>Deadline</Label><Input type="date" value={moyenForm.deadline} onChange={(e) => setMoyenForm({ ...moyenForm, deadline: e.target.value })} /></div>
@@ -310,7 +310,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} /></div>
+                  <div className="space-y-1"><Label>Responsable</Label><ActeurUserSelect acteurValue={actionForm.responsable} userValue={actionForm.responsable_user_id} onActeurChange={(v) => setActionForm({ ...actionForm, responsable: v, responsable_user_id: "" })} onUserChange={(v) => setActionForm({ ...actionForm, responsable_user_id: v })} acteurs={acteurs} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1"><Label>Date prévue</Label><Input type="date" value={actionForm.date_prevue} onChange={(e) => setActionForm({ ...actionForm, date_prevue: e.target.value })} /></div>
                     <div className="space-y-1"><Label>Deadline</Label><Input type="date" value={actionForm.deadline} onChange={(e) => setActionForm({ ...actionForm, deadline: e.target.value })} /></div>

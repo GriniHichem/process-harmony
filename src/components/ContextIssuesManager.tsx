@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, ListPlus } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useActeurs } from "@/hooks/useActeurs";
-import { ActeurSelect } from "@/components/ActeurSelect";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
 
 interface ContextIssue {
   id: string;
@@ -90,7 +90,7 @@ type FormType = {
 };
 
 const emptyIssue: FormType = { reference: "", type_enjeu: "interne", intitule: "", description: "", impact: "moyen", climat_pertinent: false, domaine: "strategique", process_ids: [] };
-const emptyAction = { description: "", responsable: "", date_revue: "", statut: "a_faire" };
+const emptyAction = { description: "", responsable: "", responsable_user_id: "", date_revue: "", statut: "a_faire" };
 
 export function ContextIssuesManager({ processId, canEdit, canDelete, userId, isOnlyResponsable, filterProcessIds, acteurId, initialExpandIssueId }: Props) {
   const { acteurs, getActeurLabel } = useActeurs();
@@ -238,7 +238,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
   const openEditAction = (action: ContextIssueAction) => {
     setCurrentIssueId(action.context_issue_id);
     setEditingAction(action);
-    setActionForm({ description: action.description, responsable: action.responsable || "", date_revue: action.date_revue || "", statut: action.statut });
+    setActionForm({ description: action.description, responsable: action.responsable || "", responsable_user_id: (action as any).responsable_user_id || "", date_revue: action.date_revue || "", statut: action.statut });
     setActionDialogOpen(true);
   };
 
@@ -247,6 +247,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
     if (editingAction) {
       const { error } = await supabase.from("context_issue_actions").update({
         description: actionForm.description, responsable: actionForm.responsable,
+        responsable_user_id: actionForm.responsable_user_id || null,
         date_revue: actionForm.date_revue || null, statut: actionForm.statut,
       }).eq("id", editingAction.id);
       if (error) { toast.error(error.message); return; }
@@ -254,7 +255,8 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
     } else {
       const { error } = await supabase.from("context_issue_actions").insert({
         context_issue_id: currentIssueId!, description: actionForm.description,
-        responsable: actionForm.responsable, date_revue: actionForm.date_revue || null, statut: actionForm.statut,
+        responsable: actionForm.responsable, responsable_user_id: actionForm.responsable_user_id || null,
+        date_revue: actionForm.date_revue || null, statut: actionForm.statut,
       });
       if (error) { toast.error(error.message); return; }
       toast.success("Action ajoutée");
@@ -471,7 +473,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
           <DialogHeader><DialogTitle>{editingAction ? "Modifier l'action" : "Nouvelle action"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1"><Label>Description</Label><Textarea value={actionForm.description} onChange={e => setActionForm({ ...actionForm, description: e.target.value })} rows={2} /></div>
-            <div className="space-y-1"><Label>Responsable</Label><ActeurSelect value={actionForm.responsable} onChange={(v) => setActionForm({ ...actionForm, responsable: v })} acteurs={acteurs} /></div>
+            <div className="space-y-1"><Label>Responsable</Label><ActeurUserSelect acteurValue={actionForm.responsable} userValue={actionForm.responsable_user_id} onActeurChange={(v) => setActionForm({ ...actionForm, responsable: v, responsable_user_id: "" })} onUserChange={(v) => setActionForm({ ...actionForm, responsable_user_id: v })} acteurs={acteurs} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1"><Label>Date de revue</Label><Input type="date" value={actionForm.date_revue} onChange={e => setActionForm({ ...actionForm, date_revue: e.target.value })} /></div>
               <div className="space-y-1">

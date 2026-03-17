@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Import, CheckCircle2, Clock, Circle, Link2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useActeurs } from "@/hooks/useActeurs";
-import { ActeurSelect } from "@/components/ActeurSelect";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
 import { format } from "date-fns";
 
 interface ReviewDecision {
@@ -95,6 +95,7 @@ function AddDecisionForm({ reviewId, inputItems, existingDecisions, onAdded, fil
   const [type, setType] = useState<string>(filterType || "decision");
   const [description, setDescription] = useState("");
   const [responsableId, setResponsableId] = useState("");
+  const [responsableUserId, setResponsableUserId] = useState("");
   const [echeance, setEcheance] = useState("");
   const [inputItemId, setInputItemId] = useState<string>("none");
   const [showImport, setShowImport] = useState(false);
@@ -118,12 +119,13 @@ function AddDecisionForm({ reviewId, inputItems, existingDecisions, onAdded, fil
         type,
         description: description.trim(),
         responsable_id: responsableId || null,
+        responsable_user_id: responsableUserId || null,
         echeance: echeance || null,
         ordre: 999,
       });
       if (error) throw error;
     },
-    onSuccess: () => { setDescription(""); setResponsableId(""); setEcheance(""); setInputItemId("none"); onAdded(); },
+    onSuccess: () => { setDescription(""); setResponsableId(""); setResponsableUserId(""); setEcheance(""); setInputItemId("none"); onAdded(); },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
@@ -184,8 +186,8 @@ function AddDecisionForm({ reviewId, inputItems, existingDecisions, onAdded, fil
 
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Responsable</Label>
-            <div className="w-44">
-              <ActeurSelect value={responsableId} onChange={setResponsableId} acteurs={acteurs} placeholder="Responsable" />
+            <div className="w-56">
+              <ActeurUserSelect acteurValue={responsableId} userValue={responsableUserId} onActeurChange={(v) => { setResponsableId(v); setResponsableUserId(""); }} onUserChange={setResponsableUserId} acteurs={acteurs} placeholder="Responsable" />
             </div>
           </div>
 
@@ -263,6 +265,7 @@ function DecisionRow({ item, inputItems, canEdit, onRefresh }: {
   const [editing, setEditing] = useState(false);
   const [desc, setDesc] = useState(item.description);
   const [resp, setResp] = useState(item.responsable_id || "");
+  const [respUserId, setRespUserId] = useState((item as any).responsable_user_id || "");
   const [ech, setEch] = useState(item.echeance || "");
   const [statut, setStatut] = useState(item.statut);
 
@@ -275,6 +278,7 @@ function DecisionRow({ item, inputItems, canEdit, onRefresh }: {
       const { error } = await supabase.from("review_decisions").update({
         description: desc,
         responsable_id: resp || null,
+        responsable_user_id: respUserId || null,
         echeance: ech || null,
         statut,
       }).eq("id", item.id);
@@ -297,8 +301,8 @@ function DecisionRow({ item, inputItems, canEdit, onRefresh }: {
       <div className="p-2 rounded border border-border bg-muted/10 space-y-2">
         <Input className="h-8 text-sm" value={desc} onChange={e => setDesc(e.target.value)} />
         <div className="flex flex-wrap gap-2 items-end">
-          <div className="w-40">
-            <ActeurSelect value={resp} onChange={setResp} acteurs={acteurs} placeholder="Responsable" />
+          <div className="w-56">
+            <ActeurUserSelect acteurValue={resp} userValue={respUserId} onActeurChange={(v) => { setResp(v); setRespUserId(""); }} onUserChange={setRespUserId} acteurs={acteurs} placeholder="Responsable" />
           </div>
           <Input type="date" className="w-36 h-8 text-xs" value={ech} onChange={e => setEch(e.target.value)} />
           <Select value={statut} onValueChange={setStatut}>
