@@ -265,6 +265,7 @@ function DecisionRow({ item, inputItems, canEdit, onRefresh }: {
   const [editing, setEditing] = useState(false);
   const [desc, setDesc] = useState(item.description);
   const [resp, setResp] = useState(item.responsable_id || "");
+  const [respUserId, setRespUserId] = useState((item as any).responsable_user_id || "");
   const [ech, setEch] = useState(item.echeance || "");
   const [statut, setStatut] = useState(item.statut);
 
