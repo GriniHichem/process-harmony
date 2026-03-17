@@ -228,7 +228,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
   // === ACTIONS CRUD ===
   const openAddAction = () => {
     setEditingAction(null);
-    setActionForm({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "" });
+    setActionForm({ description: "", statut: "a_faire", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "" });
     setActionDialogOpen(true);
   };
   const openEditAction = (a: IndicatorAction) => {
