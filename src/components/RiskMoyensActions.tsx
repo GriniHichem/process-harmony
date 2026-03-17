@@ -179,7 +179,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
 
   const handleSaveAction = async () => {
     if (!actionForm.description) { toast.error("Description requise"); return; }
-    const data: any = { description: actionForm.description, statut: actionForm.statut, date_prevue: actionForm.date_prevue || null, deadline: actionForm.deadline || null, responsable: actionForm.responsable || null };
+    const data: any = { description: actionForm.description, statut: actionForm.statut, date_prevue: actionForm.date_prevue || null, deadline: actionForm.deadline || null, responsable: actionForm.responsable || null, responsable_user_id: actionForm.responsable_user_id || null };
     if (editingAction) {
       const { error } = await supabase.from("risk_actions").update(data).eq("id", editingAction.id);
       if (error) { toast.error(error.message); return; }
