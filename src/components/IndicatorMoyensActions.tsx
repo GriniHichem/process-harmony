@@ -177,7 +177,7 @@ export function IndicatorMoyensActions({ indicatorId, canEdit }: IndicatorMoyens
   // === MOYENS CRUD ===
   const openAddMoyen = () => {
     setEditingMoyen(null);
-    setMoyenForm({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", statut: "a_faire" });
+    setMoyenForm({ description: "", type_moyen: "humain", budget: "", date_prevue: "", deadline: "", responsable: "", responsable_user_id: "", statut: "a_faire" });
     setMoyenDialogOpen(true);
   };
   const openEditMoyen = (m: IndicatorMoyen) => {
