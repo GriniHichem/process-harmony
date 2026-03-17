@@ -255,7 +255,8 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
     } else {
       const { error } = await supabase.from("context_issue_actions").insert({
         context_issue_id: currentIssueId!, description: actionForm.description,
-        responsable: actionForm.responsable, date_revue: actionForm.date_revue || null, statut: actionForm.statut,
+        responsable: actionForm.responsable, responsable_user_id: actionForm.responsable_user_id || null,
+        date_revue: actionForm.date_revue || null, statut: actionForm.statut,
       });
       if (error) { toast.error(error.message); return; }
       toast.success("Action ajoutée");
