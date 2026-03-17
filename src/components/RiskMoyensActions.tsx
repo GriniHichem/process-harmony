@@ -205,7 +205,7 @@ export function RiskMoyensActions({ riskId, canEdit }: RiskMoyensActionsProps) {
   // Moyen CRUD
   const openEditMoyen = (m: RiskMoyen) => {
     setEditingMoyen(m);
-    setMoyenForm({ description: m.description, type_moyen: m.type_moyen, budget: m.budget?.toString() || "", date_prevue: m.date_prevue || "", deadline: m.deadline || "", responsable: m.responsable || "", statut: m.statut });
+    setMoyenForm({ description: m.description, type_moyen: m.type_moyen, budget: m.budget?.toString() || "", date_prevue: m.date_prevue || "", deadline: m.deadline || "", responsable: m.responsable || "", responsable_user_id: (m as any).responsable_user_id || "", statut: m.statut });
     setMoyenDialogOpen(true);
   };
 
