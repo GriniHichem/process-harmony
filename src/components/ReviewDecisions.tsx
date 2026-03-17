@@ -278,6 +278,7 @@ function DecisionRow({ item, inputItems, canEdit, onRefresh }: {
       const { error } = await supabase.from("review_decisions").update({
         description: desc,
         responsable_id: resp || null,
+        responsable_user_id: respUserId || null,
         echeance: ech || null,
         statut,
       }).eq("id", item.id);
