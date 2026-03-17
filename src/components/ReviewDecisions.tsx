@@ -301,8 +301,8 @@ function DecisionRow({ item, inputItems, canEdit, onRefresh }: {
       <div className="p-2 rounded border border-border bg-muted/10 space-y-2">
         <Input className="h-8 text-sm" value={desc} onChange={e => setDesc(e.target.value)} />
         <div className="flex flex-wrap gap-2 items-end">
-          <div className="w-40">
-            <ActeurSelect value={resp} onChange={setResp} acteurs={acteurs} placeholder="Responsable" />
+          <div className="w-56">
+            <ActeurUserSelect acteurValue={resp} userValue={respUserId} onActeurChange={(v) => { setResp(v); setRespUserId(""); }} onUserChange={setRespUserId} acteurs={acteurs} placeholder="Responsable" />
           </div>
           <Input type="date" className="w-36 h-8 text-xs" value={ech} onChange={e => setEch(e.target.value)} />
           <Select value={statut} onValueChange={setStatut}>
