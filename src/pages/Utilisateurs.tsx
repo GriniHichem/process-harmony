@@ -288,8 +288,31 @@ export default function Utilisateurs() {
               <CardContent className="py-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                      {u.prenom?.[0]}{u.nom?.[0]}
+                    <div className="relative group">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={u.photo_url || undefined} alt={`${u.prenom} ${u.nom}`} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                          {u.prenom?.[0]}{u.nom?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      {canEdit && (
+                        <button
+                          className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          title="Changer la photo"
+                          onClick={() => {
+                            const input = document.createElement("input");
+                            input.type = "file";
+                            input.accept = "image/*";
+                            input.onchange = (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0];
+                              if (file) handlePhotoUpload(u.id, file);
+                            };
+                            input.click();
+                          }}
+                        >
+                          <Camera className="h-4 w-4 text-white" />
+                        </button>
+                      )}
                     </div>
                     <div>
                       <p className="font-medium">{u.prenom} {u.nom}</p>
@@ -298,6 +321,9 @@ export default function Utilisateurs() {
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Modifier le profil" onClick={() => openEditUser(u)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title="Réinitialiser mot de passe" onClick={() => setResetUserId(u.id)}>
                         <KeyRound className="h-4 w-4" />
                       </Button>
