@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Users, Plus, KeyRound } from "lucide-react";
+import { Users, Plus, KeyRound, Pencil, Camera } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type ActeurRef = { id: string; fonction: string | null };
 type CustomRoleRef = { id: string; nom: string };
@@ -20,6 +21,7 @@ type UserWithRoles = {
   roles: string[];
   customRoleIds: string[];
   acteur_id: string | null;
+  photo_url: string | null;
 };
 
 const allRoles = [
