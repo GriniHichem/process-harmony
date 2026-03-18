@@ -47,6 +47,11 @@ export default function Utilisateurs() {
   const [resetPassword, setResetPassword] = useState("");
   const [resetting, setResetting] = useState(false);
 
+  const [editUser, setEditUser] = useState<UserWithRoles | null>(null);
+  const [editFields, setEditFields] = useState({ nom: "", prenom: "", email: "", fonction: "" });
+  const [editSaving, setEditSaving] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
   const fetchUsers = async () => {
     const [profilesRes, rolesRes, customRolesRes, userCustomRolesRes] = await Promise.all([
       supabase.from("profiles").select("*").order("nom"),
