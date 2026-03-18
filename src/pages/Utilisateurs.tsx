@@ -138,6 +138,41 @@ export default function Utilisateurs() {
     fetchUsers();
   };
 
+  const openEditUser = (u: UserWithRoles) => {
+    setEditUser(u);
+    setEditFields({ nom: u.nom || "", prenom: u.prenom || "", email: u.email || "", fonction: u.fonction || "" });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editUser) return;
+    setEditSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      nom: editFields.nom,
+      prenom: editFields.prenom,
+      email: editFields.email,
+      fonction: editFields.fonction,
+    }).eq("id", editUser.id);
+    if (error) { toast.error(error.message); setEditSaving(false); return; }
+    toast.success("Profil mis à jour");
+    setEditUser(null);
+    fetchUsers();
+    setEditSaving(false);
+  };
+
+  const handlePhotoUpload = async (userId: string, file: File) => {
+    const ext = file.name.split(".").pop();
+    const path = `${userId}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) { toast.error("Erreur upload: " + uploadError.message); return; }
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const photoUrl = urlData.publicUrl + "?t=" + Date.now();
+    const { error } = await supabase.from("profiles").update({ photo_url: photoUrl } as any).eq("id", userId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Photo mise à jour");
+    fetchUsers();
+  };
+
+
   const handleCreateUser = async () => {
     if (!newUser.email || !newUser.password) { toast.error("Email et mot de passe requis"); return; }
     setCreating(true);
