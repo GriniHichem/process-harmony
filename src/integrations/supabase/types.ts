@@ -1922,6 +1922,7 @@ export type Database = {
           fonction: string | null
           id: string
           nom: string
+          photo_url: string | null
           prenom: string
           updated_at: string
         }
@@ -1933,6 +1934,7 @@ export type Database = {
           fonction?: string | null
           id: string
           nom?: string
+          photo_url?: string | null
           prenom?: string
           updated_at?: string
         }
@@ -1944,6 +1946,7 @@ export type Database = {
           fonction?: string | null
           id?: string
           nom?: string
+          photo_url?: string | null
           prenom?: string
           updated_at?: string
         }
