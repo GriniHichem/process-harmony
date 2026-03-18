@@ -404,6 +404,22 @@ export default function Utilisateurs() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit profile dialog */}
+      <Dialog open={!!editUser} onOpenChange={(o) => { if (!o) setEditUser(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier le profil</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Prénom</Label><Input value={editFields.prenom} onChange={(e) => setEditFields({ ...editFields, prenom: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Nom</Label><Input value={editFields.nom} onChange={(e) => setEditFields({ ...editFields, nom: e.target.value })} /></div>
+            </div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" value={editFields.email} onChange={(e) => setEditFields({ ...editFields, email: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Fonction</Label><Input value={editFields.fonction} onChange={(e) => setEditFields({ ...editFields, fonction: e.target.value })} /></div>
+            <Button onClick={handleSaveEdit} className="w-full" disabled={editSaving}>{editSaving ? "Enregistrement..." : "Enregistrer"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
