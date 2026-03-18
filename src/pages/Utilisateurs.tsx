@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Users, Plus, KeyRound } from "lucide-react";
+import { Users, Plus, KeyRound, Pencil, Camera } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type ActeurRef = { id: string; fonction: string | null };
 type CustomRoleRef = { id: string; nom: string };
@@ -20,6 +21,7 @@ type UserWithRoles = {
   roles: string[];
   customRoleIds: string[];
   acteur_id: string | null;
+  photo_url: string | null;
 };
 
 const allRoles = [
@@ -44,6 +46,11 @@ export default function Utilisateurs() {
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [resetting, setResetting] = useState(false);
+
+  const [editUser, setEditUser] = useState<UserWithRoles | null>(null);
+  const [editFields, setEditFields] = useState({ nom: "", prenom: "", email: "", fonction: "" });
+  const [editSaving, setEditSaving] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const fetchUsers = async () => {
     const [profilesRes, rolesRes, customRolesRes, userCustomRolesRes] = await Promise.all([
@@ -130,6 +137,41 @@ export default function Utilisateurs() {
     toast.success("Acteur assigné");
     fetchUsers();
   };
+
+  const openEditUser = (u: UserWithRoles) => {
+    setEditUser(u);
+    setEditFields({ nom: u.nom || "", prenom: u.prenom || "", email: u.email || "", fonction: u.fonction || "" });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editUser) return;
+    setEditSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      nom: editFields.nom,
+      prenom: editFields.prenom,
+      email: editFields.email,
+      fonction: editFields.fonction,
+    }).eq("id", editUser.id);
+    if (error) { toast.error(error.message); setEditSaving(false); return; }
+    toast.success("Profil mis à jour");
+    setEditUser(null);
+    fetchUsers();
+    setEditSaving(false);
+  };
+
+  const handlePhotoUpload = async (userId: string, file: File) => {
+    const ext = file.name.split(".").pop();
+    const path = `${userId}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) { toast.error("Erreur upload: " + uploadError.message); return; }
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const photoUrl = urlData.publicUrl + "?t=" + Date.now();
+    const { error } = await supabase.from("profiles").update({ photo_url: photoUrl } as any).eq("id", userId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Photo mise à jour");
+    fetchUsers();
+  };
+
 
   const handleCreateUser = async () => {
     if (!newUser.email || !newUser.password) { toast.error("Email et mot de passe requis"); return; }
@@ -246,8 +288,31 @@ export default function Utilisateurs() {
               <CardContent className="py-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                      {u.prenom?.[0]}{u.nom?.[0]}
+                    <div className="relative group">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={u.photo_url || undefined} alt={`${u.prenom} ${u.nom}`} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                          {u.prenom?.[0]}{u.nom?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      {canEdit && (
+                        <button
+                          className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          title="Changer la photo"
+                          onClick={() => {
+                            const input = document.createElement("input");
+                            input.type = "file";
+                            input.accept = "image/*";
+                            input.onchange = (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0];
+                              if (file) handlePhotoUpload(u.id, file);
+                            };
+                            input.click();
+                          }}
+                        >
+                          <Camera className="h-4 w-4 text-white" />
+                        </button>
+                      )}
                     </div>
                     <div>
                       <p className="font-medium">{u.prenom} {u.nom}</p>
@@ -256,6 +321,9 @@ export default function Utilisateurs() {
                   </div>
                   {canEdit && (
                     <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Modifier le profil" onClick={() => openEditUser(u)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title="Réinitialiser mot de passe" onClick={() => setResetUserId(u.id)}>
                         <KeyRound className="h-4 w-4" />
                       </Button>
@@ -333,6 +401,22 @@ export default function Utilisateurs() {
               <Input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Nouveau mot de passe" />
             </div>
             <Button onClick={handleResetPassword} className="w-full" disabled={resetting}>{resetting ? "Réinitialisation..." : "Réinitialiser"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit profile dialog */}
+      <Dialog open={!!editUser} onOpenChange={(o) => { if (!o) setEditUser(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier le profil</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Prénom</Label><Input value={editFields.prenom} onChange={(e) => setEditFields({ ...editFields, prenom: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Nom</Label><Input value={editFields.nom} onChange={(e) => setEditFields({ ...editFields, nom: e.target.value })} /></div>
+            </div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" value={editFields.email} onChange={(e) => setEditFields({ ...editFields, email: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Fonction</Label><Input value={editFields.fonction} onChange={(e) => setEditFields({ ...editFields, fonction: e.target.value })} /></div>
+            <Button onClick={handleSaveEdit} className="w-full" disabled={editSaving}>{editSaving ? "Enregistrement..." : "Enregistrer"}</Button>
           </div>
         </DialogContent>
       </Dialog>
