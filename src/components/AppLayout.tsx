@@ -57,32 +57,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
           <div className="flex-1 flex flex-col">
-            <header className="h-14 flex items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-4 sticky top-0 z-30" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <header className="h-[52px] flex items-center justify-between border-b border-border/40 bg-card/90 backdrop-blur-md px-3 sticky top-0 z-30" style={{ boxShadow: 'var(--shadow-md)' }}>
               {/* Left: Trigger + Brand */}
-              <div className="flex items-center gap-3">
-                <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-                <div className="h-6 w-px bg-border/60" />
-                <img src={logoSrc} alt={settings.company_name} className="h-7 object-contain" />
+              <div className="flex items-center gap-2.5 min-w-0">
+                <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors" />
+                <div className="h-5 w-px bg-border/50" />
+                <img src={logoSrc} alt={settings.company_name} className="h-6 object-contain shrink-0" />
                 {settings.brand_logo_url && (
-                  <img src={settings.brand_logo_url} alt="Logo marque" className="h-7 object-contain" />
+                  <img src={settings.brand_logo_url} alt="Logo marque" className="h-6 object-contain shrink-0" />
                 )}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-lg font-bold tracking-tight text-gradient">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-base font-bold tracking-tight text-gradient truncate">
                     {settings.app_name}
                   </span>
-                  <span className="text-[10px] font-semibold text-primary-foreground bg-primary/90 px-1.5 py-0.5 rounded-full leading-none">
+                  <span className="text-[9px] font-semibold text-primary-foreground bg-primary/90 px-1.5 py-0.5 rounded-full leading-none shrink-0">
                     SMQ
                   </span>
                 </div>
               </div>
 
               {/* Center: Search */}
-              <div className="hidden md:flex flex-1 justify-center max-w-md mx-4">
+              <div className="hidden md:flex flex-1 justify-center max-w-sm mx-3">
                 <GlobalSearch />
               </div>
 
               {/* Right: Actions + Profile */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <div className="md:hidden">
                   <GlobalSearch />
                 </div>
@@ -93,10 +93,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/8 transition-all"
                         onClick={() => navigate("/journal")}
                       >
-                        <ScrollText className="h-4 w-4" />
+                        <ScrollText className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Journal d'activité</TooltipContent>
@@ -111,25 +111,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/8 transition-all"
                       onClick={() => setInfoOpen(true)}
                     >
-                      <Info className="h-4 w-4" />
+                      <Info className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>À propos</TooltipContent>
                 </Tooltip>
 
-                <div className="flex items-center gap-0.5 border border-border/50 rounded-lg p-0.5 bg-muted/40">
+                <div className="flex items-center gap-px border border-border/40 rounded-md p-px bg-muted/30">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant={accessible ? "default" : "ghost"}
                         size="icon"
-                        className="h-7 w-7 rounded-md"
+                        className="h-6 w-6 rounded-[5px]"
                         onClick={() => setAccessible(a => !a)}
                       >
-                        {accessible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        {accessible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>{accessible ? "Désactiver le confort visuel" : "Confort visuel"}</TooltipContent>
@@ -137,17 +137,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DarkModeToggle />
                 </div>
 
-                <div className="h-6 w-px bg-border/60 mx-1" />
+                <div className="h-5 w-px bg-border/40 mx-0.5" />
 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/8 transition-all"
                       onClick={() => setPasswordOpen(true)}
                     >
-                      <KeyRound className="h-4 w-4" />
+                      <KeyRound className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Modifier mon mot de passe</TooltipContent>
@@ -155,15 +155,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
                 {profile && (
                   <button
-                    className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-muted/60 transition-colors cursor-default"
+                    className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-muted/50 transition-colors cursor-default ml-0.5"
                     tabIndex={-1}
                   >
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-xs font-semibold shadow-sm shrink-0">
+                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-[10px] font-bold shadow-sm shrink-0 ring-2 ring-background">
                       {profile.prenom?.[0] ?? ""}{profile.nom?.[0] ?? ""}
                     </div>
                     <div className="text-right hidden lg:block">
-                      <p className="text-sm font-medium text-foreground leading-tight">{profile.prenom} {profile.nom}</p>
-                      <p className="text-[11px] text-muted-foreground capitalize leading-tight">{roles.join(", ").replace(/_/g, " ")}</p>
+                      <p className="text-xs font-semibold text-foreground leading-tight">{profile.prenom} {profile.nom}</p>
+                      <p className="text-[10px] text-muted-foreground capitalize leading-tight">{roles.join(", ").replace(/_/g, " ")}</p>
                     </div>
                   </button>
                 )}
