@@ -562,11 +562,11 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
   },
 
   revue_direction: {
-    title: "Revue de direction",
+    title: "Revue de processus",
     category: "pilotage",
     isoRef: "§9.3",
     definition:
-      "Comptes rendus de pilotage stratégique, exploitation des résultats en vue de l'amélioration. La revue de direction fait partie des éléments de pilotage documentés du processus.",
+      "Comptes rendus de pilotage stratégique, exploitation des résultats en vue de l'amélioration. La revue de processus fait partie des éléments de pilotage documentés du processus.",
     details: [
       "Tableau de bord du processus et plan d'actions",
       "Comptes rendus de revue de processus",
@@ -675,7 +675,7 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     definition:
       "Action décidée suite à l'analyse des indicateurs, des audits ou des revues, visant à améliorer la performance du processus. Les actions issues du plan d'amélioration découlent du tableau de bord du processus.",
     details: [
-      "Comptes rendus de revue de direction et de revue de processus",
+      "Comptes rendus de revue de processus",
       "Rapports d'audit et actions consécutives",
       "Mesure du niveau de maturité du processus",
       "Historique des modifications",
@@ -772,7 +772,7 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
       "Données documentées permettant le suivi et l'amélioration du processus. Ils constituent le « carnet de santé » du processus.",
     details: [
       "Tableau de bord du processus et plan d'actions",
-      "Comptes rendus de revue de direction et de revue de processus",
+      "Comptes rendus de revue de processus",
       "Rapports d'audit et actions d'amélioration consécutives",
       "Mesure du niveau de maturité du processus",
       "Historique des modifications",

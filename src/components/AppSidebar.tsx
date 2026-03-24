@@ -49,7 +49,7 @@ const auditItems: NavItem[] = [
 
 const pilotageSMQItems: NavItem[] = [
   { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen, module: "politique_qualite" },
-  { title: "Revue de direction", url: "/revue-direction", icon: CalendarCheck, module: "revue_direction" },
+  { title: "Revue de processus", url: "/revue-direction", icon: CalendarCheck, module: "revue_direction" },
   { title: "Compétences", url: "/competences", icon: GraduationCap, module: "competences" },
   { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus, module: "satisfaction_client" },
   { title: "Fournisseurs", url: "/fournisseurs", icon: Truck, module: "fournisseurs" },

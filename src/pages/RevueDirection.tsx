@@ -73,7 +73,7 @@ export default function RevueDirection() {
         if (error) throw error;
       }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["management_reviews"] }); setDialog(false); toast({ title: "Revue de direction enregistrée" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["management_reviews"] }); setDialog(false); toast({ title: "Revue de processus enregistrée" }); },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
@@ -104,7 +104,7 @@ export default function RevueDirection() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Revue de direction <HelpTooltip term="revue_direction" /></h1>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Revue de processus <HelpTooltip term="revue_direction" /></h1>
         {canEdit && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle revue</Button>}
       </div>
 
@@ -122,7 +122,7 @@ export default function RevueDirection() {
           </TableHeader>
           <TableBody>
             {reviews.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucune revue de direction enregistrée.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucune revue de processus enregistrée.</TableCell></TableRow>
             ) : reviews.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell className="font-mono text-xs">{r.reference}</TableCell>
@@ -149,7 +149,7 @@ export default function RevueDirection() {
       {/* View Dialog */}
       <Dialog open={viewDialog} onOpenChange={setViewDialog}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Revue de direction — {viewing?.reference}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Revue de processus — {viewing?.reference}</DialogTitle></DialogHeader>
           {viewing && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -203,7 +203,7 @@ export default function RevueDirection() {
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-muted/30">
-            <h2 className="text-lg font-semibold">{editing ? "Modifier" : "Nouvelle"} revue de direction</h2>
+            <h2 className="text-lg font-semibold">{editing ? "Modifier" : "Nouvelle"} revue de processus</h2>
             <div className="flex items-center gap-3">
               <Input placeholder="Réf." className="w-32 h-8" value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} />
               <Input type="date" className="w-40 h-8" value={form.date_revue} onChange={e => setForm(f => ({ ...f, date_revue: e.target.value }))} />

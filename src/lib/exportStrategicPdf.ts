@@ -381,7 +381,7 @@ export async function exportObjectifsQualitePdf() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 3. REVUE DE DIRECTION
+// 3. REVUE DE PROCESSUS
 // ═══════════════════════════════════════════════════════════════
 
 export async function exportRevueDirectionPdf(reviewId: string) {
@@ -437,9 +437,9 @@ export async function exportRevueDirectionPdf(reviewId: string) {
 
   const logos = await getAppLogos();
   let sn = 0;
-  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Revue de Direction — ${esc(review.reference)}</title><style>${HEADER_STYLE}</style></head><body>
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Revue de Processus — ${esc(review.reference)}</title><style>${HEADER_STYLE}</style></head><body>
 
-  ${buildHeader("Revue de Direction", review.reference || "RD", "", logos.companyLogo, logos.brandLogo, logos.companyName)}
+  ${buildHeader("Revue de Processus", review.reference || "RD", "", logos.companyLogo, logos.brandLogo, logos.companyName)}
 
   <!-- Informations générales -->
   <div class="section">
@@ -517,8 +517,8 @@ export async function exportRevueDirectionPdf(reviewId: string) {
   </div>
 
   ${buildSignatures()}
-  ${buildFooter(review.reference || "RD", "Revue de Direction")}
+  ${buildFooter(review.reference || "RD", "Revue de Processus")}
   </body></html>`;
 
-  await openPdf(html, `revue-direction-${review.reference || reviewId}.pdf`);
+  await openPdf(html, `revue-processus-${review.reference || reviewId}.pdf`);
 }
