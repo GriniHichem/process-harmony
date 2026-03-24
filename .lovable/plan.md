@@ -1,69 +1,75 @@
-# Enrichissement de l'aide contextuelle ISO 9001:2015
-
-## Constat
-
-L'aide contextuelle couvre bien les articles 4.4 (processus), 6 (risques/objectifs), 9 (audit, indicateurs, revue) et 10 (NC, actions). Mais plusieurs articles majeurs manquent ou sont incomplets :
-
-- **Art. 5 — Leadership** : manque engagement direction, orientation client
-- **Art. 6.3 — Planification des modifications** : absent
-- **Art. 7 — Support** : manque sensibilisation (7.3), communication (7.4), infrastructure (7.1.3), environnement de travail (7.1.4), connaissances organisationnelles (7.1.6)
-- **Art. 8 — Réalisation** : manque planification opérationnelle (8.1), exigences produits/services (8.2), conception (8.3), production (8.5), libération (8.6)
-- **Art. 9.1 — Surveillance et mesure** : définition existante mais incomplète (manque analyse/évaluation 9.1.3)
-- **Art. 10 — Amélioration** : manque généralités (10.1)
-- Certaines définitions existantes ont des `isoRef` incorrects ou manquants
-- 2 pages sans HelpTooltip : Fournisseurs, Journal
-
-## Modifications
-
-### 1. Ajouter ~15 nouvelles définitions dans `helpDefinitions.ts`
 
 
-| Clé                                | Titre                               | Article | Catégorie  |
-| ---------------------------------- | ----------------------------------- | ------- | ---------- |
-| `leadership`                       | Leadership et engagement            | §5.1    | pilotage   |
-| `orientation_client`               | Orientation client                  | §5.1.2  | pilotage   |
-| `roles_responsabilites`            | Rôles et responsabilités            | §5.3    | role       |
-| `planification_modifications`      | Planification des modifications     | §6.3    | pilotage   |
-| `infrastructure`                   | Infrastructure                      | §7.1.3  | concept    |
-| `environnement_travail`            | Environnement de travail            | §7.1.4  | concept    |
-| `connaissances_organisationnelles` | Connaissances organisationnelles    | §7.1.6  | concept    |
-| `sensibilisation`                  | Sensibilisation                     | §7.3    | concept    |
-| `communication`                    | Communication                       | §7.4    | concept    |
-| `planification_operationnelle`     | Planification opérationnelle        | §8.1    | concept    |
-| `exigences_produits_services`      | Exigences produits et services      | §8.2    | concept    |
-| `conception_developpement`         | Conception et développement         | §8.3    | concept    |
-| `production_prestation`            | Production et prestation de service | §8.5    | concept    |
-| `liberation_produits`              | Libération des produits et services | §8.6    | concept    |
-| `surveillance_mesure`              | Surveillance, mesure, analyse       | §9.1    | indicateur |
-| `amelioration_generalites`         | Amélioration — Généralités          | §10.1   | audit      |
+# Refonte de la Fiche Processus PDF — Format paysage style ISO
 
+## Objectif
 
-### 2. Corriger/enrichir définitions existantes
+Refondre `exportProcessPdf.ts` pour produire un PDF paysage (A4 landscape) qui reprend la structure tabulaire de l'exemple fourni, avec les deux logos (entreprise + marque), sans historique ni résultats des indicateurs — uniquement les actions et moyens pour chaque element.
 
-- `revue_processus` : corriger `isoRef` de `§9.3` → supprimer (la revue de processus n'est pas §9.3, c'est un outil de pilotage)
-- `politique_qualite` : enrichir la définition avec les exigences §5.2 (appropriée, communiquée, comprise, disponible)
-- `fournisseur` : enrichir avec §8.4 (évaluation, surveillance, réévaluation)
-- `competences` : enrichir avec §7.2 (formation, tutorat, expérience, évaluation d'efficacité)
-- `enjeux_contexte` : enrichir avec §4.1 (surveillance, revue périodique)
+## Mapping exemple PDF → données existantes
 
-### 3. Ajouter HelpTooltip aux pages manquantes
+| Section exemple | Source données |
+|---|---|
+| En-tête (logo + FICHE DE PROCESSUS + Code/Date/Version) | `process.code`, `version_courante`, logos dynamiques |
+| Page de garde (Rédigé/Vérifié/Approuvé + Historique) | **Supprimée** (user dit "ne pas mettre historique") |
+| Pilote du processus | `responsableName` |
+| Finalité du processus | `elements` type `finalite` |
+| Typologie (Management/Réalisation/Support) | `process.type_processus` avec case cochée |
+| Données d'entrée | `elements` type `donnee_entree` |
+| Données de sortie | `elements` type `donnee_sortie` |
+| Activité / Responsable | `tasks` (code, description, responsable) |
+| Processus en interaction | `interactions` + `targetProcesses` |
+| Enjeux internes | `contextIssues` type `interne` + `contextIssueActions` |
+| Enjeux externes | `contextIssues` type `externe` + `contextIssueActions` |
+| Parties intéressées & attentes | `elements` type `partie_prenante` |
+| Risques (+ moyens/actions) | `risks` type `risque` + `riskActions` + `riskMoyens` |
+| Opportunités (+ actions) | `risks` type `opportunite` + `riskActions` + `riskMoyens` |
+| Indicateurs de performance | `indicators` + `indicatorActions` + `indicatorMoyens` (pas de valeurs/historique) |
+| Ressources | `elements` type `ressource` |
+| Documents | `documents` |
+| BPMN | `bpmnData` (si inclure_bpmn_pdf) |
+| Approbation | Bloc signatures (existant) |
 
+## Modifications dans `src/lib/exportProcessPdf.ts`
 
-| Page               | Terme                   |
-| ------------------ | ----------------------- |
-| `Fournisseurs.tsx` | `fournisseur`           |
-| `Journal.tsx`      | `amelioration_continue` |
+### 1. Passer en format paysage
+- `@page { size: A4 landscape; margin: 10mm 12mm; }`
+- Adapter les largeurs de tables pour ~277mm de contenu utile
 
+### 2. En-tête style exemple
+- Table bordurée avec logo entreprise à gauche, "FICHE DE PROCESSUS" + nom processus au centre, Code/Date/Version à droite avec logo marque
+- Repris sur chaque page via `position: running(header)` ou repetition manuelle
 
-### 4. Enrichir les groupes sidebar avec des termes d'aide
+### 3. Bloc meta simplifié (style formulaire tabulaire)
+- Pilote du processus : valeur
+- Finalité du processus : valeur
+- Typologie : 3 cases Management / Réalisation / Support avec une cochée
 
-Ajouter dans `groupHelpTerms` de `AppSidebar.tsx` :
+### 4. Sections tabulaires
+Chaque section est un tableau simple avec titre centré en gras (style de l'exemple) :
+- **Données d'entrée** : liste numérotée
+- **Données de sortie** : liste numérotée
+- **Activités** : tableau Activité | Responsable
+- **Processus en interaction** : liste
+- **Enjeux internes** : tableau Enjeux | Moyens et actions | Date prévue
+- **Enjeux externes** : idem
+- **Parties intéressées** : tableau Parties | Attentes | Date
+- **Risques** : tableau Risques | Moyens et actions pour faire face | Date prévue
+- **Opportunités** : tableau Opportunités | Action à mettre en œuvre | Date prévue
+- **Indicateurs** : tableau Indicateur | Objectif | Unité | Responsable | Fréquence | Moyens et actions (sans historique/résultats)
+- **Ressources** et **Documents** : tableaux simples
+- **BPMN** : si activé
+- **Approbation** : bloc signatures
 
-- `"Principal"` → `"leadership"` (art. 5)
+### 5. Supprimer du PDF
+- Historique des modifications (pas dans l'exemple retenu)
+- Résultats/valeurs des indicateurs (user request)
+- Garder uniquement actions + moyens pour chaque element
 
-## Fichiers modifiés
+### 6. Footer
+- Texte de confidentialité + pagination "Page X sur Y"
 
-- `src/lib/helpDefinitions.ts` — ajout ~15 définitions, correction de 6 existantes
-- `src/pages/Fournisseurs.tsx` — ajout HelpTooltip
-- `src/pages/Journal.tsx` — ajout HelpTooltip
-- `src/components/AppSidebar.tsx` — ajout terme aide pour groupe "Principal"
+## Fichier modifié
+
+- `src/lib/exportProcessPdf.ts` — refonte complète de `buildHtml()`
+
