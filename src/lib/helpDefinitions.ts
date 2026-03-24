@@ -549,7 +549,6 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
   revue_processus: {
     title: "Revue de processus",
     category: "pilotage",
-    isoRef: "§9.3",
     definition:
       "Dispositif concret (qui, quoi, comment, quand…) permettant de piloter le processus et de maîtriser efficacement son fonctionnement. Le pilote réalise une revue de processus périodiquement pour s'assurer de son efficacité.",
     details: [
