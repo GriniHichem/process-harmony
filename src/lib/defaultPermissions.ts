@@ -65,7 +65,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   incidents: "Incidents",
   enjeux_contexte: "Enjeux du contexte",
   politique_qualite: "Politique qualité",
-  revue_direction: "Revue de direction",
+  revue_direction: "Revue de processus",
   competences: "Compétences",
   satisfaction_client: "Satisfaction client",
   fournisseurs: "Fournisseurs",

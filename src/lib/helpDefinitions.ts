@@ -562,11 +562,11 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
   },
 
   revue_direction: {
-    title: "Revue de direction",
+    title: "Revue de processus",
     category: "pilotage",
     isoRef: "§9.3",
     definition:
-      "Comptes rendus de pilotage stratégique, exploitation des résultats en vue de l'amélioration. La revue de direction fait partie des éléments de pilotage documentés du processus.",
+      "Comptes rendus de pilotage stratégique, exploitation des résultats en vue de l'amélioration. La revue de processus fait partie des éléments de pilotage documentés du processus.",
     details: [
       "Tableau de bord du processus et plan d'actions",
       "Comptes rendus de revue de processus",

@@ -203,7 +203,7 @@ export default function RevueDirection() {
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-muted/30">
-            <h2 className="text-lg font-semibold">{editing ? "Modifier" : "Nouvelle"} revue de direction</h2>
+            <h2 className="text-lg font-semibold">{editing ? "Modifier" : "Nouvelle"} revue de processus</h2>
             <div className="flex items-center gap-3">
               <Input placeholder="Réf." className="w-32 h-8" value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} />
               <Input type="date" className="w-40 h-8" value={form.date_revue} onChange={e => setForm(f => ({ ...f, date_revue: e.target.value }))} />

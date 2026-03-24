@@ -59,7 +59,7 @@ const objectifLabels: Record<string, string> = {
   suivre_reclamations: "Suivre réclamations (§8.2.1)",
   evaluer_efficacite_actions: "Efficacité actions (§10.2)",
   analyser_tendances: "Tendances satisfaction (§9.1.3)",
-  preparer_revue_direction: "Revue direction (§9.3)",
+  preparer_revue_direction: "Revue processus (§9.3)",
   benchmark_concurrence: "Benchmark",
   autre: "Autre",
 };

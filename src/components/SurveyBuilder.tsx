@@ -61,7 +61,7 @@ const surveyObjectives = [
   { value: "suivre_reclamations", label: "Suivre les réclamations clients (§8.2.1)" },
   { value: "evaluer_efficacite_actions", label: "Évaluer l'efficacité des actions correctives (§10.2)" },
   { value: "analyser_tendances", label: "Analyser les tendances de satisfaction (§9.1.3)" },
-  { value: "preparer_revue_direction", label: "Préparer la revue de direction (§9.3)" },
+  { value: "preparer_revue_direction", label: "Préparer la revue de processus (§9.3)" },
   { value: "benchmark_concurrence", label: "Benchmark concurrence" },
   { value: "autre", label: "Autre" },
 ];
