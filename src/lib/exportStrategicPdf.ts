@@ -517,7 +517,7 @@ export async function exportRevueDirectionPdf(reviewId: string) {
   </div>
 
   ${buildSignatures()}
-  ${buildFooter(review.reference || "RD", "Revue de Direction")}
+  ${buildFooter(review.reference || "RD", "Revue de Processus")}
   </body></html>`;
 
   await openPdf(html, `revue-direction-${review.reference || reviewId}.pdf`);
