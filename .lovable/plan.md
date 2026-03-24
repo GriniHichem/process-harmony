@@ -1,51 +1,49 @@
 
 
-# Dashboard Global Indicateurs avec Export CSV historique
+# Dashboard Indicateurs 360° — Vue enrichie pour RMQ et Direction
 
-## Contexte
+## Objectif
 
-L'utilisateur veut un dashboard qui agrege tous les indicateurs de tous les processus auxquels il a acces (meme logique d'acces que la page Indicateurs existante), avec export CSV incluant l'historique des mesures, en format point-virgule et UTF-8 BOM pour Excel FR.
+Transformer le dashboard actuel (4 KPI + tableau) en une vue 360° avec graphiques de synthese, repartition par type/processus, tendances, et indicateurs critiques mis en evidence.
 
-## Fichiers
+## Ajouts prevus dans `src/pages/DashboardIndicateurs.tsx`
 
-### 1. Creer `src/pages/DashboardIndicateurs.tsx`
+### 1. Nouvelles KPI cards (ligne 2)
+- **Intermédiaire** : compteur des indicateurs entre seuil et cible (le "warning" actuel, non affiché)
+- **Taux de conformité** : pourcentage d'indicateurs à l'objectif sur ceux mesurés (`okCount / (totalIndicators - noMeasureCount) * 100`)
 
-**Acces** : reprendre exactement la logique de `Indicateurs.tsx` lignes 52-111 :
-- Admin/RMQ/consultant : tous les processus
-- Responsable processus : ses processus (`responsable_id = user.id`)
-- Acteur : processus ou il a des taches (`process_tasks.responsable_id = acteur_id`)
-- Si un seul processus accessible, pre-selectionner automatiquement
+Passer de 4 a 6 cartes KPI sur 2 lignes de 3.
 
-**Donnees chargees** :
-- `processes` (filtres par acces)
-- `indicators` (filtres par process_id)
-- `indicator_values` pour TOUS les indicateurs (historique complet, `order by date_mesure asc`)
+### 2. Section graphiques (entre KPI et tableau)
 
-**KPI Cards (4)** :
-- Total indicateurs
-- En alerte (derniere valeur < seuil_alerte)
-- A l'objectif (derniere valeur >= cible)
-- Sans mesure
+**Graphique 1 — Donut : Répartition par statut**
+- PieChart Recharts avec 4 segments : À l'objectif (vert), Intermédiaire (jaune), En alerte (rouge), Sans mesure (gris)
+- Texte central avec le taux de conformité
 
-**Filtre** : Select processus ou "Tous"
+**Graphique 2 — BarChart : Indicateurs par processus**
+- Barres empilées (stacked) par processus, colorées par statut (ok/warning/alert/no_measure)
+- Permet a la direction de voir d'un coup d'oeil quels processus sont en difficulté
 
-**Tableau** : Processus | Indicateur | Type | Unite | Cible | Seuil | Frequence | Derniere valeur | Date derniere mesure | Statut (badge couleur)
+**Graphique 3 — BarChart : Répartition par type d'indicateur**
+- Barres groupées par type (Activité, Résultat, Perception, Interne) avec couleurs par statut
 
-**Export CSV** : bouton "Exporter CSV" qui genere un fichier avec :
-- BOM UTF-8 (`\uFEFF`)
-- Separateur `;`
-- Une ligne par mesure historique (pas par indicateur)
-- Colonnes : `Processus;Indicateur;Type;Unité;Cible;Seuil d'alerte;Fréquence;Formule;Date mesure;Valeur;Commentaire`
-- Indicateurs sans mesure : une ligne avec colonnes date/valeur/commentaire vides
-- Guillemets autour des valeurs texte (echapper les `"` internes)
-- Nom fichier : `indicateurs_historique_YYYY-MM-DD.csv`
+### 3. Section "Indicateurs critiques" (avant le tableau)
+- Card dédiée listant uniquement les indicateurs en alerte avec :
+  - Nom, processus, dernière valeur vs cible, ecart en %, tendance (hausse/baisse par rapport a l'avant-derniere mesure)
+- Visible uniquement s'il y a des alertes
 
-### 2. Modifier `src/App.tsx`
-- Ajouter `const DashboardIndicateurs = lazy(() => import("./pages/DashboardIndicateurs"));`
-- Ajouter route `/dashboard-indicateurs` avec `RoleGuard requiredModule="indicateurs"`
+### 4. Colonne "Tendance" dans le tableau existant
+- Ajouter une colonne avec une fleche (↑ hausse, ↓ baisse, → stable) comparant les 2 dernières mesures
+- Colonne "Nb mesures" pour voir le volume de données
 
-### 3. Modifier `src/components/AppSidebar.tsx`
-- Ajouter dans `qualityItems` en premiere position :
-  `{ title: "Dashboard Indicateurs", url: "/dashboard-indicateurs", icon: TrendingUp, module: "indicateurs" }`
-- Ajouter `TrendingUp` dans les imports lucide
+### 5. Filtre par type d'indicateur
+- Ajouter un second Select pour filtrer par type (Activité/Résultat/Perception/Interne) en plus du filtre processus
+
+## Fichier modifié
+
+| Fichier | Action |
+|---|---|
+| `src/pages/DashboardIndicateurs.tsx` | Enrichir avec graphiques Recharts, KPI supplémentaires, section alertes, tendances |
+
+Aucune modification de base de données requise — toutes les données nécessaires sont déjà chargées (indicators, indicator_values, processes).
 
