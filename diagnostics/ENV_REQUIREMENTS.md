@@ -38,7 +38,7 @@ Puis lancer :
 supabase functions serve --env-file supabase/functions/.env
 ```
 
-**⚠️ En Supabase Cloud / Lovable Cloud** : Ces variables sont pré-configurées automatiquement. Pas besoin de les définir manuellement.
+**⚠️ En mode Cloud / SaaS** : Ces variables sont pré-configurées automatiquement. Pas besoin de les définir manuellement.
 
 ---
 

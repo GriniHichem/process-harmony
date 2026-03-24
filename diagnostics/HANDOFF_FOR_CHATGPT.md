@@ -126,7 +126,7 @@ Le projet a été développé avec **Supabase Cloud**. Il n'y a PAS de `docker-c
 - Les fichiers de migration existants dans `supabase/migrations/`
 - `src/integrations/supabase/client.ts` (auto-généré)
 - `src/integrations/supabase/types.ts` (auto-généré)
-- `.env` (auto-géré par Lovable Cloud)
+- `.env` (auto-géré par le système de déploiement)
 - `supabase/config.toml` (sauf pour ajouter `verify_jwt`)
 - La logique métier des Edge Functions existantes
 
