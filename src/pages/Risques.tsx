@@ -67,6 +67,7 @@ export default function Risques() {
   const [newRisk, setNewRisk] = useState({ type: "risque" as "risque" | "opportunite", description: "", probabilite: "3", impact: "3", faisabilite: "3", process_id: "" });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"risque" | "opportunite">("risque");
 
   // Edit state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
