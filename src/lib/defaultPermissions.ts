@@ -221,6 +221,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: READ_ONLY,
     politique_qualite: READ_ONLY,
     revue_direction: NONE,
+    revue_direction_iso: NONE,
     competences: NONE,
     satisfaction_client: NONE,
     fournisseurs: NONE,

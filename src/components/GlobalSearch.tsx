@@ -31,6 +31,7 @@ const navItems: NavItem[] = [
   { title: "Enjeux du contexte", url: "/enjeux-contexte", icon: Landmark, group: "Pages" },
   { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen, group: "Pages" },
   { title: "Revue de processus", url: "/revue-direction", icon: CalendarCheck, group: "Pages" },
+  { title: "Revue de direction (§9.3)", url: "/revue-direction-iso", icon: Target, group: "Pages", keywords: "management review iso" },
   { title: "Compétences", url: "/competences", icon: GraduationCap, group: "Pages", keywords: "formation" },
   { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus, group: "Pages", keywords: "sondage enquete" },
   { title: "Fournisseurs", url: "/fournisseurs", icon: Truck, group: "Pages" },

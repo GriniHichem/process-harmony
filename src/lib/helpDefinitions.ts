@@ -577,6 +577,20 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     source: "p.27",
   },
 
+  revue_direction_iso: {
+    title: "Revue de direction (§9.3)",
+    category: "pilotage",
+    isoRef: "§9.3",
+    definition:
+      "À des intervalles planifiés, la direction procède à la revue du système de management de la qualité pour s'assurer qu'il est toujours approprié, adapté, efficace et en accord avec l'orientation stratégique de l'organisme (ISO 9001:2015 §9.3.1).",
+    details: [
+      "§9.3.2 — Éléments d'entrée : actions précédentes, enjeux, performance SMQ, ressources, risques, améliorations",
+      "§9.3.3 — Éléments de sortie : opportunités d'amélioration, changements SMQ, besoins en ressources",
+      "Informations documentées conservées comme preuves",
+    ],
+    source: "ISO 9001:2015, §9.3",
+  },
+
   politique_qualite: {
     title: "Politique qualité",
     category: "pilotage",

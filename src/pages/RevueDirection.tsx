@@ -84,7 +84,7 @@ export default function RevueDirection() {
 
   const openNew = async () => {
     // Auto-create a draft review so we have an ID for structured input items
-    const { data, error } = await supabase.from("management_reviews").insert({ reference: "", statut: "planifiee" }).select().single();
+    const { data, error } = await supabase.from("management_reviews").insert({ reference: "", statut: "planifiee", type_revue: "processus" } as any).select().single();
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
       return;
