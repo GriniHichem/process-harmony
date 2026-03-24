@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
   { title: "Incidents", url: "/incidents", icon: AlertOctagon, group: "Pages" },
   { title: "Enjeux du contexte", url: "/enjeux-contexte", icon: Landmark, group: "Pages" },
   { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen, group: "Pages" },
-  { title: "Revue de direction", url: "/revue-direction", icon: CalendarCheck, group: "Pages" },
+  { title: "Revue de processus", url: "/revue-direction", icon: CalendarCheck, group: "Pages" },
   { title: "Compétences", url: "/competences", icon: GraduationCap, group: "Pages", keywords: "formation" },
   { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus, group: "Pages", keywords: "sondage enquete" },
   { title: "Fournisseurs", url: "/fournisseurs", icon: Truck, group: "Pages" },

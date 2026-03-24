@@ -772,7 +772,7 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
       "Données documentées permettant le suivi et l'amélioration du processus. Ils constituent le « carnet de santé » du processus.",
     details: [
       "Tableau de bord du processus et plan d'actions",
-      "Comptes rendus de revue de direction et de revue de processus",
+      "Comptes rendus de revue de processus",
       "Rapports d'audit et actions d'amélioration consécutives",
       "Mesure du niveau de maturité du processus",
       "Historique des modifications",
