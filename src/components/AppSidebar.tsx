@@ -63,6 +63,7 @@ const adminItems: NavItem[] = [
 ];
 
 const groupHelpTerms: Record<string, string> = {
+  "Principal": "leadership",
   "Processus": "approche_processus",
   "Manager processus": "management_processus",
   "Pilotage SMQ": "politique_qualite",
