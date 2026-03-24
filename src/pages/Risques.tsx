@@ -161,11 +161,17 @@ export default function Risques() {
     fetchData();
   };
 
-  const criticityColor = (c: number | null) => {
-    if (!c) return "";
-    if (c >= 16) return "text-destructive";
-    if (c >= 9) return "text-warning";
-    return "text-success";
+  const classifyRisk = (r: Risk): { label: string; color: string; badgeClass: string } => {
+    const score = r.criticite ?? 0;
+    const p = r.probabilite ?? 0;
+    const g = r.impact ?? 0;
+    if (score >= 10 || p === 5 || g === 4) {
+      return { label: "Majeur", color: "text-destructive", badgeClass: "bg-destructive/10 text-destructive border-destructive/30" };
+    }
+    if (score >= 4) {
+      return { label: "Modéré", color: "text-warning", badgeClass: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700" };
+    }
+    return { label: "Acceptable", color: "text-success", badgeClass: "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700" };
   };
 
   const filteredRisks = risks.filter((r) => filterProcessId === "all" || r.process_id === filterProcessId);
@@ -212,15 +218,23 @@ export default function Risques() {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <Label className="text-sm whitespace-nowrap">Filtrer par processus</Label>
-        <Select value={filterProcessId} onValueChange={setFilterProcessId}>
-          <SelectTrigger className="w-[250px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les processus</SelectItem>
-            {processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Label className="text-sm whitespace-nowrap">Filtrer par processus</Label>
+          <Select value={filterProcessId} onValueChange={setFilterProcessId}>
+            <SelectTrigger className="w-[250px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les processus</SelectItem>
+              {processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-3 text-xs ml-auto">
+          <span className="font-medium text-muted-foreground">Classification :</span>
+          <Badge className="border bg-destructive/10 text-destructive border-destructive/30">Majeur (≥10 ou P=5 ou G=4)</Badge>
+          <Badge className="border bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700">Modéré (4–9)</Badge>
+          <Badge className="border bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">Acceptable (≤3)</Badge>
+        </div>
       </div>
 
       {loading ? (
@@ -246,11 +260,13 @@ export default function Risques() {
                       {r.type === "risque" ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Lightbulb className="h-5 w-5 text-accent" />}
                       <div>
                         <p className="font-medium">{r.description}</p>
-                        <p className="text-xs text-muted-foreground">P:{r.probabilite} × G:{r.impact}</p>
+                        <p className="text-xs text-muted-foreground">P:{r.probabilite} × G:{r.impact} = {r.criticite ?? "-"}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`text-lg font-bold ${criticityColor(r.criticite)}`}>{r.criticite ?? "-"}</span>
+                      {(() => { const cls = classifyRisk(r); return (
+                        <Badge className={`border ${cls.badgeClass}`}>{cls.label} ({r.criticite ?? "-"})</Badge>
+                      ); })()}
                       <Badge variant={r.type === "risque" ? "destructive" : "secondary"}>{r.type}</Badge>
                       {canCreate && (
                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); handleEdit(r); }}>
