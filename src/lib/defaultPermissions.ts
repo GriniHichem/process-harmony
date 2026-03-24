@@ -125,6 +125,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: ALL_TRUE,
     politique_qualite: ALL_TRUE,
     revue_direction: ALL_TRUE,
+    revue_direction_iso: ALL_TRUE,
     competences: ALL_TRUE,
     satisfaction_client: ALL_TRUE,
     fournisseurs: ALL_TRUE,
