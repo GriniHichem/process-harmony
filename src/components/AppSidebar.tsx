@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen,
-  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList, Lock, Crown
+  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList, Lock, Crown, TrendingUp
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -32,6 +32,7 @@ const processItems: NavItem[] = [
 ];
 
 const qualityItems: NavItem[] = [
+  { title: "Dashboard Indicateurs", url: "/dashboard-indicateurs", icon: TrendingUp, module: "indicateurs" },
   { title: "Documents", url: "/documents", icon: FileText, module: "documents" },
   { title: "Indicateurs", url: "/indicateurs", icon: BarChart3, module: "indicateurs" },
   { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle, module: "risques" },
