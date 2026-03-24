@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { renderBpmnSvgString } from "./renderBpmnSvgString";
+import { renderFlowchartSvgString } from "./renderFlowchartSvgString";
 import { BpmnData } from "@/components/bpmn/types";
 
 interface ProcessData {
