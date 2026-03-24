@@ -12,7 +12,7 @@ Le projet Q-Process est une application de gestion qualité ISO 9001 construite 
 - **Framer Motion** (animations)
 - Point d'entrée : `src/main.tsx` → `src/App.tsx`
 
-### Stack Backend (Supabase / Lovable Cloud)
+### Stack Backend (Supabase)
 - **PostgreSQL** (base de données avec RLS)
 - **GoTrue** (authentification — login email/password)
 - **PostgREST** (API REST auto-générée)
@@ -24,10 +24,10 @@ Le projet Q-Process est une application de gestion qualité ISO 9001 construite 
 
 ## Mode de déploiement supposé
 
-### Sur Lovable Cloud (mode principal)
-- Le fichier `supabase/config.toml` contient `project_id = "jyqbbfmsvaqnowdhnqof"`
-- Les variables `.env` pointent vers `https://jyqbbfmsvaqnowdhnqof.supabase.co`
-- Les Edge Functions sont déployées automatiquement par Lovable
+### Sur Supabase Cloud (mode principal)
+- Le fichier `supabase/config.toml` contient le `project_id` du projet
+- Les variables `.env` pointent vers l'URL de l'instance Supabase
+- Les Edge Functions sont déployées via `supabase functions deploy`
 - **Ce mode fonctionne tel quel**
 
 ### Sur serveur Ubuntu (mode cible de ce diagnostic)

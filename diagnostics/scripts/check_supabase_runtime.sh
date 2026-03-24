@@ -76,7 +76,7 @@ fi
 if $HAS_CONFIG_TOML && ! $HAS_DOCKER_COMPOSE; then
   echo -e "  ${GREEN}✓${NC} Mode détecté : Supabase CLI local ou Supabase Cloud"
   echo "    Le projet utilise supabase/config.toml sans docker-compose"
-  echo "    → Compatible avec 'supabase start' (CLI) ou Lovable Cloud"
+  echo "    → Compatible avec 'supabase start' (CLI) ou Supabase Cloud"
 fi
 
 if [ -n "${SUPABASE_URL:-}" ]; then

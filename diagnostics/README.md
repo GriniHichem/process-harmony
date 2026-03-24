@@ -83,7 +83,7 @@ Ou copier/coller le contenu dans l'éditeur SQL de Supabase Studio.
 
 ### c) Edge Functions
 - Fonctions Deno exécutées côté serveur (runtime Deno/V8)
-- Déployées automatiquement via Lovable Cloud ou manuellement via `supabase functions deploy`
+- Déployées via `supabase functions deploy` ou automatiquement en mode Cloud
 - Accèdent aux variables : `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`
 - Chaque fonction est dans `supabase/functions/<nom>/index.ts`
 
