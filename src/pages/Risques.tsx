@@ -17,7 +17,45 @@ import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
 import { HelpTooltip } from "@/components/HelpTooltip";
 
-type Risk = { id: string; type: "risque" | "opportunite"; description: string; probabilite: number | null; impact: number | null; criticite: number | null; statut: string; process_id: string };
+type Risk = {
+  id: string;
+  type: "risque" | "opportunite";
+  description: string;
+  probabilite: number | null;
+  impact: number | null;
+  criticite: number | null;
+  faisabilite: number | null;
+  statut: string;
+  process_id: string;
+};
+
+// --- Classification helpers ---
+
+const classifyRisk = (r: Risk): { label: string; badgeClass: string } => {
+  const score = r.criticite ?? 0;
+  const p = r.probabilite ?? 0;
+  const g = r.impact ?? 0;
+  if (score >= 10 || p === 5 || g === 4) {
+    return { label: "Majeur", badgeClass: "bg-destructive/10 text-destructive border-destructive/30" };
+  }
+  if (score >= 4) {
+    return { label: "Modéré", badgeClass: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700" };
+  }
+  return { label: "Acceptable", badgeClass: "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700" };
+};
+
+const classifyOpportunity = (r: Risk): { label: string; badgeClass: string } => {
+  const score = (r.impact ?? 0) * (r.faisabilite ?? 0);
+  if (score >= 12) {
+    return { label: "Prioritaire", badgeClass: "bg-primary/10 text-primary border-primary/30" };
+  }
+  if (score >= 6) {
+    return { label: "Intéressante", badgeClass: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700" };
+  }
+  return { label: "Faible / à surveiller", badgeClass: "bg-muted text-muted-foreground border-border" };
+};
+
+const getOpportunityScore = (r: Risk) => (r.impact ?? 0) * (r.faisabilite ?? 0);
 
 export default function Risques() {
   const { hasRole, hasPermission, user } = useAuth();
@@ -25,13 +63,13 @@ export default function Risques() {
   const [processes, setProcesses] = useState<{id: string; nom: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newRisk, setNewRisk] = useState({ type: "risque" as const, description: "", probabilite: "3", impact: "3", process_id: "" });
+  const [newRisk, setNewRisk] = useState({ type: "risque" as "risque" | "opportunite", description: "", probabilite: "3", impact: "3", faisabilite: "3", process_id: "" });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
 
   // Edit state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editRisk, setEditRisk] = useState<{ id: string; type: string; description: string; probabilite: string; impact: string; process_id: string } | null>(null);
+  const [editRisk, setEditRisk] = useState<{ id: string; type: string; description: string; probabilite: string; impact: string; faisabilite: string; process_id: string } | null>(null);
 
   const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant");
   const canCreate = hasPermission("risques", "can_edit");
@@ -43,7 +81,6 @@ export default function Risques() {
   const fetchData = async () => {
     let processQuery = supabase.from("processes").select("id, nom").order("nom");
     if (isOnlyActeur && user) {
-      // Acteur: only processes where they have tasks
       const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
       const acteurId = profileData?.acteur_id;
       if (acteurId) {
@@ -74,7 +111,6 @@ export default function Risques() {
     const allRisks = (rRes.data ?? []) as Risk[];
     setRisks(allRisks);
 
-    // For acteur: find which risks have actions/moyens where they are responsible
     if (isOnlyActeur && user) {
       const { data: profileData } = await supabase.from("profiles").select("acteur_id").eq("id", user.id).single();
       const acteurId = profileData?.acteur_id;
@@ -98,7 +134,6 @@ export default function Risques() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Deep-link: auto-expand risk from URL
   useEffect(() => {
     const riskId = searchParams.get("risk");
     if (riskId && risks.length > 0 && !expandedId) {
@@ -111,16 +146,30 @@ export default function Risques() {
 
   const handleCreate = async () => {
     if (!newRisk.description || !newRisk.process_id) { toast.error("Description et processus requis"); return; }
-    const { error } = await supabase.from("risks_opportunities").insert({
+    const isOpp = newRisk.type === "opportunite";
+    const impactVal = Number(newRisk.impact);
+    const insertData: any = {
       type: newRisk.type,
       description: newRisk.description,
-      probabilite: Number(newRisk.probabilite),
-      impact: Number(newRisk.impact),
       process_id: newRisk.process_id,
-    });
+      impact: impactVal,
+    };
+    if (isOpp) {
+      const faisVal = Number(newRisk.faisabilite);
+      insertData.faisabilite = faisVal;
+      insertData.criticite = impactVal * faisVal;
+      insertData.probabilite = null;
+    } else {
+      const probVal = Number(newRisk.probabilite);
+      insertData.probabilite = probVal;
+      insertData.criticite = probVal * impactVal;
+      insertData.faisabilite = null;
+    }
+    const { error } = await supabase.from("risks_opportunities").insert(insertData);
     if (error) { toast.error(error.message); return; }
     toast.success("Élément ajouté");
     setDialogOpen(false);
+    setNewRisk({ type: "risque", description: "", probabilite: "3", impact: "3", faisabilite: "3", process_id: "" });
     fetchData();
   };
 
@@ -131,6 +180,7 @@ export default function Risques() {
       description: r.description,
       probabilite: String(r.probabilite ?? 3),
       impact: String(r.impact ?? 3),
+      faisabilite: String(r.faisabilite ?? 3),
       process_id: r.process_id,
     });
     setEditDialogOpen(true);
@@ -139,13 +189,26 @@ export default function Risques() {
   const handleUpdate = async () => {
     if (!editRisk) return;
     if (!editRisk.description || !editRisk.process_id) { toast.error("Description et processus requis"); return; }
-    const { error } = await supabase.from("risks_opportunities").update({
+    const isOpp = editRisk.type === "opportunite";
+    const impactVal = Number(editRisk.impact);
+    const updateData: any = {
       type: editRisk.type as any,
       description: editRisk.description,
-      probabilite: Number(editRisk.probabilite),
-      impact: Number(editRisk.impact),
       process_id: editRisk.process_id,
-    }).eq("id", editRisk.id);
+      impact: impactVal,
+    };
+    if (isOpp) {
+      const faisVal = Number(editRisk.faisabilite);
+      updateData.faisabilite = faisVal;
+      updateData.criticite = impactVal * faisVal;
+      updateData.probabilite = null;
+    } else {
+      const probVal = Number(editRisk.probabilite);
+      updateData.probabilite = probVal;
+      updateData.criticite = probVal * impactVal;
+      updateData.faisabilite = null;
+    }
+    const { error } = await supabase.from("risks_opportunities").update(updateData).eq("id", editRisk.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Élément modifié");
     setEditDialogOpen(false);
@@ -161,20 +224,37 @@ export default function Risques() {
     fetchData();
   };
 
-  const classifyRisk = (r: Risk): { label: string; color: string; badgeClass: string } => {
-    const score = r.criticite ?? 0;
-    const p = r.probabilite ?? 0;
-    const g = r.impact ?? 0;
-    if (score >= 10 || p === 5 || g === 4) {
-      return { label: "Majeur", color: "text-destructive", badgeClass: "bg-destructive/10 text-destructive border-destructive/30" };
-    }
-    if (score >= 4) {
-      return { label: "Modéré", color: "text-warning", badgeClass: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700" };
-    }
-    return { label: "Acceptable", color: "text-success", badgeClass: "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700" };
-  };
-
   const filteredRisks = risks.filter((r) => filterProcessId === "all" || r.process_id === filterProcessId);
+
+  // --- Form fields renderer ---
+  const renderFormFields = (type: string, values: { probabilite: string; impact: string; faisabilite: string }, onChange: (field: string, value: string) => void) => {
+    if (type === "opportunite") {
+      return (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Impact positif (1-5)</Label>
+            <Input type="number" min="1" max="5" value={values.impact} onChange={(e) => onChange("impact", e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Faisabilité (1-5)</Label>
+            <Input type="number" min="1" max="5" value={values.faisabilite} onChange={(e) => onChange("faisabilite", e.target.value)} />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Probabilité (1-5)</Label>
+          <Input type="number" min="1" max="5" value={values.probabilite} onChange={(e) => onChange("probabilite", e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Gravité (1-4)</Label>
+          <Input type="number" min="1" max="4" value={values.impact} onChange={(e) => onChange("impact", e.target.value)} />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -207,10 +287,7 @@ export default function Risques() {
                     <SelectContent>{processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label>Probabilité (1-5)</Label><Input type="number" min="1" max="5" value={newRisk.probabilite} onChange={(e) => setNewRisk({ ...newRisk, probabilite: e.target.value })} /></div>
-                  <div className="space-y-2"><Label>Gravité (1-4)</Label><Input type="number" min="1" max="4" value={newRisk.impact} onChange={(e) => setNewRisk({ ...newRisk, impact: e.target.value })} /></div>
-                </div>
+                {renderFormFields(newRisk.type, newRisk, (field, value) => setNewRisk({ ...newRisk, [field]: value }))}
                 <Button onClick={handleCreate} className="w-full">Ajouter</Button>
               </div>
             </DialogContent>
@@ -229,11 +306,19 @@ export default function Risques() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-3 text-xs ml-auto">
-          <span className="font-medium text-muted-foreground">Classification :</span>
-          <Badge className="border bg-destructive/10 text-destructive border-destructive/30">Majeur (≥10 ou P=5 ou G=4)</Badge>
-          <Badge className="border bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700">Modéré (4–9)</Badge>
-          <Badge className="border bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">Acceptable (≤3)</Badge>
+        <div className="flex flex-col gap-2 text-xs ml-auto">
+          <div className="flex items-center gap-3">
+            <span className="font-medium text-muted-foreground">Risques :</span>
+            <Badge className="border bg-destructive/10 text-destructive border-destructive/30">Majeur (≥10 ou P=5 ou G=4)</Badge>
+            <Badge className="border bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700">Modéré (4–9)</Badge>
+            <Badge className="border bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">Acceptable (≤3)</Badge>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-medium text-muted-foreground">Opportunités :</span>
+            <Badge className="border bg-primary/10 text-primary border-primary/30">Prioritaire (≥12)</Badge>
+            <Badge className="border bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700">Intéressante (6–11)</Badge>
+            <Badge className="border bg-muted text-muted-foreground border-border">Faible (≤5)</Badge>
+          </div>
         </div>
       </div>
 
@@ -245,29 +330,34 @@ export default function Risques() {
         <div className="grid gap-3">
           {filteredRisks.map((r) => {
             const isExpanded = expandedId === r.id;
+            const isOpp = r.type === "opportunite";
+            const cls = isOpp ? classifyOpportunity(r) : classifyRisk(r);
+            const scoreDisplay = isOpp
+              ? `I:${r.impact ?? 0} × F:${r.faisabilite ?? 0} = ${getOpportunityScore(r)}`
+              : `P:${r.probabilite ?? 0} × G:${r.impact ?? 0} = ${r.criticite ?? "-"}`;
+            const scoreValue = isOpp ? getOpportunityScore(r) : (r.criticite ?? "-");
+
             return (
               <Card key={r.id} className={`transition-shadow ${isExpanded ? "ring-2 ring-primary/30 shadow-md" : ""}`}>
                 <CardContent className="py-4">
                   <div
                     className={`flex items-center justify-between ${(!isOnlyActeur || acteurRiskIds.has(r.id)) ? "cursor-pointer" : ""}`}
                     onClick={() => {
-                      if (isOnlyActeur && !acteurRiskIds.has(r.id)) { return; }
+                      if (isOnlyActeur && !acteurRiskIds.has(r.id)) return;
                       setExpandedId(isExpanded ? null : r.id);
                     }}
                   >
                     <div className="flex items-center gap-3">
                       {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                      {r.type === "risque" ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Lightbulb className="h-5 w-5 text-accent" />}
+                      {isOpp ? <Lightbulb className="h-5 w-5 text-primary" /> : <AlertTriangle className="h-5 w-5 text-destructive" />}
                       <div>
                         <p className="font-medium">{r.description}</p>
-                        <p className="text-xs text-muted-foreground">P:{r.probabilite} × G:{r.impact} = {r.criticite ?? "-"}</p>
+                        <p className="text-xs text-muted-foreground">{scoreDisplay}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {(() => { const cls = classifyRisk(r); return (
-                        <Badge className={`border ${cls.badgeClass}`}>{cls.label} ({r.criticite ?? "-"})</Badge>
-                      ); })()}
-                      <Badge variant={r.type === "risque" ? "destructive" : "secondary"}>{r.type}</Badge>
+                      <Badge className={`border ${cls.badgeClass}`}>{cls.label} ({scoreValue})</Badge>
+                      <Badge variant={isOpp ? "secondary" : "destructive"}>{r.type}</Badge>
                       {canCreate && (
                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); handleEdit(r); }}>
                           <Pencil className="h-4 w-4" />
@@ -333,10 +423,7 @@ export default function Risques() {
                   <SelectContent>{processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label>Probabilité (1-5)</Label><Input type="number" min="1" max="5" value={editRisk.probabilite} onChange={(e) => setEditRisk({ ...editRisk, probabilite: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Gravité (1-4)</Label><Input type="number" min="1" max="4" value={editRisk.impact} onChange={(e) => setEditRisk({ ...editRisk, impact: e.target.value })} /></div>
-              </div>
+              {renderFormFields(editRisk.type, editRisk, (field, value) => setEditRisk({ ...editRisk, [field]: value }))}
               <Button onClick={handleUpdate} className="w-full">Enregistrer</Button>
             </div>
           )}
