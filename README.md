@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
+# Q-Process — Système de Management Qualité ISO 9001
 
-## Project info
+Application web de gestion qualité conforme à la norme ISO 9001:2015.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack technique
 
-## How can I edit this code?
+- **Frontend** : React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend** : Supabase (PostgreSQL, Auth, Edge Functions, Storage)
+- **Emails** : denomailer (SMTP configurable via base de données)
 
-There are several ways of editing your application.
+## Déploiement self-hosted
 
-**Use Lovable**
+### Prérequis
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Docker & Docker Compose
+- Supabase self-hosted (ou CLI)
+- Node.js 18+
 
-Changes made via Lovable will be committed automatically to this repo.
+### Variables d'environnement frontend
 
-**Use your preferred IDE**
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | URL de votre instance Supabase |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Clé publique (anon key) |
+| `VITE_SUPABASE_PROJECT_ID` | ID du projet Supabase |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm install
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+### Migrations SQL
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Les migrations dans `supabase/migrations/` sont idempotentes et doivent être exécutées dans l'ordre chronologique :
 
-**Use GitHub Codespaces**
+```bash
+supabase db reset
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Edge Functions
 
-## What technologies are used for this project?
+Toutes les Edge Functions utilisent `verify_jwt = false` avec authentification manuelle dans le code. Déploiement :
 
-This project is built with:
+```bash
+supabase functions deploy
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Configuration SMTP
 
-## How can I deploy this project?
+La configuration email est stockée dans la table `app_settings` (clés : `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `support_email`, `app_name`). Configurable depuis l'interface Super Admin.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Extensions PostgreSQL requises
 
-## Can I connect a custom domain to my Lovable project?
+- `pg_net` : pour l'envoi d'emails depuis les triggers DB (optionnel — dégradation gracieuse si absent)
 
-Yes, you can!
+## Structure du projet
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+src/                    # Code source React
+supabase/functions/     # Edge Functions (Deno)
+supabase/migrations/    # Migrations SQL
+diagnostics/            # Scripts de diagnostic
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Licence
+
+Propriétaire — Groupe AMOUR. Tous droits réservés.
