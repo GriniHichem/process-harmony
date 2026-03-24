@@ -463,8 +463,30 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
   <!-- ═══ FOOTER ═══ -->
   <div class="footer">
     <strong>${esc(logos.companyName)}</strong> — Fiche processus <strong>${esc(p.code)}</strong> — ${esc(p.nom)} — v${p.version_courante} — ${now}<br>
-    <span style="font-size:7px">Document confidentiel — Système de Management de la Qualité ISO 9001:2015</span>
+   <span style="font-size:7px">Document confidentiel — Système de Management de la Qualité ISO 9001:2015</span>
   </div>
+
+  <!-- ═══ BPMN (dernière page, paysage) ═══ -->
+  ${bpmnData && bpmnData.nodes.length > 0 ? `
+  <div class="bpmn-page">
+    <table class="hdr-table">
+      <tr>
+        <td class="hdr-logo"><img src="${logos.companyLogo}" alt="${esc(logos.companyName)}" /></td>
+        <td class="hdr-center">
+          <div class="title">DIAGRAMME BPMN</div>
+          <div class="sub">${esc(p.nom)}</div>
+        </td>
+        <td class="hdr-right">
+          <strong>Code :</strong> ${esc(p.code)}<br>
+          <strong>Version :</strong> ${p.version_courante}
+        </td>
+        <td class="hdr-logo"><img src="${logos.brandLogo}" alt="Logo marque" /></td>
+      </tr>
+    </table>
+    <div style="text-align:center;padding:16px;border:1px solid #cbd5e1;margin-top:10px">
+      ${renderBpmnSvgString(bpmnData)}
+    </div>
+  </div>` : ""}
 </body>
 </html>`;
 }
