@@ -264,8 +264,14 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     category: "role",
     isoRef: "§8.4",
     definition:
-      "Prestataire externe concerné par les interactions des processus. La communication avec les prestataires externes fait partie de la maîtrise des interfaces entre processus.",
-    source: "p.15",
+      "Prestataire externe fournissant des produits ou services à l'organisme. L'organisme doit s'assurer que les processus, produits et services fournis par des prestataires externes sont conformes aux exigences.",
+    details: [
+      "Évaluation, sélection et surveillance des prestataires externes",
+      "Réévaluation périodique selon des critères définis",
+      "Communication des exigences applicables aux prestataires",
+      "Vérification de la conformité des produits/services fournis",
+    ],
+    source: "ISO 9001:2015, §8.4",
   },
 
   competences: {
@@ -273,8 +279,13 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     category: "role",
     isoRef: "§7.2",
     definition:
-      "Ressources humaines indispensables à la réalisation des processus. Les acteurs (internes et externes) et leurs rôles doivent être identifiés, ainsi que les ressources spécifiques : matérielles, informationnelles ou humaines (acteurs, services, experts…).",
-    source: "p.24 & p.50",
+      "L'organisme doit déterminer les compétences nécessaires des personnes effectuant un travail qui a une incidence sur les performances et l'efficacité du SMQ, et s'assurer que ces personnes sont compétentes sur la base d'une formation initiale ou professionnelle, ou d'une expérience appropriée.",
+    details: [
+      "Mener des actions pour acquérir les compétences (formation, tutorat, réaffectation)",
+      "Évaluer l'efficacité des actions entreprises",
+      "Conserver des informations documentées comme preuves des compétences",
+    ],
+    source: "ISO 9001:2015, §7.2",
   },
 
   parties_interessees: {
@@ -549,7 +560,6 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
   revue_processus: {
     title: "Revue de processus",
     category: "pilotage",
-    isoRef: "§9.3",
     definition:
       "Dispositif concret (qui, quoi, comment, quand…) permettant de piloter le processus et de maîtriser efficacement son fonctionnement. Le pilote réalise une revue de processus périodiquement pour s'assurer de son efficacité.",
     details: [
@@ -564,7 +574,6 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
   revue_direction: {
     title: "Revue de processus",
     category: "pilotage",
-    isoRef: "§9.3",
     definition:
       "Comptes rendus de pilotage stratégique, exploitation des résultats en vue de l'amélioration. La revue de processus fait partie des éléments de pilotage documentés du processus.",
     details: [
@@ -596,8 +605,14 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     category: "pilotage",
     isoRef: "§5.2",
     definition:
-      "Détermination de la politique et déploiement des objectifs dans l'organisme. Elle fait partie des processus de management et assure la cohérence entre les processus de réalisation et de support.",
-    source: "p.7",
+      "Intentions et orientations d'un organisme telles qu'elles sont officiellement formulées par sa direction. La politique qualité doit être appropriée à la finalité et au contexte de l'organisme, fournir un cadre pour les objectifs qualité, inclure l'engagement de satisfaire aux exigences applicables et l'engagement pour l'amélioration continue.",
+    details: [
+      "Doit être disponible sous forme d'information documentée",
+      "Communiquée, comprise et appliquée au sein de l'organisme",
+      "Disponible pour les parties intéressées pertinentes",
+      "Revue périodiquement pour vérifier son adéquation continue",
+    ],
+    source: "ISO 9001:2015, §5.2",
   },
 
   enjeux_contexte: {
@@ -606,7 +621,12 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     isoRef: "§4.1",
     definition:
       "Facteurs internes et externes influençant la stratégie et les objectifs de l'organisme. L'organisme doit déterminer les enjeux pertinents qui affectent sa capacité à atteindre les résultats attendus de son système de management de la qualité.",
-    source: "Norme ISO 9001:2015, §4.1",
+    details: [
+      "Surveiller et revoir les informations relatives aux enjeux internes et externes",
+      "Prendre en compte les changements climatiques et environnementaux pertinents",
+      "Réviser périodiquement l'analyse du contexte",
+    ],
+    source: "ISO 9001:2015, §4.1",
   },
 
   maturite: {
@@ -808,5 +828,177 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     definition:
       "Notation standard internationale pour la modélisation des processus métier sous forme de diagrammes de flux. Elle permet de représenter graphiquement le déroulement des activités, les décisions, les événements et les interactions entre acteurs.",
     source: "Norme BPMN 2.0",
+  },
+
+  // ══════════════════════════════════════════
+  //  ARTICLES ISO 9001 — COMPLÉMENTS
+  // ══════════════════════════════════════════
+  leadership: {
+    title: "Leadership et engagement",
+    category: "pilotage",
+    isoRef: "§5.1",
+    definition:
+      "La direction doit démontrer son leadership et son engagement vis-à-vis du SMQ en assumant la responsabilité de l'efficacité du système, en établissant la politique et les objectifs qualité, et en s'assurant que les exigences sont intégrées aux processus métier de l'organisme.",
+    details: [
+      "Promouvoir l'approche processus et l'approche par les risques",
+      "S'assurer que les ressources nécessaires sont disponibles",
+      "Communiquer sur l'importance d'un management de la qualité efficace",
+      "Soutenir les personnes pour qu'elles contribuent à l'efficacité du SMQ",
+      "Promouvoir l'amélioration continue",
+    ],
+    source: "ISO 9001:2015, §5.1",
+  },
+
+  orientation_client: {
+    title: "Orientation client",
+    category: "pilotage",
+    isoRef: "§5.1.2",
+    definition:
+      "La direction doit démontrer son leadership et son engagement relatifs à l'orientation client en s'assurant que les exigences du client ainsi que les exigences légales et réglementaires applicables sont déterminées, comprises et satisfaites en permanence.",
+    details: [
+      "Déterminer et prendre en compte les risques et opportunités susceptibles d'influer sur la conformité des produits/services",
+      "Maintenir la priorité d'accroissement de la satisfaction du client",
+    ],
+    source: "ISO 9001:2015, §5.1.2",
+  },
+
+  roles_responsabilites: {
+    title: "Rôles et responsabilités",
+    category: "role",
+    isoRef: "§5.3",
+    definition:
+      "La direction doit s'assurer que les responsabilités et autorités pour les rôles pertinents sont attribuées, communiquées et comprises au sein de l'organisme. Elle doit attribuer la responsabilité et l'autorité pour s'assurer que le SMQ est conforme aux exigences de la norme et que les processus délivrent les résultats attendus.",
+    source: "ISO 9001:2015, §5.3",
+  },
+
+  planification_modifications: {
+    title: "Planification des modifications",
+    category: "pilotage",
+    isoRef: "§6.3",
+    definition:
+      "Lorsque l'organisme détermine le besoin de modifier le SMQ, les modifications doivent être réalisées de façon planifiée. L'organisme doit prendre en compte l'objectif des modifications et leurs conséquences possibles, l'intégrité du SMQ, la disponibilité des ressources et l'attribution ou la réattribution des responsabilités et autorités.",
+    source: "ISO 9001:2015, §6.3",
+  },
+
+  infrastructure: {
+    title: "Infrastructure",
+    category: "concept",
+    isoRef: "§7.1.3",
+    definition:
+      "L'organisme doit déterminer, fournir et maintenir l'infrastructure nécessaire à la mise en œuvre de ses processus et à l'obtention de la conformité des produits et services.",
+    details: [
+      "Bâtiments et services associés",
+      "Équipements (matériels, logiciels)",
+      "Moyens de transport",
+      "Technologies de l'information et de la communication",
+    ],
+    source: "ISO 9001:2015, §7.1.3",
+  },
+
+  environnement_travail: {
+    title: "Environnement de travail",
+    category: "concept",
+    isoRef: "§7.1.4",
+    definition:
+      "L'organisme doit déterminer, fournir et maintenir l'environnement nécessaire à la mise en œuvre de ses processus et à l'obtention de la conformité des produits et services. L'environnement peut inclure des facteurs sociaux, psychologiques et physiques.",
+    source: "ISO 9001:2015, §7.1.4",
+  },
+
+  connaissances_organisationnelles: {
+    title: "Connaissances organisationnelles",
+    category: "concept",
+    isoRef: "§7.1.6",
+    definition:
+      "L'organisme doit déterminer les connaissances nécessaires à la mise en œuvre de ses processus et à l'obtention de la conformité des produits et services. Ces connaissances doivent être tenues à jour et mises à disposition autant que nécessaire.",
+    details: [
+      "Sources internes : propriété intellectuelle, retour d'expérience, leçons tirées",
+      "Sources externes : normes, enseignement universitaire, conférences, connaissances des clients/fournisseurs",
+    ],
+    source: "ISO 9001:2015, §7.1.6",
+  },
+
+  sensibilisation: {
+    title: "Sensibilisation",
+    category: "concept",
+    isoRef: "§7.3",
+    definition:
+      "L'organisme doit s'assurer que les personnes effectuant un travail sous son contrôle sont sensibilisées à la politique qualité, aux objectifs qualité pertinents, à leur contribution à l'efficacité du SMQ (y compris les effets positifs d'une amélioration des performances) et aux implications de toute non-conformité avec les exigences du SMQ.",
+    source: "ISO 9001:2015, §7.3",
+  },
+
+  communication_iso: {
+    title: "Communication",
+    category: "concept",
+    isoRef: "§7.4",
+    definition:
+      "L'organisme doit déterminer les besoins de communication interne et externe pertinents pour le SMQ, y compris sur quels sujets communiquer, à quels moments, avec qui, comment et qui communique.",
+    source: "ISO 9001:2015, §7.4",
+  },
+
+  planification_operationnelle: {
+    title: "Planification opérationnelle",
+    category: "concept",
+    isoRef: "§8.1",
+    definition:
+      "L'organisme doit planifier, mettre en œuvre et maîtriser les processus nécessaires à la fourniture des produits et à la prestation de services, en déterminant les exigences, en établissant des critères et en conservant les informations documentées nécessaires.",
+    source: "ISO 9001:2015, §8.1",
+  },
+
+  exigences_produits_services: {
+    title: "Exigences produits et services",
+    category: "concept",
+    isoRef: "§8.2",
+    definition:
+      "L'organisme doit communiquer avec les clients, déterminer et revoir les exigences relatives aux produits et services, y compris les exigences légales et réglementaires applicables et celles jugées nécessaires par l'organisme.",
+    source: "ISO 9001:2015, §8.2",
+  },
+
+  conception_developpement: {
+    title: "Conception et développement",
+    category: "concept",
+    isoRef: "§8.3",
+    definition:
+      "L'organisme doit établir, mettre en œuvre et tenir à jour un processus de conception et développement approprié pour assurer la fourniture ultérieure de produits et services, en tenant compte des éléments d'entrée, des revues, de la vérification et de la validation.",
+    source: "ISO 9001:2015, §8.3",
+  },
+
+  production_prestation: {
+    title: "Production et prestation de service",
+    category: "concept",
+    isoRef: "§8.5",
+    definition:
+      "L'organisme doit mettre en œuvre la production et la prestation de service dans des conditions maîtrisées, incluant la disponibilité des informations documentées, des ressources de surveillance et mesure, de l'infrastructure et de l'environnement de travail appropriés.",
+    source: "ISO 9001:2015, §8.5",
+  },
+
+  liberation_produits: {
+    title: "Libération des produits et services",
+    category: "concept",
+    isoRef: "§8.6",
+    definition:
+      "L'organisme doit mettre en œuvre les dispositions planifiées aux étapes appropriées pour vérifier que les exigences relatives aux produits et services ont été satisfaites. La libération ne doit pas être effectuée avant l'exécution satisfaisante de toutes les dispositions planifiées, sauf approbation par une autorité compétente.",
+    source: "ISO 9001:2015, §8.6",
+  },
+
+  surveillance_mesure: {
+    title: "Surveillance, mesure, analyse et évaluation",
+    category: "indicateur",
+    isoRef: "§9.1",
+    definition:
+      "L'organisme doit déterminer ce qu'il est nécessaire de surveiller et mesurer, les méthodes à utiliser pour garantir la validité des résultats, quand la surveillance et la mesure doivent être effectuées, et quand les résultats doivent être analysés et évalués.",
+    details: [
+      "§9.1.2 — Satisfaction du client : surveiller la perception du client sur le niveau de satisfaction de ses exigences",
+      "§9.1.3 — Analyse et évaluation : utiliser les résultats pour évaluer la conformité, la satisfaction, la performance du SMQ, l'efficacité de la planification et des actions face aux risques",
+    ],
+    source: "ISO 9001:2015, §9.1",
+  },
+
+  amelioration_generalites: {
+    title: "Amélioration — Généralités",
+    category: "audit",
+    isoRef: "§10.1",
+    definition:
+      "L'organisme doit déterminer et sélectionner les opportunités d'amélioration et entreprendre toutes les actions nécessaires pour satisfaire aux exigences du client et accroître la satisfaction du client. Cela inclut l'amélioration des produits et services, la correction, la prévention ou la réduction des effets indésirables, et l'amélioration de la performance et de l'efficacité du SMQ.",
+    source: "ISO 9001:2015, §10.1",
   },
 };

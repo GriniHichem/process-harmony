@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { HelpTooltip } from "@/components/HelpTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -133,7 +134,7 @@ export default function Journal() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Journal d'activité</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2">Journal d'activité <HelpTooltip term="amelioration_continue" /></h1>
         <p className="text-muted-foreground">Traçabilité de toutes les opérations</p>
       </div>
 
