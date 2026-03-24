@@ -149,7 +149,7 @@ export default function RevueDirection() {
       {/* View Dialog */}
       <Dialog open={viewDialog} onOpenChange={setViewDialog}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Revue de direction — {viewing?.reference}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Revue de processus — {viewing?.reference}</DialogTitle></DialogHeader>
           {viewing && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
