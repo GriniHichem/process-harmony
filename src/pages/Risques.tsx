@@ -157,12 +157,11 @@ export default function Risques() {
     if (isOpp) {
       const faisVal = Number(newRisk.faisabilite);
       insertData.faisabilite = faisVal;
-      insertData.criticite = impactVal * faisVal;
-      insertData.probabilite = null;
+      // criticite is a generated column (probabilite * impact), so for opportunities
+      // we store faisabilite in probabilite to leverage the auto-computed score
+      insertData.probabilite = faisVal;
     } else {
-      const probVal = Number(newRisk.probabilite);
-      insertData.probabilite = probVal;
-      insertData.criticite = probVal * impactVal;
+      insertData.probabilite = Number(newRisk.probabilite);
       insertData.faisabilite = null;
     }
     const { error } = await supabase.from("risks_opportunities").insert(insertData);
