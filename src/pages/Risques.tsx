@@ -45,7 +45,7 @@ const classifyRisk = (r: Risk): { label: string; badgeClass: string } => {
 };
 
 const classifyOpportunity = (r: Risk): { label: string; badgeClass: string } => {
-  const score = (r.impact ?? 0) * (r.faisabilite ?? 0);
+  const score = r.criticite ?? 0;
   if (score >= 12) {
     return { label: "Prioritaire", badgeClass: "bg-primary/10 text-primary border-primary/30" };
   }
@@ -55,7 +55,7 @@ const classifyOpportunity = (r: Risk): { label: string; badgeClass: string } => 
   return { label: "Faible / à surveiller", badgeClass: "bg-muted text-muted-foreground border-border" };
 };
 
-const getOpportunityScore = (r: Risk) => (r.impact ?? 0) * (r.faisabilite ?? 0);
+const getOpportunityScore = (r: Risk) => r.criticite ?? 0;
 
 export default function Risques() {
   const { hasRole, hasPermission, user } = useAuth();
@@ -157,12 +157,11 @@ export default function Risques() {
     if (isOpp) {
       const faisVal = Number(newRisk.faisabilite);
       insertData.faisabilite = faisVal;
-      insertData.criticite = impactVal * faisVal;
-      insertData.probabilite = null;
+      // criticite is a generated column (probabilite * impact), so for opportunities
+      // we store faisabilite in probabilite to leverage the auto-computed score
+      insertData.probabilite = faisVal;
     } else {
-      const probVal = Number(newRisk.probabilite);
-      insertData.probabilite = probVal;
-      insertData.criticite = probVal * impactVal;
+      insertData.probabilite = Number(newRisk.probabilite);
       insertData.faisabilite = null;
     }
     const { error } = await supabase.from("risks_opportunities").insert(insertData);
@@ -200,12 +199,9 @@ export default function Risques() {
     if (isOpp) {
       const faisVal = Number(editRisk.faisabilite);
       updateData.faisabilite = faisVal;
-      updateData.criticite = impactVal * faisVal;
-      updateData.probabilite = null;
+      updateData.probabilite = faisVal;
     } else {
-      const probVal = Number(editRisk.probabilite);
-      updateData.probabilite = probVal;
-      updateData.criticite = probVal * impactVal;
+      updateData.probabilite = Number(editRisk.probabilite);
       updateData.faisabilite = null;
     }
     const { error } = await supabase.from("risks_opportunities").update(updateData).eq("id", editRisk.id);
