@@ -594,8 +594,14 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     category: "pilotage",
     isoRef: "§5.2",
     definition:
-      "Détermination de la politique et déploiement des objectifs dans l'organisme. Elle fait partie des processus de management et assure la cohérence entre les processus de réalisation et de support.",
-    source: "p.7",
+      "Intentions et orientations d'un organisme telles qu'elles sont officiellement formulées par sa direction. La politique qualité doit être appropriée à la finalité et au contexte de l'organisme, fournir un cadre pour les objectifs qualité, inclure l'engagement de satisfaire aux exigences applicables et l'engagement pour l'amélioration continue.",
+    details: [
+      "Doit être disponible sous forme d'information documentée",
+      "Communiquée, comprise et appliquée au sein de l'organisme",
+      "Disponible pour les parties intéressées pertinentes",
+      "Revue périodiquement pour vérifier son adéquation continue",
+    ],
+    source: "ISO 9001:2015, §5.2",
   },
 
   enjeux_contexte: {
