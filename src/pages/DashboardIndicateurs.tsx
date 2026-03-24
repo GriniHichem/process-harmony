@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, BarChart3, AlertTriangle, TrendingUp, TrendingDown, Target, Minus, CheckCircle2, Percent, ArrowUp, ArrowDown, ArrowRight } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Download, BarChart3, AlertTriangle, TrendingUp, Target, Minus, Percent, ArrowUp, ArrowDown, ArrowRight, CalendarIcon, RotateCcw, Activity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { cn } from "@/lib/utils";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Label } from "recharts";
 
 type Indicator = {
   id: string; nom: string; formule: string | null; unite: string | null;
@@ -37,6 +40,8 @@ export default function DashboardIndicateurs() {
   const [loading, setLoading] = useState(true);
   const [filterProcessId, setFilterProcessId] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [dateDebut, setDateDebut] = useState<Date | undefined>();
+  const [dateFin, setDateFin] = useState<Date | undefined>();
 
   const isOnlyActeur = hasRole("acteur") && !hasRole("admin") && !hasRole("rmq") && !hasRole("responsable_processus") && !hasRole("consultant") && !hasRole("super_admin");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq") && !hasRole("super_admin");
@@ -102,10 +107,26 @@ export default function DashboardIndicateurs() {
   };
 
   const processMap = Object.fromEntries(processes.map(p => [p.id, p.nom]));
-  const valuesByIndicator = useMemo(() => allValues.reduce<Record<string, IndValue[]>>((acc, v) => {
+
+  // Filter values by date range
+  const filteredValues = useMemo(() => {
+    if (!dateDebut && !dateFin) return allValues;
+    return allValues.filter(v => {
+      const d = new Date(v.date_mesure);
+      if (dateDebut && d < dateDebut) return false;
+      if (dateFin) {
+        const endOfDay = new Date(dateFin);
+        endOfDay.setHours(23, 59, 59, 999);
+        if (d > endOfDay) return false;
+      }
+      return true;
+    });
+  }, [allValues, dateDebut, dateFin]);
+
+  const valuesByIndicator = useMemo(() => filteredValues.reduce<Record<string, IndValue[]>>((acc, v) => {
     (acc[v.indicator_id] ??= []).push(v);
     return acc;
-  }, {}), [allValues]);
+  }, {}), [filteredValues]);
 
   const filteredIndicators = useMemo(() => {
     let result = indicators;
@@ -150,7 +171,9 @@ export default function DashboardIndicateurs() {
   const measuredCount = totalIndicators - noMeasureCount;
   const complianceRate = measuredCount > 0 ? Math.round((okCount / measuredCount) * 100) : 0;
 
-  // Critical indicators (in alert)
+  const hasDateFilter = !!dateDebut || !!dateFin;
+
+  // Critical indicators
   const criticalIndicators = useMemo(() =>
     filteredIndicators
       .filter(i => getStatus(i) === "alert")
@@ -158,12 +181,12 @@ export default function DashboardIndicateurs() {
         const last = getLastValue(ind.id)!;
         const ecart = ind.cible ? Math.round(((last.valeur - ind.cible) / ind.cible) * 100) : null;
         const trend = getTrend(ind.id);
-        return { ...ind, lastValue: last.valeur, ecart, trend, processName: processMap[ind.process_id] ?? "—" };
+        return { ...ind, lastValue: last.valeur, lastDate: last.date_mesure, ecart, trend, processName: processMap[ind.process_id] ?? "—" };
       }),
     [filteredIndicators, valuesByIndicator]
   );
 
-  // Chart data: status distribution donut
+  // Donut data
   const donutData = useMemo(() => [
     { name: "À l'objectif", value: okCount, color: STATUS_COLORS.ok },
     { name: "Intermédiaire", value: warningCount, color: STATUS_COLORS.warning },
@@ -171,7 +194,7 @@ export default function DashboardIndicateurs() {
     { name: "Sans mesure", value: noMeasureCount, color: STATUS_COLORS.no_measure },
   ].filter(d => d.value > 0), [okCount, warningCount, alertCount, noMeasureCount]);
 
-  // Chart data: stacked bar by process
+  // Stacked bar by process
   const processBarsData = useMemo(() => {
     const map: Record<string, { name: string; ok: number; warning: number; alert: number; no_measure: number }> = {};
     filteredIndicators.forEach(ind => {
@@ -183,7 +206,7 @@ export default function DashboardIndicateurs() {
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
   }, [filteredIndicators, valuesByIndicator]);
 
-  // Chart data: grouped bar by type
+  // Grouped bar by type
   const typeBarsData = useMemo(() => {
     const map: Record<string, { name: string; ok: number; warning: number; alert: number; no_measure: number }> = {};
     filteredIndicators.forEach(ind => {
@@ -209,6 +232,15 @@ export default function DashboardIndicateurs() {
       case "up": return <ArrowUp className="h-4 w-4 text-emerald-600" />;
       case "down": return <ArrowDown className="h-4 w-4 text-destructive" />;
       default: return <ArrowRight className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getValueCellClass = (status: string) => {
+    switch (status) {
+      case "ok": return "text-right font-semibold text-emerald-600 bg-emerald-500/5";
+      case "alert": return "text-right font-semibold text-destructive bg-destructive/5";
+      case "warning": return "text-right font-semibold text-yellow-600 bg-yellow-500/5";
+      default: return "text-right text-muted-foreground";
     }
   };
 
@@ -249,13 +281,24 @@ export default function DashboardIndicateurs() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="rounded-lg border bg-background p-2 shadow-md text-xs">
-        <p className="font-medium mb-1">{label}</p>
+      <div className="rounded-lg border bg-background p-2.5 shadow-lg text-xs">
+        <p className="font-semibold mb-1 text-foreground">{label}</p>
         {payload.map((p: any, i: number) => (
-          <p key={i} style={{ color: p.fill || p.color }}>{p.name}: {p.value}</p>
+          <p key={i} className="flex items-center gap-1.5">
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: p.fill || p.color }} />
+            <span className="text-muted-foreground">{p.name}:</span>
+            <span className="font-medium text-foreground">{p.value}</span>
+          </p>
         ))}
       </div>
     );
+  };
+
+  const truncateName = (name: string, max = 18) => name.length > max ? name.slice(0, max) + "…" : name;
+
+  const resetFilters = () => {
+    setDateDebut(undefined);
+    setDateFin(undefined);
   };
 
   if (loading) {
@@ -272,79 +315,154 @@ export default function DashboardIndicateurs() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Dashboard Indicateurs 360°</h1>
-          <p className="text-muted-foreground">Vue globale de la performance — tous processus</p>
+          <p className="text-sm text-muted-foreground">
+            Vue globale de la performance — tous processus
+            {hasDateFilter && (
+              <span className="ml-2 text-primary font-medium">
+                (Période : {dateDebut ? format(dateDebut, "dd/MM/yyyy", { locale: fr }) : "…"} → {dateFin ? format(dateFin, "dd/MM/yyyy", { locale: fr }) : "…"})
+              </span>
+            )}
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Select value={filterProcessId} onValueChange={setFilterProcessId}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Processus" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les processus</SelectItem>
-              {processes.map(p => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les types</SelectItem>
-              {Object.entries(TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button onClick={exportCSV} variant="outline" disabled={filteredIndicators.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Exporter CSV
-          </Button>
-        </div>
+        <Button onClick={exportCSV} variant="outline" disabled={filteredIndicators.length === 0}>
+          <Download className="mr-2 h-4 w-4" />
+          Exporter CSV
+        </Button>
       </div>
 
-      {/* KPI Cards — 6 cards, 2 rows of 3 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total indicateurs</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{totalIndicators}</div></CardContent>
+      {/* Filters Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Activity className="h-4 w-4 text-muted-foreground" />
+            Filtres
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Processus</label>
+              <Select value={filterProcessId} onValueChange={setFilterProcessId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Processus" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les processus</SelectItem>
+                  {processes.map(p => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Type d'indicateur</label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les types</SelectItem>
+                  {Object.entries(TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Date début</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateDebut && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateDebut ? format(dateDebut, "dd/MM/yyyy", { locale: fr }) : "Sélectionner"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={dateDebut} onSelect={setDateDebut} initialFocus className="p-3 pointer-events-auto" locale={fr} />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Date fin</label>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal", !dateFin && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFin ? format(dateFin, "dd/MM/yyyy", { locale: fr }) : "Sélectionner"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateFin} onSelect={setDateFin} initialFocus className="p-3 pointer-events-auto" locale={fr} />
+                  </PopoverContent>
+                </Popover>
+                {hasDateFilter && (
+                  <Button variant="ghost" size="icon" onClick={resetFilters} title="Réinitialiser les dates">
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPI Cards — 6 cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="border-l-4 border-l-primary">
+          <CardContent className="pt-5 pb-4 px-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">Total</span>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="text-2xl font-bold">{totalIndicators}</div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{processes.length} processus</p>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">À l'objectif</CardTitle>
-            <Target className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-emerald-600">{okCount}</div></CardContent>
+        <Card className="border-l-4" style={{ borderLeftColor: STATUS_COLORS.ok }}>
+          <CardContent className="pt-5 pb-4 px-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">À l'objectif</span>
+              <Target className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div className="text-2xl font-bold text-emerald-600">{okCount}</div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">sur {measuredCount} mesurés</p>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Intermédiaire</CardTitle>
-            <TrendingUp className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-yellow-600">{warningCount}</div></CardContent>
+        <Card className="border-l-4" style={{ borderLeftColor: STATUS_COLORS.warning }}>
+          <CardContent className="pt-5 pb-4 px-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">Intermédiaire</span>
+              <TrendingUp className="h-4 w-4 text-yellow-600" />
+            </div>
+            <div className="text-2xl font-bold text-yellow-600">{warningCount}</div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">entre seuil et cible</p>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">En alerte</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-destructive">{alertCount}</div></CardContent>
+        <Card className="border-l-4" style={{ borderLeftColor: STATUS_COLORS.alert }}>
+          <CardContent className="pt-5 pb-4 px-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">En alerte</span>
+              <AlertTriangle className="h-4 w-4 text-destructive animate-pulse" />
+            </div>
+            <div className="text-2xl font-bold text-destructive">{alertCount}</div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">sous le seuil</p>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sans mesure</CardTitle>
-            <Minus className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-muted-foreground">{noMeasureCount}</div></CardContent>
+        <Card className="border-l-4" style={{ borderLeftColor: STATUS_COLORS.no_measure }}>
+          <CardContent className="pt-5 pb-4 px-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">Sans mesure</span>
+              <Minus className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="text-2xl font-bold text-muted-foreground">{noMeasureCount}</div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">aucune donnée</p>
+          </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taux de conformité</CardTitle>
-            <Percent className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
+        <Card className="border-l-4 border-l-primary bg-primary/5">
+          <CardContent className="pt-5 pb-4 px-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-muted-foreground">Conformité</span>
+              <Percent className="h-4 w-4 text-primary" />
+            </div>
             <div className="text-2xl font-bold text-primary">{complianceRate}%</div>
-            <p className="text-xs text-muted-foreground">{okCount} sur {measuredCount} mesurés</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{okCount}/{measuredCount} mesurés</p>
           </CardContent>
         </Card>
       </div>
@@ -352,16 +470,17 @@ export default function DashboardIndicateurs() {
       {/* Charts Section */}
       {totalIndicators > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Donut: Status Distribution */}
+          {/* Donut */}
           <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Répartition par statut</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Répartition par statut</CardTitle></CardHeader>
             <CardContent className="flex items-center justify-center">
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={donutData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={2}>
+                  <Pie data={donutData} cx="50%" cy="45%" innerRadius={60} outerRadius={95} dataKey="value" paddingAngle={2} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
                     {donutData.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
+                    <Label value={`${complianceRate}%`} position="center" className="fill-foreground text-xl font-bold" />
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
                   <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
@@ -372,18 +491,19 @@ export default function DashboardIndicateurs() {
 
           {/* Stacked Bar: By Process */}
           <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Performance par processus</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Performance par processus</CardTitle></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={processBarsData} layout="vertical" margin={{ left: 0, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10 }} />
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={processBarsData} layout="vertical" margin={{ left: 10, right: 16, top: 5, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} domain={[0, "auto"]} tick={{ fontSize: 11 }} />
+                  <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 10 }} tickFormatter={(v) => truncateName(v, 16)} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="ok" stackId="a" fill={STATUS_COLORS.ok} name="À l'objectif" />
+                  <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
+                  <Bar dataKey="ok" stackId="a" fill={STATUS_COLORS.ok} name="À l'objectif" radius={[0, 0, 0, 0]} />
                   <Bar dataKey="warning" stackId="a" fill={STATUS_COLORS.warning} name="Intermédiaire" />
                   <Bar dataKey="alert" stackId="a" fill={STATUS_COLORS.alert} name="En alerte" />
-                  <Bar dataKey="no_measure" stackId="a" fill={STATUS_COLORS.no_measure} name="Sans mesure" />
+                  <Bar dataKey="no_measure" stackId="a" fill={STATUS_COLORS.no_measure} name="Sans mesure" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -391,18 +511,19 @@ export default function DashboardIndicateurs() {
 
           {/* Grouped Bar: By Type */}
           <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Répartition par type</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Répartition par type</CardTitle></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={typeBarsData} margin={{ left: 0, right: 10 }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={typeBarsData} margin={{ left: 0, right: 16, top: 5, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} domain={[0, "auto"]} tick={{ fontSize: 11 }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="ok" fill={STATUS_COLORS.ok} name="À l'objectif" />
-                  <Bar dataKey="warning" fill={STATUS_COLORS.warning} name="Intermédiaire" />
-                  <Bar dataKey="alert" fill={STATUS_COLORS.alert} name="En alerte" />
-                  <Bar dataKey="no_measure" fill={STATUS_COLORS.no_measure} name="Sans mesure" />
+                  <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
+                  <Bar dataKey="ok" fill={STATUS_COLORS.ok} name="À l'objectif" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="warning" fill={STATUS_COLORS.warning} name="Intermédiaire" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="alert" fill={STATUS_COLORS.alert} name="En alerte" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="no_measure" fill={STATUS_COLORS.no_measure} name="Sans mesure" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -410,12 +531,12 @@ export default function DashboardIndicateurs() {
         </div>
       )}
 
-      {/* Critical Indicators Section */}
+      {/* Critical Indicators */}
       {criticalIndicators.length > 0 && (
-        <Card className="border-destructive/30">
-          <CardHeader>
+        <Card className="border-destructive/30 bg-destructive/[0.02]">
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className="h-4 w-4 animate-pulse" />
               Indicateurs critiques ({criticalIndicators.length})
             </CardTitle>
           </CardHeader>
@@ -429,6 +550,7 @@ export default function DashboardIndicateurs() {
                     <TableHead className="text-right">Dernière valeur</TableHead>
                     <TableHead className="text-right">Cible</TableHead>
                     <TableHead className="text-right">Écart</TableHead>
+                    <TableHead>Date</TableHead>
                     <TableHead>Tendance</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -437,9 +559,10 @@ export default function DashboardIndicateurs() {
                     <TableRow key={ind.id}>
                       <TableCell className="font-medium">{ind.processName}</TableCell>
                       <TableCell>{ind.nom}</TableCell>
-                      <TableCell className="text-right text-destructive font-medium">{ind.lastValue} {ind.unite ?? ""}</TableCell>
+                      <TableCell className="text-right text-destructive font-semibold">{ind.lastValue} {ind.unite ?? ""}</TableCell>
                       <TableCell className="text-right">{ind.cible ?? "—"} {ind.unite ?? ""}</TableCell>
-                      <TableCell className="text-right text-destructive font-medium">{ind.ecart != null ? `${ind.ecart}%` : "—"}</TableCell>
+                      <TableCell className="text-right text-destructive font-semibold">{ind.ecart != null ? `${ind.ecart}%` : "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{format(new Date(ind.lastDate), "dd/MM/yyyy", { locale: fr })}</TableCell>
                       <TableCell>{trendIcon(ind.trend)}</TableCell>
                     </TableRow>
                   ))}
@@ -452,7 +575,7 @@ export default function DashboardIndicateurs() {
 
       {/* Full Table */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">Récapitulatif complet des indicateurs</CardTitle>
         </CardHeader>
         <CardContent>
@@ -461,7 +584,7 @@ export default function DashboardIndicateurs() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
                     <TableHead>Processus</TableHead>
                     <TableHead>Indicateur</TableHead>
@@ -478,13 +601,13 @@ export default function DashboardIndicateurs() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredIndicators.map(ind => {
+                  {filteredIndicators.map((ind, idx) => {
                     const last = getLastValue(ind.id);
                     const status = getStatus(ind);
                     const trend = getTrend(ind.id);
                     const nbMesures = (valuesByIndicator[ind.id] ?? []).length;
                     return (
-                      <TableRow key={ind.id}>
+                      <TableRow key={ind.id} className={idx % 2 === 0 ? "bg-muted/30" : ""}>
                         <TableCell className="font-medium">{processMap[ind.process_id] ?? "—"}</TableCell>
                         <TableCell>{ind.nom}</TableCell>
                         <TableCell>{TYPE_LABELS[ind.type_indicateur] ?? ind.type_indicateur}</TableCell>
@@ -492,8 +615,10 @@ export default function DashboardIndicateurs() {
                         <TableCell className="text-right">{ind.cible ?? "—"}</TableCell>
                         <TableCell className="text-right">{ind.seuil_alerte ?? "—"}</TableCell>
                         <TableCell>{FREQ_LABELS[ind.frequence] ?? ind.frequence}</TableCell>
-                        <TableCell className="text-right">{last ? last.valeur : "—"}</TableCell>
-                        <TableCell>{last ? format(new Date(last.date_mesure), "dd/MM/yyyy", { locale: fr }) : "—"}</TableCell>
+                        <TableCell className={getValueCellClass(status)}>
+                          {last ? last.valeur : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs">{last ? format(new Date(last.date_mesure), "dd/MM/yyyy", { locale: fr }) : "—"}</TableCell>
                         <TableCell className="text-center">{trendIcon(trend)}</TableCell>
                         <TableCell className="text-center">{nbMesures}</TableCell>
                         <TableCell>{statusBadge(status)}</TableCell>
