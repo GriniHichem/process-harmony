@@ -381,7 +381,7 @@ export async function exportObjectifsQualitePdf() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 3. REVUE DE DIRECTION
+// 3. REVUE DE PROCESSUS
 // ═══════════════════════════════════════════════════════════════
 
 export async function exportRevueDirectionPdf(reviewId: string) {
