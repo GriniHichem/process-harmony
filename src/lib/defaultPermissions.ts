@@ -19,6 +19,7 @@ export type AppModule =
   | "enjeux_contexte"
   | "politique_qualite"
   | "revue_direction"
+  | "revue_direction_iso"
   | "competences"
   | "satisfaction_client"
   | "fournisseurs"
