@@ -235,7 +235,9 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
 <meta charset="utf-8">
 <title>Fiche Processus – ${esc(p.code)} ${esc(p.nom)}</title>
 <style>
-  @page { size: A4 landscape; margin: 8mm 10mm; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+  @page bpmn-landscape { size: A4 landscape; margin: 8mm 10mm; }
+  .bpmn-page { page: bpmn-landscape; page-break-before: always; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
