@@ -33,6 +33,7 @@ const EnjeuContexte = lazy(() => import("./pages/EnjeuContexte"));
 const GroupesActeurs = lazy(() => import("./pages/GroupesActeurs"));
 const PolitiqueQualite = lazy(() => import("./pages/PolitiqueQualite"));
 const RevueDirection = lazy(() => import("./pages/RevueDirection"));
+const RevueDirectionISO = lazy(() => import("./pages/RevueDirectionISO"));
 const CompetencesPage = lazy(() => import("./pages/Competences"));
 const SatisfactionClient = lazy(() => import("./pages/SatisfactionClient"));
 const Fournisseurs = lazy(() => import("./pages/Fournisseurs"));
