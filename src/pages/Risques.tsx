@@ -161,11 +161,17 @@ export default function Risques() {
     fetchData();
   };
 
-  const criticityColor = (c: number | null) => {
-    if (!c) return "";
-    if (c >= 16) return "text-destructive";
-    if (c >= 9) return "text-warning";
-    return "text-success";
+  const classifyRisk = (r: Risk): { label: string; color: string; badgeClass: string } => {
+    const score = r.criticite ?? 0;
+    const p = r.probabilite ?? 0;
+    const g = r.impact ?? 0;
+    if (score >= 10 || p === 5 || g === 4) {
+      return { label: "Majeur", color: "text-destructive", badgeClass: "bg-destructive/10 text-destructive border-destructive/30" };
+    }
+    if (score >= 4) {
+      return { label: "Modéré", color: "text-warning", badgeClass: "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700" };
+    }
+    return { label: "Acceptable", color: "text-success", badgeClass: "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700" };
   };
 
   const filteredRisks = risks.filter((r) => filterProcessId === "all" || r.process_id === filterProcessId);
