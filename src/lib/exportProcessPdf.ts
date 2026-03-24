@@ -362,14 +362,6 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
     return `<tr><td style="text-align:center;font-family:monospace;font-size:9px">${esc(t.code)}</td><td>${t.parent_code ? "↳ " : ""}${esc(t.description)}</td><td>${esc(resp)}</td></tr>`;
   }).join("")}</tbody></table>` : `<p class="empty">Aucune activité définie</p>`}
 
-  <!-- ═══ BPMN ═══ -->
-  ${bpmnData && bpmnData.nodes.length > 0 ? `
-  <div class="bpmn-page">
-  <div class="sec-title">Diagramme BPMN</div>
-  <div style="text-align:center;padding:12px;border:1px solid #cbd5e1;margin-bottom:8px">
-    ${renderBpmnSvgString(bpmnData)}
-  </div>
-  </div>` : ""}
 
   <!-- ═══ INTERACTIONS ═══ -->
   <div class="sec-title">Processus en interaction</div>
