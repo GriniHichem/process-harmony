@@ -149,6 +149,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: READ_EDIT,
     politique_qualite: READ_DETAIL,
     revue_direction: READ_DETAIL,
+    revue_direction_iso: READ_DETAIL,
     competences: READ_DETAIL,
     satisfaction_client: READ_DETAIL,
     fournisseurs: READ_DETAIL,
