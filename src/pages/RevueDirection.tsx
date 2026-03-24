@@ -122,7 +122,7 @@ export default function RevueDirection() {
           </TableHeader>
           <TableBody>
             {reviews.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucune revue de direction enregistrée.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucune revue de processus enregistrée.</TableCell></TableRow>
             ) : reviews.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell className="font-mono text-xs">{r.reference}</TableCell>
