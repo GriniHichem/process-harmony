@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 const ENTITY_TYPES = [
   { value: "libre", label: "Point libre", color: "bg-muted text-muted-foreground" },
+  { value: "iso", label: "Point ISO", color: "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200" },
   { value: "processus", label: "Processus", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
   { value: "indicateur", label: "Indicateur", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200" },
   { value: "risque", label: "Risque/Opportunité", color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" },
