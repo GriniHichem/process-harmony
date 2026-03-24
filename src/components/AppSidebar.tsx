@@ -32,6 +32,7 @@ const processItems: NavItem[] = [
 ];
 
 const qualityItems: NavItem[] = [
+  { title: "Dashboard Indicateurs", url: "/dashboard-indicateurs", icon: TrendingUp, module: "indicateurs" },
   { title: "Documents", url: "/documents", icon: FileText, module: "documents" },
   { title: "Indicateurs", url: "/indicateurs", icon: BarChart3, module: "indicateurs" },
   { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle, module: "risques" },

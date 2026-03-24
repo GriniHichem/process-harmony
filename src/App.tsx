@@ -83,6 +83,7 @@ const App = () => (
               <Route path="/bpmn" element={<ProtectedPage><RoleGuard requiredModule="bpmn"><Bpmn /></RoleGuard></ProtectedPage>} />
               <Route path="/evaluation-processus" element={<ProtectedPage><RoleGuard requiredModule="evaluation_processus"><EvaluationProcessus /></RoleGuard></ProtectedPage>} />
               {/* Manager processus */}
+              <Route path="/dashboard-indicateurs" element={<ProtectedPage><RoleGuard requiredModule="indicateurs"><DashboardIndicateurs /></RoleGuard></ProtectedPage>} />
               <Route path="/documents" element={<ProtectedPage><RoleGuard requiredModule="documents"><Documents /></RoleGuard></ProtectedPage>} />
               <Route path="/indicateurs" element={<ProtectedPage><RoleGuard requiredModule="indicateurs"><Indicateurs /></RoleGuard></ProtectedPage>} />
               <Route path="/risques" element={<ProtectedPage><RoleGuard requiredModule="risques"><Risques /></RoleGuard></ProtectedPage>} />
