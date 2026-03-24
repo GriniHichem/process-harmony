@@ -73,7 +73,7 @@ export default function RevueDirection() {
         if (error) throw error;
       }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["management_reviews"] }); setDialog(false); toast({ title: "Revue de direction enregistrée" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["management_reviews"] }); setDialog(false); toast({ title: "Revue de processus enregistrée" }); },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
