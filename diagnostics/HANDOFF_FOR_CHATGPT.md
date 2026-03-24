@@ -15,7 +15,7 @@
 - **7 Edge Functions** dans `supabase/functions/`
 - **3 storage buckets** : `documents` (privé), `survey-images` (public), `branding` (public)
 
-Le projet a été développé sur **Lovable Cloud** (Supabase managé). Il n'y a PAS de `docker-compose.yml` dans le repo. Pour un déploiement sur serveur Ubuntu, il faut soit :
+Le projet a été développé avec **Supabase Cloud**. Il n'y a PAS de `docker-compose.yml` dans le repo. Pour un déploiement sur serveur Ubuntu, il faut soit :
 1. Utiliser le **Supabase CLI** (`supabase start`) avec Docker
 2. Installer la **stack Supabase self-hosted** séparément
 
