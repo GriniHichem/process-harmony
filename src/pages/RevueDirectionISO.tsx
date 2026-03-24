@@ -51,19 +51,19 @@ const SORTIE_SECTIONS = ISO_932_SECTIONS.filter(s => s.key.startsWith("sortie_")
 async function prepopulateIsoCategories(reviewId: string) {
   const categories = [
     // §9.3.2 Éléments d'entrée
-    { ordre: 1, type: "libre", label: "a) État d'avancement des actions des revues précédentes" },
-    { ordre: 2, type: "libre", label: "b) Modifications des enjeux externes et internes" },
-    { ordre: 3, type: "libre", label: "c) Performance et efficacité du SMQ" },
-    { ordre: 4, type: "libre", label: "c.1) Satisfaction clients et retours parties intéressées" },
-    { ordre: 5, type: "libre", label: "c.2) Degré de réalisation des objectifs qualité" },
-    { ordre: 6, type: "libre", label: "c.3) Performance des processus et conformité" },
-    { ordre: 7, type: "libre", label: "c.4) Non-conformités et actions correctives" },
-    { ordre: 8, type: "libre", label: "c.5) Résultats de surveillance et de mesure" },
-    { ordre: 9, type: "libre", label: "c.6) Résultats d'audit" },
-    { ordre: 10, type: "libre", label: "c.7) Performances des prestataires externes" },
-    { ordre: 11, type: "libre", label: "d) Adéquation des ressources" },
-    { ordre: 12, type: "libre", label: "e) Efficacité des actions face aux risques et opportunités" },
-    { ordre: 13, type: "libre", label: "f) Opportunités d'amélioration" },
+    { ordre: 1, type: "iso", label: "a) État d'avancement des actions des revues précédentes" },
+    { ordre: 2, type: "iso", label: "b) Modifications des enjeux externes et internes" },
+    { ordre: 3, type: "iso", label: "c) Performance et efficacité du SMQ" },
+    { ordre: 4, type: "iso", label: "c.1) Satisfaction clients et retours parties intéressées" },
+    { ordre: 5, type: "iso", label: "c.2) Degré de réalisation des objectifs qualité" },
+    { ordre: 6, type: "iso", label: "c.3) Performance des processus et conformité" },
+    { ordre: 7, type: "iso", label: "c.4) Non-conformités et actions correctives" },
+    { ordre: 8, type: "iso", label: "c.5) Résultats de surveillance et de mesure" },
+    { ordre: 9, type: "iso", label: "c.6) Résultats d'audit" },
+    { ordre: 10, type: "iso", label: "c.7) Performances des prestataires externes" },
+    { ordre: 11, type: "iso", label: "d) Adéquation des ressources" },
+    { ordre: 12, type: "iso", label: "e) Efficacité des actions face aux risques et opportunités" },
+    { ordre: 13, type: "iso", label: "f) Opportunités d'amélioration" },
   ];
 
   const items = categories.map(c => ({
