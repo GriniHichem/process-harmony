@@ -1,51 +1,51 @@
 
 
-# Refonte du logigramme statique PDF — Lisibilité et Entrées/Sorties
+# Dashboard Global Indicateurs avec Export CSV historique
 
-## Problèmes identifiés
+## Contexte
 
-1. **Texte illisible** : polices de 7-9px, cartes de 280×52px — beaucoup trop petit pour un PDF A4
-2. **Entrées/Sorties absentes** : la version interactive affiche 3 colonnes (Entrées | Activité | Sorties) mais le rendu statique n'affiche que le code et la description
-3. **Espace gaspillé** : le diagramme est centré sur x=300 alors que la page portrait fait ~170mm (~480pt) de large disponible
+L'utilisateur veut un dashboard qui agrege tous les indicateurs de tous les processus auxquels il a acces (meme logique d'acces que la page Indicateurs existante), avec export CSV incluant l'historique des mesures, en format point-virgule et UTF-8 BOM pour Excel FR.
 
-## Modifications dans `src/lib/renderFlowchartSvgString.ts`
+## Fichiers
 
-### 1. Agrandir toutes les dimensions
-- `CARD_W` : 280 → **460** (3 colonnes : 100 + 260 + 100)
-- `CARD_H` : 52 → **dynamique** (min 90, adapté au contenu entrées/sorties)
-- `GW_S` : 32 → **44**
-- `CIRCLE_R` : 16 → **22**
-- `V_GAP` : 50 → **70**
-- `centerX` : 300 → **400**
+### 1. Creer `src/pages/DashboardIndicateurs.tsx`
 
-### 2. Ajouter les entrées/sorties sur chaque carte
-- Accepter `processElements` en paramètre supplémentaire
-- Parser `task.entrees` et `task.sorties` (codes séparés par virgule)
-- Rendre une carte à 3 colonnes en SVG pur :
-  - **Colonne gauche** (fond bleu clair) : titre "Entrées" + liste des éléments
-  - **Centre** : code en gras + description + responsable en bas
-  - **Colonne droite** (fond vert clair) : titre "Sorties" + liste des éléments
+**Acces** : reprendre exactement la logique de `Indicateurs.tsx` lignes 52-111 :
+- Admin/RMQ/consultant : tous les processus
+- Responsable processus : ses processus (`responsable_id = user.id`)
+- Acteur : processus ou il a des taches (`process_tasks.responsable_id = acteur_id`)
+- Si un seul processus accessible, pre-selectionner automatiquement
 
-### 3. Augmenter toutes les tailles de police
-- Code : 8px → **11px**
-- Description : 9px → **12px**
-- Responsable : 7px → **10px**
-- Labels gateway : 7.5px → **10px**
-- Labels edges : 7px → **9px**
-- Entrées/Sorties : **10px**
-- Start/End : 8px → **11px**
+**Donnees chargees** :
+- `processes` (filtres par acces)
+- `indicators` (filtres par process_id)
+- `indicator_values` pour TOUS les indicateurs (historique complet, `order by date_mesure asc`)
 
-### 4. Adapter le calcul de hauteur dynamique
-- Fonction `calcCardHeight(task, processElements)` similaire à la version interactive
-- Hauteur basée sur max(entrées.length, sorties.length) et longueur de la description
+**KPI Cards (4)** :
+- Total indicateurs
+- En alerte (derniere valeur < seuil_alerte)
+- A l'objectif (derniere valeur >= cible)
+- Sans mesure
 
-### 5. Mettre à jour la signature dans `exportProcessPdf.ts`
-- Passer `processElements` au `renderFlowchartSvgString(tasks, acteurMap, processElements)`
+**Filtre** : Select processus ou "Tous"
 
-## Fichiers modifiés
+**Tableau** : Processus | Indicateur | Type | Unite | Cible | Seuil | Frequence | Derniere valeur | Date derniere mesure | Statut (badge couleur)
 
-| Fichier | Action |
-|---|---|
-| `src/lib/renderFlowchartSvgString.ts` | Refonte majeure : dimensions, 3 colonnes, polices |
-| `src/lib/exportProcessPdf.ts` | Passer `processElements` à l'appel du renderer |
+**Export CSV** : bouton "Exporter CSV" qui genere un fichier avec :
+- BOM UTF-8 (`\uFEFF`)
+- Separateur `;`
+- Une ligne par mesure historique (pas par indicateur)
+- Colonnes : `Processus;Indicateur;Type;Unité;Cible;Seuil d'alerte;Fréquence;Formule;Date mesure;Valeur;Commentaire`
+- Indicateurs sans mesure : une ligne avec colonnes date/valeur/commentaire vides
+- Guillemets autour des valeurs texte (echapper les `"` internes)
+- Nom fichier : `indicateurs_historique_YYYY-MM-DD.csv`
+
+### 2. Modifier `src/App.tsx`
+- Ajouter `const DashboardIndicateurs = lazy(() => import("./pages/DashboardIndicateurs"));`
+- Ajouter route `/dashboard-indicateurs` avec `RoleGuard requiredModule="indicateurs"`
+
+### 3. Modifier `src/components/AppSidebar.tsx`
+- Ajouter dans `qualityItems` en premiere position :
+  `{ title: "Dashboard Indicateurs", url: "/dashboard-indicateurs", icon: TrendingUp, module: "indicateurs" }`
+- Ajouter `TrendingUp` dans les imports lucide
 
