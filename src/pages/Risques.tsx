@@ -45,7 +45,7 @@ const classifyRisk = (r: Risk): { label: string; badgeClass: string } => {
 };
 
 const classifyOpportunity = (r: Risk): { label: string; badgeClass: string } => {
-  const score = (r.impact ?? 0) * (r.faisabilite ?? 0);
+  const score = r.criticite ?? 0;
   if (score >= 12) {
     return { label: "Prioritaire", badgeClass: "bg-primary/10 text-primary border-primary/30" };
   }
@@ -55,7 +55,7 @@ const classifyOpportunity = (r: Risk): { label: string; badgeClass: string } => 
   return { label: "Faible / à surveiller", badgeClass: "bg-muted text-muted-foreground border-border" };
 };
 
-const getOpportunityScore = (r: Risk) => (r.impact ?? 0) * (r.faisabilite ?? 0);
+const getOpportunityScore = (r: Risk) => r.criticite ?? 0;
 
 export default function Risques() {
   const { hasRole, hasPermission, user } = useAuth();
