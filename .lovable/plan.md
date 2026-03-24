@@ -1,43 +1,51 @@
 
 
-# Logigramme en portrait quand BPMN désactivé
+# Refonte du logigramme statique PDF — Lisibilité et Entrées/Sorties
 
-## Contexte
+## Problèmes identifiés
 
-Actuellement, si `inclure_bpmn_pdf` est activé, le BPMN s'affiche en dernière page en paysage. Si désactivé, rien ne s'affiche. L'utilisateur veut que, quand le BPMN est désactivé, le **logigramme** (flowchart des activités) soit inséré en mode **portrait (A4)** juste après la section "Activités du processus".
+1. **Texte illisible** : polices de 7-9px, cartes de 280×52px — beaucoup trop petit pour un PDF A4
+2. **Entrées/Sorties absentes** : la version interactive affiche 3 colonnes (Entrées | Activité | Sorties) mais le rendu statique n'affiche que le code et la description
+3. **Espace gaspillé** : le diagramme est centré sur x=300 alors que la page portrait fait ~170mm (~480pt) de large disponible
 
-## Approche
+## Modifications dans `src/lib/renderFlowchartSvgString.ts`
 
-### 1. Créer `src/lib/renderFlowchartSvgString.ts`
+### 1. Agrandir toutes les dimensions
+- `CARD_W` : 280 → **460** (3 colonnes : 100 + 260 + 100)
+- `CARD_H` : 52 → **dynamique** (min 90, adapté au contenu entrées/sorties)
+- `GW_S` : 32 → **44**
+- `CIRCLE_R` : 16 → **22**
+- `V_GAP` : 50 → **70**
+- `centerX` : 300 → **400**
 
-Nouveau fichier qui produit un SVG statique (string) du logigramme, similaire à `renderBpmnSvgString.ts` mais pour les tâches du processus. Il réutilisera la logique de layout de `ProcessTasksFlowchart.tsx` :
+### 2. Ajouter les entrées/sorties sur chaque carte
+- Accepter `processElements` en paramètre supplémentaire
+- Parser `task.entrees` et `task.sorties` (codes séparés par virgule)
+- Rendre une carte à 3 colonnes en SVG pur :
+  - **Colonne gauche** (fond bleu clair) : titre "Entrées" + liste des éléments
+  - **Centre** : code en gras + description + responsable en bas
+  - **Colonne droite** (fond vert clair) : titre "Sorties" + liste des éléments
 
-- Extraire et adapter `computeLayout()` en version standalone (sans dépendance React)
-- Rendre les formes : cercle start/end, cartes d'activité (rectangles arrondis avec code + description), losanges gateway, flèches
-- Simplifier le rendu : pas de foreignObject, pas d'interactivité, pas de hover — juste des `<rect>`, `<text>`, `<polygon>`, `<path>`
-- Calculer automatiquement le viewBox pour adapter le contenu à une largeur portrait (~170mm)
+### 3. Augmenter toutes les tailles de police
+- Code : 8px → **11px**
+- Description : 9px → **12px**
+- Responsable : 7px → **10px**
+- Labels gateway : 7.5px → **10px**
+- Labels edges : 7px → **9px**
+- Entrées/Sorties : **10px**
+- Start/End : 8px → **11px**
 
-### 2. Modifier `src/lib/exportProcessPdf.ts`
+### 4. Adapter le calcul de hauteur dynamique
+- Fonction `calcCardHeight(task, processElements)` similaire à la version interactive
+- Hauteur basée sur max(entrées.length, sorties.length) et longueur de la description
 
-- Dans `fetchAllProcessData()` : toujours charger les tasks et elements (déjà fait)
-- Dans `buildHtml()` :
-  - **Si BPMN activé** : garder le comportement actuel (BPMN en dernière page, paysage)
-  - **Si BPMN désactivé** : insérer le SVG du logigramme juste **après** la section "Activités du processus", en portrait, avec un titre "Logigramme du processus"
-  - Le logigramme reste dans le flux portrait normal (pas de page-break sauf si nécessaire pour la taille)
+### 5. Mettre à jour la signature dans `exportProcessPdf.ts`
+- Passer `processElements` au `renderFlowchartSvgString(tasks, acteurMap, processElements)`
 
-## Fichiers
+## Fichiers modifiés
 
 | Fichier | Action |
 |---|---|
-| `src/lib/renderFlowchartSvgString.ts` | **Créer** — rendu SVG statique du logigramme |
-| `src/lib/exportProcessPdf.ts` | **Modifier** — intégrer le logigramme portrait après les activités quand BPMN désactivé |
-
-## Détails techniques du rendu SVG statique
-
-Le logigramme statique inclura :
-- Cercle vert "Début" et cercle rouge "Fin"
-- Cartes d'activités : rectangle arrondi avec code en gras + description, couleur de bordure par responsable
-- Losanges gateway (×, +, ○) pour les flux conditionnels/parallèles/inclusifs
-- Flèches orthogonales entre les éléments avec labels de condition
-- Pas de données d'entrée/sortie par tâche (trop détaillé pour le PDF) — juste le flux principal
+| `src/lib/renderFlowchartSvgString.ts` | Refonte majeure : dimensions, 3 colonnes, polices |
+| `src/lib/exportProcessPdf.ts` | Passer `processElements` à l'appel du renderer |
 
