@@ -199,12 +199,9 @@ export default function Risques() {
     if (isOpp) {
       const faisVal = Number(editRisk.faisabilite);
       updateData.faisabilite = faisVal;
-      updateData.criticite = impactVal * faisVal;
-      updateData.probabilite = null;
+      updateData.probabilite = faisVal;
     } else {
-      const probVal = Number(editRisk.probabilite);
-      updateData.probabilite = probVal;
-      updateData.criticite = probVal * impactVal;
+      updateData.probabilite = Number(editRisk.probabilite);
       updateData.faisabilite = null;
     }
     const { error } = await supabase.from("risks_opportunities").update(updateData).eq("id", editRisk.id);
