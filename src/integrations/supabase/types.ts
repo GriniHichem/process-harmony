@@ -2348,6 +2348,7 @@ export type Database = {
           created_at: string
           criticite: number | null
           description: string
+          faisabilite: number | null
           id: string
           impact: number | null
           probabilite: number | null
@@ -2361,6 +2362,7 @@ export type Database = {
           created_at?: string
           criticite?: number | null
           description: string
+          faisabilite?: number | null
           id?: string
           impact?: number | null
           probabilite?: number | null
@@ -2374,6 +2376,7 @@ export type Database = {
           created_at?: string
           criticite?: number | null
           description?: string
+          faisabilite?: number | null
           id?: string
           impact?: number | null
           probabilite?: number | null
