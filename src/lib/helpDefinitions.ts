@@ -279,8 +279,13 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     category: "role",
     isoRef: "§7.2",
     definition:
-      "Ressources humaines indispensables à la réalisation des processus. Les acteurs (internes et externes) et leurs rôles doivent être identifiés, ainsi que les ressources spécifiques : matérielles, informationnelles ou humaines (acteurs, services, experts…).",
-    source: "p.24 & p.50",
+      "L'organisme doit déterminer les compétences nécessaires des personnes effectuant un travail qui a une incidence sur les performances et l'efficacité du SMQ, et s'assurer que ces personnes sont compétentes sur la base d'une formation initiale ou professionnelle, ou d'une expérience appropriée.",
+    details: [
+      "Mener des actions pour acquérir les compétences (formation, tutorat, réaffectation)",
+      "Évaluer l'efficacité des actions entreprises",
+      "Conserver des informations documentées comme preuves des compétences",
+    ],
+    source: "ISO 9001:2015, §7.2",
   },
 
   parties_interessees: {
