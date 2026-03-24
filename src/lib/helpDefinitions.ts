@@ -675,7 +675,7 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     definition:
       "Action décidée suite à l'analyse des indicateurs, des audits ou des revues, visant à améliorer la performance du processus. Les actions issues du plan d'amélioration découlent du tableau de bord du processus.",
     details: [
-      "Comptes rendus de revue de direction et de revue de processus",
+      "Comptes rendus de revue de processus",
       "Rapports d'audit et actions consécutives",
       "Mesure du niveau de maturité du processus",
       "Historique des modifications",
