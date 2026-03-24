@@ -12,7 +12,7 @@ Le projet Q-Process est une application de gestion qualité ISO 9001 construite 
 - **Framer Motion** (animations)
 - Point d'entrée : `src/main.tsx` → `src/App.tsx`
 
-### Stack Backend (Supabase / Lovable Cloud)
+### Stack Backend (Supabase)
 - **PostgreSQL** (base de données avec RLS)
 - **GoTrue** (authentification — login email/password)
 - **PostgREST** (API REST auto-générée)
