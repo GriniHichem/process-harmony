@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Plus, AlertTriangle, Lightbulb, Trash2, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -66,6 +67,7 @@ export default function Risques() {
   const [newRisk, setNewRisk] = useState({ type: "risque" as "risque" | "opportunite", description: "", probabilite: "3", impact: "3", faisabilite: "3", process_id: "" });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterProcessId, setFilterProcessId] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"risque" | "opportunite">("risque");
 
   // Edit state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -146,10 +148,11 @@ export default function Risques() {
 
   const handleCreate = async () => {
     if (!newRisk.description || !newRisk.process_id) { toast.error("Description et processus requis"); return; }
-    const isOpp = newRisk.type === "opportunite";
+    const type = activeTab;
+    const isOpp = type === "opportunite";
     const impactVal = Number(newRisk.impact);
     const insertData: any = {
-      type: newRisk.type,
+      type,
       description: newRisk.description,
       process_id: newRisk.process_id,
       impact: impactVal,
@@ -252,6 +255,88 @@ export default function Risques() {
     );
   };
 
+  const filteredByTab = filteredRisks.filter(r => r.type === activeTab);
+
+  const renderItemList = (items: Risk[]) => {
+    if (loading) {
+      return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+    }
+    if (items.length === 0) {
+      return <Card><CardContent className="py-12 text-center text-muted-foreground">{activeTab === "risque" ? "Aucun risque identifié" : "Aucune opportunité identifiée"}</CardContent></Card>;
+    }
+    return (
+      <div className="grid gap-3">
+        {items.map((r) => {
+          const isExpanded = expandedId === r.id;
+          const isOpp = r.type === "opportunite";
+          const cls = isOpp ? classifyOpportunity(r) : classifyRisk(r);
+          const scoreDisplay = isOpp
+            ? `I:${r.impact ?? 0} × F:${r.faisabilite ?? 0} = ${getOpportunityScore(r)}`
+            : `P:${r.probabilite ?? 0} × G:${r.impact ?? 0} = ${r.criticite ?? "-"}`;
+          const scoreValue = isOpp ? getOpportunityScore(r) : (r.criticite ?? "-");
+
+          return (
+            <Card key={r.id} className={`transition-shadow ${isExpanded ? "ring-2 ring-primary/30 shadow-md" : ""}`}>
+              <CardContent className="py-4">
+                <div
+                  className={`flex items-center justify-between ${(!isOnlyActeur || acteurRiskIds.has(r.id)) ? "cursor-pointer" : ""}`}
+                  onClick={() => {
+                    if (isOnlyActeur && !acteurRiskIds.has(r.id)) return;
+                    setExpandedId(isExpanded ? null : r.id);
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                    {isOpp ? <Lightbulb className="h-5 w-5 text-primary" /> : <AlertTriangle className="h-5 w-5 text-destructive" />}
+                    <div>
+                      <p className="font-medium">{r.description}</p>
+                      <p className="text-xs text-muted-foreground">{scoreDisplay}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge className={`border ${cls.badgeClass}`}>{cls.label} ({scoreValue})</Badge>
+                    {canCreate && (
+                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); handleEdit(r); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer cet élément ?</AlertDialogTitle>
+                            <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="mt-4 border-t pt-4 space-y-6">
+                    <RiskMoyensActions riskId={r.id} canEdit={canEditActions} />
+                    <div className="border-t pt-4">
+                      <RiskIncidents riskId={r.id} canEdit={canEditActions} />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -261,20 +346,12 @@ export default function Risques() {
         </div>
         {canCreate && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Ajouter</Button></DialogTrigger>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" /> {activeTab === "risque" ? "Ajouter un risque" : "Ajouter une opportunité"}</Button>
+            </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Ajouter un risque / opportunité</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{activeTab === "risque" ? "Ajouter un risque" : "Ajouter une opportunité"}</DialogTitle></DialogHeader>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Type</Label>
-                  <Select value={newRisk.type} onValueChange={(v: any) => setNewRisk({ ...newRisk, type: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="risque">Risque</SelectItem>
-                      <SelectItem value="opportunite">Opportunité</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2"><Label>Description</Label><Textarea value={newRisk.description} onChange={(e) => setNewRisk({ ...newRisk, description: e.target.value })} /></div>
                 <div className="space-y-2">
                   <Label>Processus</Label>
@@ -283,7 +360,7 @@ export default function Risques() {
                     <SelectContent>{processes.map((p) => <SelectItem key={p.id} value={p.id}>{p.nom}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                {renderFormFields(newRisk.type, newRisk, (field, value) => setNewRisk({ ...newRisk, [field]: value }))}
+                {renderFormFields(activeTab, newRisk, (field, value) => setNewRisk({ ...newRisk, [field]: value }))}
                 <Button onClick={handleCreate} className="w-full">Ajouter</Button>
               </div>
             </DialogContent>
@@ -302,115 +379,45 @@ export default function Risques() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-col gap-2 text-xs ml-auto">
-          <div className="flex items-center gap-3">
-            <span className="font-medium text-muted-foreground">Risques :</span>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "risque" | "opportunite"); setExpandedId(null); }}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="risque" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" /> Risques ({filteredRisks.filter(r => r.type === "risque").length})
+          </TabsTrigger>
+          <TabsTrigger value="opportunite" className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4" /> Opportunités ({filteredRisks.filter(r => r.type === "opportunite").length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="risque" className="space-y-4">
+          <div className="flex items-center gap-3 text-xs">
+            <span className="font-medium text-muted-foreground">Classification :</span>
             <Badge className="border bg-destructive/10 text-destructive border-destructive/30">Majeur (≥10 ou P=5 ou G=4)</Badge>
             <Badge className="border bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700">Modéré (4–9)</Badge>
             <Badge className="border bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700">Acceptable (≤3)</Badge>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="font-medium text-muted-foreground">Opportunités :</span>
+          {renderItemList(filteredByTab)}
+        </TabsContent>
+
+        <TabsContent value="opportunite" className="space-y-4">
+          <div className="flex items-center gap-3 text-xs">
+            <span className="font-medium text-muted-foreground">Classification :</span>
             <Badge className="border bg-primary/10 text-primary border-primary/30">Prioritaire (≥12)</Badge>
             <Badge className="border bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700">Intéressante (6–11)</Badge>
             <Badge className="border bg-muted text-muted-foreground border-border">Faible (≤5)</Badge>
           </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-      ) : filteredRisks.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun risque ou opportunité identifié</CardContent></Card>
-      ) : (
-        <div className="grid gap-3">
-          {filteredRisks.map((r) => {
-            const isExpanded = expandedId === r.id;
-            const isOpp = r.type === "opportunite";
-            const cls = isOpp ? classifyOpportunity(r) : classifyRisk(r);
-            const scoreDisplay = isOpp
-              ? `I:${r.impact ?? 0} × F:${r.faisabilite ?? 0} = ${getOpportunityScore(r)}`
-              : `P:${r.probabilite ?? 0} × G:${r.impact ?? 0} = ${r.criticite ?? "-"}`;
-            const scoreValue = isOpp ? getOpportunityScore(r) : (r.criticite ?? "-");
-
-            return (
-              <Card key={r.id} className={`transition-shadow ${isExpanded ? "ring-2 ring-primary/30 shadow-md" : ""}`}>
-                <CardContent className="py-4">
-                  <div
-                    className={`flex items-center justify-between ${(!isOnlyActeur || acteurRiskIds.has(r.id)) ? "cursor-pointer" : ""}`}
-                    onClick={() => {
-                      if (isOnlyActeur && !acteurRiskIds.has(r.id)) return;
-                      setExpandedId(isExpanded ? null : r.id);
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                      {isOpp ? <Lightbulb className="h-5 w-5 text-primary" /> : <AlertTriangle className="h-5 w-5 text-destructive" />}
-                      <div>
-                        <p className="font-medium">{r.description}</p>
-                        <p className="text-xs text-muted-foreground">{scoreDisplay}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={`border ${cls.badgeClass}`}>{cls.label} ({scoreValue})</Badge>
-                      <Badge variant={isOpp ? "secondary" : "destructive"}>{r.type}</Badge>
-                      {canCreate && (
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); handleEdit(r); }}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Supprimer cet élément ?</AlertDialogTitle>
-                              <AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </div>
-                  {isExpanded && (
-                    <div className="mt-4 border-t pt-4 space-y-6">
-                      <RiskMoyensActions riskId={r.id} canEdit={canEditActions} />
-                      <div className="border-t pt-4">
-                        <RiskIncidents riskId={r.id} canEdit={canEditActions} />
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+          {renderItemList(filteredByTab)}
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditRisk(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Modifier le risque / opportunité</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editRisk?.type === "opportunite" ? "Modifier l'opportunité" : "Modifier le risque"}</DialogTitle></DialogHeader>
           {editRisk && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select value={editRisk.type} onValueChange={(v) => setEditRisk({ ...editRisk, type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="risque">Risque</SelectItem>
-                    <SelectItem value="opportunite">Opportunité</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2"><Label>Description</Label><Textarea value={editRisk.description} onChange={(e) => setEditRisk({ ...editRisk, description: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Processus</Label>
