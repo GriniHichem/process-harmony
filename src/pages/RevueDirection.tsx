@@ -56,7 +56,7 @@ export default function RevueDirection() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["management_reviews"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("management_reviews").select("*").eq("type_revue" as any, "processus").order("date_revue", { ascending: false });
+      const { data, error } = await supabase.from("management_reviews").select("*").filter("type_revue", "eq", "processus").order("date_revue", { ascending: false });
       if (error) throw error;
       return data;
     },
