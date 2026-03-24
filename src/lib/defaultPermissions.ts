@@ -19,6 +19,7 @@ export type AppModule =
   | "enjeux_contexte"
   | "politique_qualite"
   | "revue_direction"
+  | "revue_direction_iso"
   | "competences"
   | "satisfaction_client"
   | "fournisseurs"
@@ -42,6 +43,7 @@ export const ALL_MODULES: AppModule[] = [
   "enjeux_contexte",
   "politique_qualite",
   "revue_direction",
+  "revue_direction_iso",
   "competences",
   "satisfaction_client",
   "fournisseurs",
@@ -66,6 +68,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   enjeux_contexte: "Enjeux du contexte",
   politique_qualite: "Politique qualité",
   revue_direction: "Revue de processus",
+  revue_direction_iso: "Revue de direction (§9.3)",
   competences: "Compétences",
   satisfaction_client: "Satisfaction client",
   fournisseurs: "Fournisseurs",
@@ -122,6 +125,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: ALL_TRUE,
     politique_qualite: ALL_TRUE,
     revue_direction: ALL_TRUE,
+    revue_direction_iso: ALL_TRUE,
     competences: ALL_TRUE,
     satisfaction_client: ALL_TRUE,
     fournisseurs: ALL_TRUE,
@@ -145,6 +149,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: READ_EDIT,
     politique_qualite: READ_DETAIL,
     revue_direction: READ_DETAIL,
+    revue_direction_iso: READ_DETAIL,
     competences: READ_DETAIL,
     satisfaction_client: READ_DETAIL,
     fournisseurs: READ_DETAIL,
@@ -168,6 +173,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: READ_EDIT,
     politique_qualite: READ_DETAIL,
     revue_direction: READ_DETAIL,
+    revue_direction_iso: READ_DETAIL,
     competences: READ_DETAIL,
     satisfaction_client: READ_DETAIL,
     fournisseurs: READ_DETAIL,
@@ -191,6 +197,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: READ_DETAIL,
     politique_qualite: READ_DETAIL,
     revue_direction: READ_DETAIL,
+    revue_direction_iso: READ_DETAIL,
     competences: READ_DETAIL,
     satisfaction_client: READ_DETAIL,
     fournisseurs: READ_DETAIL,
@@ -214,6 +221,7 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     enjeux_contexte: READ_ONLY,
     politique_qualite: READ_ONLY,
     revue_direction: NONE,
+    revue_direction_iso: NONE,
     competences: NONE,
     satisfaction_client: NONE,
     fournisseurs: NONE,

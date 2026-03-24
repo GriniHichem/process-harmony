@@ -1371,6 +1371,7 @@ export type Database = {
           reference: string
           responsable_id: string | null
           statut: string
+          type_revue: string
           updated_at: string
         }
         Insert: {
@@ -1386,6 +1387,7 @@ export type Database = {
           reference?: string
           responsable_id?: string | null
           statut?: string
+          type_revue?: string
           updated_at?: string
         }
         Update: {
@@ -1401,6 +1403,7 @@ export type Database = {
           reference?: string
           responsable_id?: string | null
           statut?: string
+          type_revue?: string
           updated_at?: string
         }
         Relationships: []

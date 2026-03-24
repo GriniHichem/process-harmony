@@ -33,6 +33,7 @@ const EnjeuContexte = lazy(() => import("./pages/EnjeuContexte"));
 const GroupesActeurs = lazy(() => import("./pages/GroupesActeurs"));
 const PolitiqueQualite = lazy(() => import("./pages/PolitiqueQualite"));
 const RevueDirection = lazy(() => import("./pages/RevueDirection"));
+const RevueDirectionISO = lazy(() => import("./pages/RevueDirectionISO"));
 const CompetencesPage = lazy(() => import("./pages/Competences"));
 const SatisfactionClient = lazy(() => import("./pages/SatisfactionClient"));
 const Fournisseurs = lazy(() => import("./pages/Fournisseurs"));
@@ -89,6 +90,7 @@ const App = () => (
               {/* Pilotage SMQ */}
               <Route path="/politique-qualite" element={<ProtectedPage><RoleGuard requiredModule="politique_qualite"><PolitiqueQualite /></RoleGuard></ProtectedPage>} />
               <Route path="/revue-direction" element={<ProtectedPage><RoleGuard requiredModule="revue_direction"><RevueDirection /></RoleGuard></ProtectedPage>} />
+              <Route path="/revue-direction-iso" element={<ProtectedPage><RoleGuard requiredModule="revue_direction_iso"><RevueDirectionISO /></RoleGuard></ProtectedPage>} />
               <Route path="/competences" element={<ProtectedPage><RoleGuard requiredModule="competences"><CompetencesPage /></RoleGuard></ProtectedPage>} />
               <Route path="/satisfaction-client" element={<ProtectedPage><RoleGuard requiredModule="satisfaction_client"><SatisfactionClient /></RoleGuard></ProtectedPage>} />
               <Route path="/fournisseurs" element={<ProtectedPage><RoleGuard requiredModule="fournisseurs"><Fournisseurs /></RoleGuard></ProtectedPage>} />
