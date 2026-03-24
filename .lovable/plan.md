@@ -1,45 +1,43 @@
 
 
-# Audit Email & Nettoyage des references Lovable
+# Renommer "Revue de direction" → "Revue de processus" + Préparer le futur module §9.3
 
-## Resultat de l'audit
+## Contexte
 
-### Edge Functions — Conformes a 100%
+Le module actuel "Revue de direction" gère en réalité des **revues de processus** (comptes rendus de pilotage, tableau de bord processus, maturité). Il sera renommé en conséquence.
 
-Les 7 Edge Functions sont **libres de toute reference Lovable** et **portables** :
-- Zero URL hardcodee (`.supabase.co`, `.lovable.app`)
-- SMTP 100% dynamique via `app_settings` (jamais de credentials hardcodes)
-- `denomailer@1.6.0` utilise partout de maniere coherente
-- Trigger `dispatch_notification_email()` : fallback multi-URL present (`kong:8000`, `host.docker.internal:54321`, `127.0.0.1:54321`)
-- `check-deadlines` auto-configure `supabase_url` dans `app_settings`
-- `verify_jwt = false` dans `config.toml` pour toutes les fonctions
+Une **vraie Revue de direction** conforme à l'article 9.3 de la norme ISO 9001 sera créée dans une prochaine étape comme module distinct.
 
-### References Lovable restantes
+## Modifications (étape 1 — renommage uniquement)
 
-| Fichier | Probleme |
-|---|---|
-| `package.json` | `lovable-tagger` dans devDependencies (ligne 94) |
-| `README.md` | Tout le fichier reference Lovable (URLs, instructions) |
-| `diagnostics/*.md` | Mentions "Lovable Cloud" (documentation interne — moins critique) |
+### 1. Labels UI — 6 fichiers
 
-Le `vite.config.ts` a deja ete nettoye (import `lovable-tagger` supprime).
+| Fichier | Changement |
+|---------|-----------|
+| `AppSidebar.tsx` (l.52) | `"Revue de processus"` |
+| `GlobalSearch.tsx` (l.33) | `"Revue de processus"` |
+| `RevueDirection.tsx` (l.76, 107, 125, 152, 206) | Tous les textes visibles → "revue de processus" |
+| `defaultPermissions.ts` (l.68) | Label `"Revue de processus"` |
+| `SurveyBuilder.tsx` (l.64) | `"Préparer la revue de processus"` |
+| `SatisfactionClient.tsx` (l.62) | `"Revue processus (§9.3)"` |
 
-## Plan d'implementation
+### 2. Aide contextuelle — `helpDefinitions.ts`
 
-### 1. Supprimer `lovable-tagger` de `package.json`
-- Retirer la ligne `"lovable-tagger": "^1.1.13"` des `devDependencies`
+- Ligne 565 : title → `"Revue de processus"`
+- Ligne 569 : definition → remplacer "revue de direction" par "revue de processus"
 
-### 2. Remplacer le contenu de `README.md`
-- Ecrire un README generique pour Q-Process : description du projet, stack technique, instructions de deploiement self-hosted (variables d'environnement, migrations, Edge Functions)
-- Zero mention de Lovable
+### 3. Export PDF — `exportStrategicPdf.ts`
 
-### 3. (Optionnel) Nettoyer `diagnostics/*.md`
-- Remplacer les references "Lovable Cloud" par "Cloud/SaaS" dans les fichiers de diagnostic
-- Ces fichiers sont internes et ne sont pas exposes au client, donc c'est moins urgent
+- Lignes 384, 440, 442, 520 : titres HTML/header/footer → `"Revue de Processus"`
+- Ligne 523 : nom fichier → `revue-processus-{ref}.pdf`
 
-### Details techniques
+### Ce qui ne change PAS (clés internes)
 
-- Les Edge Functions n'ont **aucune modification necessaire** — le code SMTP est deja conforme aux standards self-hosting
-- Le fichier `.env` est auto-genere et ne contient rien de specifique a Lovable (juste `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`)
-- Le `supabase/config.toml` contient le `project_id` qui changera naturellement lors du deploiement sur un autre serveur
+- Route URL `/revue-direction` — sera réattribuée au futur module §9.3
+- Clé module `revue_direction` — idem, sera transférée
+- Table DB `management_reviews`
+- Nom fichier `RevueDirection.tsx`
+- Edge function `check-deadlines` (URL interne)
+
+> **Note** : lors de la prochaine étape (création du vrai module Revue de direction §9.3), la route `/revue-direction` et la clé `revue_direction` seront réattribuées au nouveau module, et le module actuel recevra une nouvelle route `/revue-processus` et une nouvelle clé `revue_processus`.
 
