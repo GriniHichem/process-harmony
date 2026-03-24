@@ -148,10 +148,11 @@ export default function Risques() {
 
   const handleCreate = async () => {
     if (!newRisk.description || !newRisk.process_id) { toast.error("Description et processus requis"); return; }
-    const isOpp = newRisk.type === "opportunite";
+    const type = activeTab;
+    const isOpp = type === "opportunite";
     const impactVal = Number(newRisk.impact);
     const insertData: any = {
-      type: newRisk.type,
+      type,
       description: newRisk.description,
       process_id: newRisk.process_id,
       impact: impactVal,
