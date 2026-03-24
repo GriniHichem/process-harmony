@@ -621,7 +621,12 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     isoRef: "§4.1",
     definition:
       "Facteurs internes et externes influençant la stratégie et les objectifs de l'organisme. L'organisme doit déterminer les enjeux pertinents qui affectent sa capacité à atteindre les résultats attendus de son système de management de la qualité.",
-    source: "Norme ISO 9001:2015, §4.1",
+    details: [
+      "Surveiller et revoir les informations relatives aux enjeux internes et externes",
+      "Prendre en compte les changements climatiques et environnementaux pertinents",
+      "Réviser périodiquement l'analyse du contexte",
+    ],
+    source: "ISO 9001:2015, §4.1",
   },
 
   maturite: {
