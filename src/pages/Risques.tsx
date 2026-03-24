@@ -252,11 +252,13 @@ export default function Risques() {
                       {r.type === "risque" ? <AlertTriangle className="h-5 w-5 text-destructive" /> : <Lightbulb className="h-5 w-5 text-accent" />}
                       <div>
                         <p className="font-medium">{r.description}</p>
-                        <p className="text-xs text-muted-foreground">P:{r.probabilite} × G:{r.impact}</p>
+                        <p className="text-xs text-muted-foreground">P:{r.probabilite} × G:{r.impact} = {r.criticite ?? "-"}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`text-lg font-bold ${criticityColor(r.criticite)}`}>{r.criticite ?? "-"}</span>
+                      {(() => { const cls = classifyRisk(r); return (
+                        <Badge className={`border ${cls.badgeClass}`}>{cls.label} ({r.criticite ?? "-"})</Badge>
+                      ); })()}
                       <Badge variant={r.type === "risque" ? "destructive" : "secondary"}>{r.type}</Badge>
                       {canCreate && (
                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); handleEdit(r); }}>
