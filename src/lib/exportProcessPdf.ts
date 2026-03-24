@@ -364,9 +364,11 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
 
   <!-- ═══ BPMN ═══ -->
   ${bpmnData && bpmnData.nodes.length > 0 ? `
+  <div class="bpmn-page">
   <div class="sec-title">Diagramme BPMN</div>
   <div style="text-align:center;padding:12px;border:1px solid #cbd5e1;margin-bottom:8px">
     ${renderBpmnSvgString(bpmnData)}
+  </div>
   </div>` : ""}
 
   <!-- ═══ INTERACTIONS ═══ -->
