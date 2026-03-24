@@ -264,8 +264,14 @@ export const helpDefinitions: Record<string, HelpDefinition> = {
     category: "role",
     isoRef: "§8.4",
     definition:
-      "Prestataire externe concerné par les interactions des processus. La communication avec les prestataires externes fait partie de la maîtrise des interfaces entre processus.",
-    source: "p.15",
+      "Prestataire externe fournissant des produits ou services à l'organisme. L'organisme doit s'assurer que les processus, produits et services fournis par des prestataires externes sont conformes aux exigences.",
+    details: [
+      "Évaluation, sélection et surveillance des prestataires externes",
+      "Réévaluation périodique selon des critères définis",
+      "Communication des exigences applicables aux prestataires",
+      "Vérification de la conformité des produits/services fournis",
+    ],
+    source: "ISO 9001:2015, §8.4",
   },
 
   competences: {
