@@ -522,3 +522,141 @@ export async function exportRevueDirectionPdf(reviewId: string) {
 
   await openPdf(html, `revue-processus-${review.reference || reviewId}.pdf`);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 4. REVUE DE DIRECTION ISO 9001 §9.3
+// ═══════════════════════════════════════════════════════════════
+
+export async function exportRevueDirectionIsoPdf(reviewId: string) {
+  // Reuse the same export logic but with "Revue de Direction" title
+  const [
+    { data: review },
+    { data: inputItems },
+    { data: decisions },
+    { data: acteurs },
+  ] = await Promise.all([
+    supabase.from("management_reviews").select("*").eq("id", reviewId).single(),
+    supabase.from("review_input_items").select("*").eq("review_id", reviewId).order("ordre"),
+    supabase.from("review_decisions").select("*").eq("review_id", reviewId).order("ordre"),
+    supabase.from("acteurs").select("id, fonction, organisation"),
+  ]);
+
+  if (!review) { alert("Revue non trouvée."); return; }
+
+  const statutLabels: Record<string, string> = { planifiee: "Planifiée", realisee: "Réalisée", cloturee: "Clôturée" };
+  const getActeurName = (id: string | null) => {
+    if (!id) return "—";
+    const a = acteurs?.find((ac: any) => ac.id === id);
+    return a ? (a.fonction || a.organisation || "Acteur") : "—";
+  };
+
+  const participants = parseParticipants(review.participants);
+  const roots = (inputItems || []).filter((i: any) => !i.parent_id).sort((a: any, b: any) => a.ordre - b.ordre);
+  const allItems = inputItems || [];
+
+  const ENTITY_LABELS: Record<string, string> = {
+    libre: "Point libre", processus: "Processus", indicateur: "Indicateur", risque: "Risque/Opp.",
+    audit: "Audit", nc: "NC", action: "Action", document: "Document", incident: "Incident",
+    enjeu: "Enjeu", fournisseur: "Fournisseur", satisfaction: "Satisfaction", competence: "Compétence",
+  };
+
+  const renderItem = (item: any, depth: number): string => {
+    const children = allItems.filter((i: any) => i.parent_id === item.id).sort((a: any, b: any) => a.ordre - b.ordre);
+    const indent = depth * 16;
+    const typeLabel = ENTITY_LABELS[item.type] || item.type;
+    return `
+      <tr>
+        <td style="padding-left:${indent + 8}px">
+          <span class="badge badge-blue" style="margin-right:4px">${esc(typeLabel)}</span>
+          ${esc(item.label)}
+          ${item.commentaire ? `<br><em style="font-size:9px;color:#94a3b8">${esc(item.commentaire)}</em>` : ""}
+        </td>
+      </tr>
+      ${children.map((c: any) => renderItem(c, depth + 1)).join("")}
+    `;
+  };
+
+  const actionDecisions = (decisions || []).filter((d: any) => d.type === "action");
+  const statutActionLabels: Record<string, string> = { a_faire: "À faire", en_cours: "En cours", terminee: "Terminée" };
+
+  const logos = await getAppLogos();
+  let sn = 0;
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Revue de Direction (§9.3) — ${esc(review.reference)}</title><style>${HEADER_STYLE}</style></head><body>
+
+  ${buildHeader("Revue de Direction (§9.3)", review.reference || "RD", "ISO 9001:2015", logos.companyLogo, logos.brandLogo, logos.companyName)}
+
+  <div class="section">
+    <div class="section-header"><div class="num">${++sn}</div><h2>Informations générales</h2></div>
+    <div class="section-body">
+      <table>
+        <tbody>
+          <tr><td class="label-cell">Référence</td><td>${esc(review.reference)}</td><td class="label-cell">Statut</td><td><span class="badge badge-blue">${statutLabels[review.statut] || review.statut}</span></td></tr>
+          <tr><td class="label-cell">Date de la revue</td><td>${review.date_revue ? format(new Date(review.date_revue), "dd/MM/yyyy") : "—"}</td><td class="label-cell">Prochaine revue</td><td>${review.prochaine_revue ? format(new Date(review.prochaine_revue), "dd/MM/yyyy") : "—"}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><div class="num">${++sn}</div><h2>Participants</h2></div>
+    <div class="section-body">
+      ${participants.length > 0 ? `
+      <table>
+        <thead><tr><th>Nom</th><th>Fonction</th><th>Type</th></tr></thead>
+        <tbody>${participants.map(p => `<tr>
+          <td>${esc(p.name)}</td>
+          <td>${esc(p.fonction || "")}</td>
+          <td>${p.type === "guest" ? '<span class="badge badge-orange">Invité</span>' : '<span class="badge badge-blue">Utilisateur</span>'}</td>
+        </tr>`).join("")}</tbody>
+      </table>` : '<p class="empty">Aucun participant</p>'}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><div class="num">${++sn}</div><h2>§9.3.2 — Éléments d'entrée de la revue de direction</h2></div>
+    <div class="section-body">
+      ${roots.length > 0 ? `
+      <table>
+        <thead><tr><th>Élément</th></tr></thead>
+        <tbody>${roots.map((r: any) => renderItem(r, 0)).join("")}</tbody>
+      </table>` : '<p class="empty">Aucun élément d\'entrée</p>'}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><div class="num">${++sn}</div><h2>Décisions</h2></div>
+    <div class="section-body">
+      <div class="rich-content">${review.decisions || '<p class="empty">Aucune décision enregistrée</p>'}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><div class="num">${++sn}</div><h2>§9.3.3 — Éléments de sortie de la revue de direction</h2></div>
+    <div class="section-body">
+      ${actionDecisions.length > 0 ? `
+      <table>
+        <thead><tr><th>Action</th><th style="width:100px">Responsable</th><th style="width:75px">Échéance</th><th style="width:65px">Statut</th><th style="width:60px">Source</th></tr></thead>
+        <tbody>${actionDecisions.map((d: any) => `<tr>
+          <td>${esc(d.description)}</td>
+          <td>${getActeurName(d.responsable_id)}</td>
+          <td>${d.echeance ? format(new Date(d.echeance), "dd/MM/yyyy") : "—"}</td>
+          <td><span class="status ${d.statut === "a_faire" ? "status-todo" : d.statut === "en_cours" ? "status-progress" : "status-done"}">${statutActionLabels[d.statut] || d.statut}</span></td>
+          <td>${d.source_entity_type ? '<span class="badge badge-gray">importé</span>' : "—"}</td>
+        </tr>`).join("")}</tbody>
+      </table>` : '<p class="empty">Aucune action décidée</p>'}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header"><div class="num">${++sn}</div><h2>Compte rendu</h2></div>
+    <div class="section-body">
+      <div class="rich-content">${review.compte_rendu || '<p class="empty">Non renseigné</p>'}</div>
+    </div>
+  </div>
+
+  ${buildSignatures()}
+  ${buildFooter(review.reference || "RD", "Revue de Direction (§9.3)")}
+  </body></html>`;
+
+  await openPdf(html, `revue-direction-${review.reference || reviewId}.pdf`);
+}
