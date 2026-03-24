@@ -367,7 +367,7 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
   ${!p.inclure_bpmn_pdf && tasks.length > 0 ? (() => {
     const acteurMap: Record<string, string> = {};
     for (const a of acteurs) acteurMap[a.id] = a.fonction || a.description_poste || "Acteur";
-    const svgStr = renderFlowchartSvgString(tasks, acteurMap);
+    const svgStr = renderFlowchartSvgString(tasks, acteurMap, elements);
     return svgStr ? `
   <div class="sec-title">Logigramme du processus</div>
   <div style="text-align:center;padding:10px;border:1px solid #cbd5e1;margin-bottom:8px">
