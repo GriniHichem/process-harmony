@@ -363,6 +363,17 @@ function buildHtml(data: ProcessData, logos: { companyLogo: string; brandLogo: s
     return `<tr><td style="text-align:center;font-family:monospace;font-size:9px">${esc(t.code)}</td><td>${t.parent_code ? "↳ " : ""}${esc(t.description)}</td><td>${esc(resp)}</td></tr>`;
   }).join("")}</tbody></table>` : `<p class="empty">Aucune activité définie</p>`}
 
+  <!-- ═══ LOGIGRAMME (si BPMN désactivé) ═══ -->
+  ${!p.inclure_bpmn_pdf && tasks.length > 0 ? (() => {
+    const acteurMap: Record<string, string> = {};
+    for (const a of acteurs) acteurMap[a.id] = a.fonction || a.description_poste || "Acteur";
+    const svgStr = renderFlowchartSvgString(tasks, acteurMap);
+    return svgStr ? `
+  <div class="sec-title">Logigramme du processus</div>
+  <div style="text-align:center;padding:10px;border:1px solid #cbd5e1;margin-bottom:8px">
+    ${svgStr}
+  </div>` : "";
+  })() : ""}
 
   <!-- ═══ INTERACTIONS ═══ -->
   <div class="sec-title">Processus en interaction</div>
