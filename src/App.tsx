@@ -41,6 +41,7 @@ const EvaluationProcessus = lazy(() => import("./pages/EvaluationProcessus"));
 const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const SurveyPublicPage = lazy(() => import("./pages/SurveyPublicPage"));
+const DashboardIndicateurs = lazy(() => import("./pages/DashboardIndicateurs"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
