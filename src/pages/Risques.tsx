@@ -361,7 +361,7 @@ export default function Risques() {
                   </Select>
                 </div>
                 {renderFormFields(activeTab, newRisk, (field, value) => setNewRisk({ ...newRisk, [field]: value }))}
-                <Button onClick={() => { setNewRisk({ ...newRisk, type: activeTab }); handleCreate(); }} className="w-full">Ajouter</Button>
+                <Button onClick={handleCreate} className="w-full">Ajouter</Button>
               </div>
             </DialogContent>
           </Dialog>
