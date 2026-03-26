@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Eye, Copy, Play, Square, ClipboardList, BarChart3, History, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Copy, Play, Square, ClipboardList, BarChart3, History, Users, FileStack } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import SurveyBuilder from "@/components/SurveyBuilder";
 import SurveyResults from "@/components/SurveyResults";
+import SurveyTemplateManager from "@/components/SurveyTemplateManager";
+import SurveyFromTemplateWizard from "@/components/SurveyFromTemplateWizard";
 import { HelpTooltip } from "@/components/HelpTooltip";
 
 // --- Historique (ancien module) ---
@@ -82,6 +84,8 @@ export default function SatisfactionClient() {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<any>(null);
   const [editingQuestions, setEditingQuestions] = useState<any[]>([]);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [choiceDialogOpen, setChoiceDialogOpen] = useState(false);
 
   // Fetch shares for current user
   const { data: myShares = [] } = useQuery({
@@ -164,7 +168,9 @@ export default function SatisfactionClient() {
     setBuilderOpen(true);
   };
 
-  const openNewSurvey = () => { setEditingSurvey(null); setEditingQuestions([]); setBuilderOpen(true); };
+  const openNewSurvey = () => { setChoiceDialogOpen(true); };
+  const openBlankSurvey = () => { setChoiceDialogOpen(false); setEditingSurvey(null); setEditingQuestions([]); setBuilderOpen(true); };
+  const openFromTemplate = () => { setChoiceDialogOpen(false); setWizardOpen(true); };
 
   const copyLink = (token: string) => {
     const url = `${window.location.origin}/survey/${token}`;
@@ -208,9 +214,10 @@ export default function SatisfactionClient() {
       </div>
 
       <Tabs defaultValue="sondages">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
           <TabsTrigger value="sondages" className="gap-1.5"><ClipboardList className="h-4 w-4" />Sondages</TabsTrigger>
           <TabsTrigger value="resultats" className="gap-1.5"><BarChart3 className="h-4 w-4" />Résultats</TabsTrigger>
+          <TabsTrigger value="modeles" className="gap-1.5"><FileStack className="h-4 w-4" />Modèles</TabsTrigger>
           <TabsTrigger value="historique" className="gap-1.5"><History className="h-4 w-4" />Historique</TabsTrigger>
         </TabsList>
 
@@ -242,6 +249,7 @@ export default function SatisfactionClient() {
                           <h3 className="font-semibold truncate">{s.name}</h3>
                           <Badge className={stCfg.color}>{stCfg.label}</Badge>
                           <Badge variant="outline" className="text-[10px]">{typeLabel}</Badge>
+                          {s.template_name && <Badge variant="secondary" className="text-[10px]">📋 {s.template_name}</Badge>}
                         </div>
                         {s.description && <p className="text-sm text-muted-foreground line-clamp-1">{s.description}</p>}
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
@@ -297,6 +305,11 @@ export default function SatisfactionClient() {
         {/* ===== RÉSULTATS TAB ===== */}
         <TabsContent value="resultats" className="mt-4">
           <SurveyResults />
+        </TabsContent>
+
+        {/* ===== MODÈLES TAB ===== */}
+        <TabsContent value="modeles" className="mt-4">
+          <SurveyTemplateManager />
         </TabsContent>
 
         {/* ===== HISTORIQUE TAB ===== */}
@@ -415,6 +428,36 @@ export default function SatisfactionClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Choice dialog: blank or from template */}
+      <Dialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Créer un sondage</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <Card className="p-4 cursor-pointer hover:border-primary/50 transition-colors" onClick={openBlankSurvey}>
+              <div className="flex items-center gap-3">
+                <ClipboardList className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <h4 className="font-semibold">Sondage vide</h4>
+                  <p className="text-xs text-muted-foreground">Créer un sondage personnalisé de zéro</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4 cursor-pointer hover:border-primary/50 transition-colors" onClick={openFromTemplate}>
+              <div className="flex items-center gap-3">
+                <FileStack className="h-8 w-8 text-primary" />
+                <div>
+                  <h4 className="font-semibold">À partir d'un modèle</h4>
+                  <p className="text-xs text-muted-foreground">Utiliser un modèle prédéfini avec sections et questions</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template wizard */}
+      <SurveyFromTemplateWizard open={wizardOpen} onOpenChange={setWizardOpen} onCreated={() => {}} />
     </div>
   );
 }
