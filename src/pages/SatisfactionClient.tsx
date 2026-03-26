@@ -427,6 +427,36 @@ export default function SatisfactionClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Choice dialog: blank or from template */}
+      <Dialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Créer un sondage</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <Card className="p-4 cursor-pointer hover:border-primary/50 transition-colors" onClick={openBlankSurvey}>
+              <div className="flex items-center gap-3">
+                <ClipboardList className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <h4 className="font-semibold">Sondage vide</h4>
+                  <p className="text-xs text-muted-foreground">Créer un sondage personnalisé de zéro</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4 cursor-pointer hover:border-primary/50 transition-colors" onClick={openFromTemplate}>
+              <div className="flex items-center gap-3">
+                <FileStack className="h-8 w-8 text-primary" />
+                <div>
+                  <h4 className="font-semibold">À partir d'un modèle</h4>
+                  <p className="text-xs text-muted-foreground">Utiliser un modèle prédéfini avec sections et questions</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template wizard */}
+      <SurveyFromTemplateWizard open={wizardOpen} onOpenChange={setWizardOpen} onCreated={() => {}} />
     </div>
   );
 }
