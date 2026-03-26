@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Eye, Copy, Play, Square, ClipboardList, BarChart3, History, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Copy, Play, Square, ClipboardList, BarChart3, History, Users, FileStack } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import SurveyBuilder from "@/components/SurveyBuilder";
 import SurveyResults from "@/components/SurveyResults";
+import SurveyTemplateManager from "@/components/SurveyTemplateManager";
+import SurveyFromTemplateWizard from "@/components/SurveyFromTemplateWizard";
 import { HelpTooltip } from "@/components/HelpTooltip";
 
 // --- Historique (ancien module) ---
