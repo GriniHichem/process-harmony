@@ -168,7 +168,9 @@ export default function SatisfactionClient() {
     setBuilderOpen(true);
   };
 
-  const openNewSurvey = () => { setEditingSurvey(null); setEditingQuestions([]); setBuilderOpen(true); };
+  const openNewSurvey = () => { setChoiceDialogOpen(true); };
+  const openBlankSurvey = () => { setChoiceDialogOpen(false); setEditingSurvey(null); setEditingQuestions([]); setBuilderOpen(true); };
+  const openFromTemplate = () => { setChoiceDialogOpen(false); setWizardOpen(true); };
 
   const copyLink = (token: string) => {
     const url = `${window.location.origin}/survey/${token}`;
