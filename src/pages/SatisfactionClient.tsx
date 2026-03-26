@@ -306,6 +306,11 @@ export default function SatisfactionClient() {
           <SurveyResults />
         </TabsContent>
 
+        {/* ===== MODÈLES TAB ===== */}
+        <TabsContent value="modeles" className="mt-4">
+          <SurveyTemplateManager />
+        </TabsContent>
+
         {/* ===== HISTORIQUE TAB ===== */}
         <TabsContent value="historique" className="space-y-4 mt-4">
           {canEdit && (
