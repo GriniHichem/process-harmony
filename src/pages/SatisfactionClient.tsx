@@ -249,6 +249,7 @@ export default function SatisfactionClient() {
                           <h3 className="font-semibold truncate">{s.name}</h3>
                           <Badge className={stCfg.color}>{stCfg.label}</Badge>
                           <Badge variant="outline" className="text-[10px]">{typeLabel}</Badge>
+                          {s.template_name && <Badge variant="secondary" className="text-[10px]">📋 {s.template_name}</Badge>}
                         </div>
                         {s.description && <p className="text-sm text-muted-foreground line-clamp-1">{s.description}</p>}
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
