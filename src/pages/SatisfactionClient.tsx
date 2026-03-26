@@ -84,6 +84,8 @@ export default function SatisfactionClient() {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingSurvey, setEditingSurvey] = useState<any>(null);
   const [editingQuestions, setEditingQuestions] = useState<any[]>([]);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [choiceDialogOpen, setChoiceDialogOpen] = useState(false);
 
   // Fetch shares for current user
   const { data: myShares = [] } = useQuery({
