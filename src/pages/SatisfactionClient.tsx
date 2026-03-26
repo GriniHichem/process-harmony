@@ -214,9 +214,10 @@ export default function SatisfactionClient() {
       </div>
 
       <Tabs defaultValue="sondages">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
           <TabsTrigger value="sondages" className="gap-1.5"><ClipboardList className="h-4 w-4" />Sondages</TabsTrigger>
           <TabsTrigger value="resultats" className="gap-1.5"><BarChart3 className="h-4 w-4" />Résultats</TabsTrigger>
+          <TabsTrigger value="modeles" className="gap-1.5"><FileStack className="h-4 w-4" />Modèles</TabsTrigger>
           <TabsTrigger value="historique" className="gap-1.5"><History className="h-4 w-4" />Historique</TabsTrigger>
         </TabsList>
 
