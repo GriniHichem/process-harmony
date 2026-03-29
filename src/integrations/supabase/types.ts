@@ -518,32 +518,38 @@ export type Database = {
       client_survey_questions: {
         Row: {
           created_at: string
+          evaluation_config: Json | null
           id: string
           image_url: string | null
           ordre: number
           poids: number
           question_text: string
           question_type: string
+          section_title: string | null
           survey_id: string
         }
         Insert: {
           created_at?: string
+          evaluation_config?: Json | null
           id?: string
           image_url?: string | null
           ordre?: number
           poids?: number
           question_text?: string
           question_type?: string
+          section_title?: string | null
           survey_id: string
         }
         Update: {
           created_at?: string
+          evaluation_config?: Json | null
           id?: string
           image_url?: string | null
           ordre?: number
           poids?: number
           question_text?: string
           question_type?: string
+          section_title?: string | null
           survey_id?: string
         }
         Relationships: [

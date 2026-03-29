@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { FileStack, ClipboardList, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
+import { FileStack, ArrowRight, ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
@@ -70,7 +70,6 @@ export default function SurveyFromTemplateWizard({ open, onOpenChange, onCreated
       if (!selectedTemplate) throw new Error("Sélectionnez un modèle");
       if (!config.name.trim()) throw new Error("Le nom du sondage est requis");
 
-      // Create survey with template reference
       const { data: survey, error } = await supabase.from("client_surveys").insert({
         name: config.name,
         template_id: selectedTemplate.id,
@@ -80,25 +79,36 @@ export default function SurveyFromTemplateWizard({ open, onOpenChange, onCreated
         process_id: config.process_id || null,
         survey_date: config.survey_date || null,
         created_by: user?.id,
-        type_sondage: selectedTemplate.type || "satisfaction_globale",
+        type_sondage: selectedTemplate.type || "satisfaction_client",
         objectif: "mesurer_satisfaction",
         mode_sondage: "cible",
         status: "draft",
       }).select().single();
       if (error) throw error;
 
-      // Copy all questions from template into client_survey_questions
+      // Copy all questions from template, preserving section_title and evaluation_config
       const allQuestions: any[] = [];
       let ordre = 0;
       for (const sec of templateDetail || []) {
         const sortedQs = (sec.survey_template_questions || []).sort((a: any, b: any) => a.order_index - b.order_index);
         for (const q of sortedQs) {
+          const hasAbsolute = q.has_absolute_evaluation ?? true;
+          const hasCompetitor = q.has_competitor_evaluation ?? false;
+          const isAbsoluteRelative = hasAbsolute && hasCompetitor;
+
           allQuestions.push({
             survey_id: survey.id,
-            question_text: `[${sec.title}] ${q.label}`,
-            question_type: "satisfaction",
+            question_text: q.label,
+            question_type: isAbsoluteRelative ? "absolute_relative" : "satisfaction",
             ordre: ordre++,
             poids: q.poids || 1,
+            section_title: sec.title,
+            evaluation_config: {
+              has_absolute: hasAbsolute,
+              has_competitor: hasCompetitor,
+              has_obs_absolute: q.has_observation_absolute ?? false,
+              has_obs_relative: q.has_observation_relative ?? false,
+            },
           });
         }
       }
@@ -126,11 +136,12 @@ export default function SurveyFromTemplateWizard({ open, onOpenChange, onCreated
     setConfig({ client: "", process_id: "", survey_date: new Date().toISOString().split("T")[0], name: "" });
   };
 
-  // When dialog closes, reset
   const handleOpenChange = (v: boolean) => {
     if (!v) resetWizard();
     onOpenChange(v);
   };
+
+  const totalQuestions = (templateDetail || []).reduce((sum: number, sec: any) => sum + (sec.survey_template_questions?.length || 0), 0);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -231,6 +242,7 @@ export default function SurveyFromTemplateWizard({ open, onOpenChange, onCreated
                   <div><span className="text-muted-foreground">Modèle :</span> {selectedTemplate.code} v{selectedTemplate.version}</div>
                   {config.client && <div><span className="text-muted-foreground">Client :</span> {config.client}</div>}
                   {config.survey_date && <div><span className="text-muted-foreground">Date :</span> {config.survey_date}</div>}
+                  <div><span className="text-muted-foreground">Questions :</span> {totalQuestions}</div>
                 </div>
               </Card>
 
@@ -243,9 +255,11 @@ export default function SurveyFromTemplateWizard({ open, onOpenChange, onCreated
                       {(sec.survey_template_questions || [])
                         .sort((a: any, b: any) => a.order_index - b.order_index)
                         .map((q: any) => (
-                          <li key={q.id} className="text-xs text-muted-foreground flex items-center gap-1">
+                          <li key={q.id} className="text-xs text-muted-foreground flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary/50" />
-                            {q.label}
+                            <span className="flex-1">{q.label}</span>
+                            {q.has_absolute_evaluation && <Badge variant="outline" className="text-[8px] px-1">Ia</Badge>}
+                            {q.has_competitor_evaluation && <Badge variant="outline" className="text-[8px] px-1">Ir</Badge>}
                           </li>
                         ))}
                     </ul>
@@ -256,6 +270,7 @@ export default function SurveyFromTemplateWizard({ open, onOpenChange, onCreated
               <div className="bg-muted/30 p-3 rounded-lg text-sm">
                 <p className="text-muted-foreground">
                   <strong>Note :</strong> Le sondage sera créé comme document autonome. Les modifications futures du modèle n'affecteront pas ce sondage.
+                  Chaque question de type ISO utilisera la notation sur 100 (Ia/Ir).
                 </p>
               </div>
             </div>
