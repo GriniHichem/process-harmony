@@ -1,95 +1,85 @@
 
 
-# Refonte du module Satisfaction Client — Architecture logique et best practices
+# Amélioration Résultats & Analyse — Vue détaillée réponse par réponse
 
-## Problèmes identifiés
+## Problème actuel
 
-1. **Onglet "Historique" incohérent** : il mélange la création d'enquêtes manuelles (ancien module `satisfaction_surveys`) avec les sondages modernes (`client_surveys`). L'utilisateur voit "Nouvelle enquête" dans Historique alors que les enquêtes et sondages devraient être unifiés.
+Les résultats affichent uniquement des agrégats (moyennes, distributions) sans possibilité de consulter les réponses individuelles. Pour les sondages ciblés, les noms et emails des répondants ne sont pas visibles. Il manque des KPI avancés et un détail réponse par réponse.
 
-2. **Sondages depuis modèle : pas de double évaluation** : Le wizard copie les questions en `question_type: "satisfaction"` (Likert 1-5) au lieu d'utiliser la logique absolue/concurrence du template. Les champs `has_absolute_evaluation` et `has_competitor_evaluation` sont ignorés.
+## Modifications dans `src/components/SurveyResults.tsx`
 
-3. **Résultats trop simples** : Pas de vue par section, pas de calcul Ia/Ir, pas de comparaison concurrence, pas de moyenne par section. Juste un taux global et une distribution Likert.
+### 1. Sous-onglets internes
 
-4. **Page publique sans notation par barème** : Le répondant choisit entre emojis (1-5) au lieu de noter sur 100 selon les seuils (Satisfaisant ≥80, Moyen 50-80, Insuffisant <50).
+Ajouter des sous-onglets dans la section résultats :
+- **Synthèse** : KPI globaux + graphiques (vue actuelle enrichie)
+- **Réponses individuelles** : liste de chaque réponse avec détail complet
+- **Commentaires** : vue dédiée aux commentaires (déplacée depuis la vue actuelle)
 
-## Plan de refonte
+### 2. KPI enrichis (synthèse)
 
-### Phase 1 — Restructurer les onglets
+Ajouter les KPI manquants :
+- **Taux de réponse** : si sondage ciblé, nombre réponses / nombre invités
+- **Meilleure question** : celle avec le score Ia le plus élevé
+- **Question la plus faible** : score Ia le plus bas
+- **Écart moyen Ia-Ir** : écart global entre performance absolue et concurrence
+- **Nombre de questions en alerte** : count Ir < Ia
 
-**`SatisfactionClient.tsx`** : 3 onglets au lieu de 4
-- **Sondages** : liste unifiée de tous les sondages (ancien `client_surveys` + ancien `satisfaction_surveys` via un badge "Manuel")
-- **Résultats & Analyse** : vue enrichie avec section par section
-- **Modèles** : inchangé
+### 3. Onglet "Réponses individuelles"
 
-Supprimer l'onglet "Historique" séparé. Les anciennes enquêtes (`satisfaction_surveys`) apparaissent dans le même tableau avec un badge "Saisie manuelle".
+**En-tête par répondant** (card expansible) :
+- Nom du répondant (si sondage ciblé)
+- Email du répondant (si sondage ciblé)
+- Date de soumission
+- Badge "Anonyme" si pas de nom/email
 
-### Phase 2 — Corriger la génération depuis modèle
+**Contenu détaillé** (au clic/expand) :
+- Pour chaque question du sondage, afficher :
+  - Libellé de la question
+  - Section (si ISO)
+  - Type de réponse
+  - Valeur de la réponse (note satisfaction, texte, Ia/Ir avec indicateurs couleur)
+  - Observations absolue et relative (si applicable)
+- Score individuel du répondant (moyenne de ses notes)
 
-**`SurveyFromTemplateWizard.tsx`** : Lors de la copie des questions du template vers `client_survey_questions`, préserver les métadonnées :
-- Stocker `has_absolute_evaluation`, `has_competitor_evaluation` dans un champ JSON (`options` ou nouveau champ `evaluation_config` via migration)
-- Conserver le nom de section dans un format structuré (`section_title` séparé de `question_text`)
-- Utiliser `question_type: "absolute_relative"` au lieu de `"satisfaction"`
+**Pour les sondages ISO (absolute_relative)** :
+- Charger les `survey_answers` par `survey_id` et les regrouper par répondant via le `response_id` ou la date
+- Afficher tableau Ia/Ir par question pour chaque répondant
 
-**Migration SQL** : Ajouter à `client_survey_questions` :
-- `section_title` (text nullable) — pour regrouper les questions par section
-- `evaluation_config` (jsonb nullable) — pour stocker `{ has_absolute: true, has_competitor: true, has_obs_absolute: true, has_obs_relative: true }`
+**Pour les sondages classiques** :
+- Charger `client_survey_answers` via la relation `client_survey_responses`
+- Afficher la note ou le texte pour chaque question
 
-### Phase 3 — Page publique avec notation sur 100
+### 4. Filtres dans la vue réponses
 
-**`SurveyPublicPage.tsx`** : Quand `question_type === "absolute_relative"` :
-- Afficher 2 colonnes : "Évaluation absolue" et "Évaluation / concurrence"
-- Chaque colonne : un slider ou input numérique 0-100
-- Sous chaque note : indicateur coloré automatique (vert ≥80, orange 50-80, rouge <50)
-- Champ observation texte sous chaque colonne
-- Sauvegarder dans `survey_answers` (table déjà créée) : `absolute_rating`, `relative_rating`, `absolute_observation`, `relative_observation`
+- Recherche par nom/email
+- Filtre par date de soumission
+- Tri par date (récent/ancien) ou par score
 
-### Phase 4 — Résultats détaillés avec Ia/Ir
+### 5. Export CSV enrichi
 
-**`SurveyResults.tsx`** : Refonte complète :
-- **Sélection du sondage** avec badge template si applicable
-- **KPI globaux** : Taux satisfaction, Ia moyen global, Ir moyen global, Nombre réponses
-- **Tableau par section** :
+Ajouter un export CSV des réponses individuelles (en plus de l'export synthèse existant) avec colonnes : Nom, Email, Date, Question, Section, Réponse, Ia, Ir, Observations.
 
-```text
-┌──────────────────────────────────────┬────────┬────────┬────────┬────────┐
-│ Question                             │ Ia     │ Statut │ Ir     │ Statut │
-├──────────────────────────────────────┼────────┼────────┼────────┼────────┤
-│ A. Qualité produits-services         │        │        │        │        │
-│   Respect clauses contractuelles     │ 85     │ ✅     │ 72     │ ⚠️     │
-│   Réactivité réclamations            │ 60     │ ⚠️     │ 45     │ ❌     │
-│   Moyenne section A                  │ 72.5   │ ⚠️     │ 58.5   │ ⚠️     │
-├──────────────────────────────────────┼────────┼────────┼────────┼────────┤
-│ B. Délais d'exécution                │        │        │        │        │
-│   ...                                │        │        │        │        │
-└──────────────────────────────────────┴────────┴────────┴────────┴────────┘
+### 6. Modification de la requête de données
+
+Enrichir le fetch pour inclure :
+- `survey_answers` regroupés par `response_id` (ajouter ce champ si manquant) ou par répondant
+- Les champs `respondent_name` et `respondent_email` de `client_survey_responses`
+
+## Migration SQL nécessaire
+
+Aucune migration structurelle. La table `survey_answers` existe déjà mais n'a pas de `response_id` pour lier les réponses Ia/Ir à un répondant spécifique. Il faut ajouter :
+
+```sql
+ALTER TABLE survey_answers ADD COLUMN IF NOT EXISTS response_id uuid REFERENCES client_survey_responses(id) ON DELETE CASCADE;
 ```
 
-- **Graphique radar** : Ia vs Ir par section
-- **Graphique barres** : comparaison Ia/Ir par question
-- **Alertes** : questions où Ir < Ia (concurrence meilleure que nous)
-- **Export CSV** des résultats détaillés
+Et mettre à jour `SurveyPublicPage.tsx` pour passer le `response_id` lors de la sauvegarde des `survey_answers`.
 
-### Phase 5 — Corrections complémentaires
-
-- **SurveyBuilder** : Pour les sondages classiques (non template), garder le système actuel (Likert, NPS, etc.)
-- **Badge dans la liste** : Afficher clairement "ISO 9001" vs "Sondage libre" pour distinguer les types
-- **Ancien module** : Migrer les données `satisfaction_surveys` en lectures seules dans le tableau principal
-
-## Fichiers modifiés/créés
+## Fichiers modifiés
 
 | Fichier | Action |
 |---|---|
-| `supabase/migrations/xxx_survey_questions_sections.sql` | Ajouter `section_title`, `evaluation_config` à `client_survey_questions` |
-| `src/pages/SatisfactionClient.tsx` | Fusionner onglets, supprimer Historique séparé |
-| `src/components/SurveyFromTemplateWizard.tsx` | Copier métadonnées évaluation, type correct |
-| `src/pages/SurveyPublicPage.tsx` | Ajouter rendu `absolute_relative` avec notation 0-100 |
-| `src/components/SurveyResults.tsx` | Refonte : tableau par section, Ia/Ir, radar, alertes |
-
-## Contraintes respectées
-
-- Migrations idempotentes (`IF NOT EXISTS`, colonnes nullable)
-- RLS existante suffisante (pas de nouvelles tables)
-- `survey_answers` déjà créée, sera utilisée pour stocker les réponses double-évaluation
-- Sondages classiques (Likert) continuent de fonctionner normalement
-- Pas de modification des données existantes
+| `supabase/migrations/xxx.sql` | Ajouter `response_id` à `survey_answers` |
+| `src/components/SurveyResults.tsx` | Sous-onglets, KPI enrichis, vue réponse par réponse, filtres, export |
+| `src/pages/SurveyPublicPage.tsx` | Passer `response_id` lors de l'insertion des `survey_answers` |
 
