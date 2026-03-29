@@ -1,102 +1,95 @@
 
 
-# Module Modèles de sondage — Satisfaction client
+# Refonte du module Satisfaction Client — Architecture logique et best practices
 
-## Vue d'ensemble
+## Problèmes identifiés
 
-Ajouter un système complet de modèles (templates) de sondage au module satisfaction client. Les modèles contiennent des sections et des questions réutilisables. Lors de la création d'un sondage, l'utilisateur choisit un modèle ou part de zéro. Un modèle par défaut ISO 9001 (qualité produits-services, délais, prix) est pré-intégré avec double évaluation (absolue + concurrence).
+1. **Onglet "Historique" incohérent** : il mélange la création d'enquêtes manuelles (ancien module `satisfaction_surveys`) avec les sondages modernes (`client_surveys`). L'utilisateur voit "Nouvelle enquête" dans Historique alors que les enquêtes et sondages devraient être unifiés.
 
-## Phase 1 — Base de données (migration SQL)
+2. **Sondages depuis modèle : pas de double évaluation** : Le wizard copie les questions en `question_type: "satisfaction"` (Likert 1-5) au lieu d'utiliser la logique absolue/concurrence du template. Les champs `has_absolute_evaluation` et `has_competitor_evaluation` sont ignorés.
 
-### Tables à créer
+3. **Résultats trop simples** : Pas de vue par section, pas de calcul Ia/Ir, pas de comparaison concurrence, pas de moyenne par section. Juste un taux global et une distribution Likert.
 
-**`survey_templates`**
-- `id`, `name`, `code`, `version` (integer, default 1), `description`, `type` (text), `status` (text: actif/inactif/brouillon), `is_default` (boolean), `notes_internes` (text), `created_by` (uuid → profiles), `updated_by` (uuid → profiles), `created_at`, `updated_at`
+4. **Page publique sans notation par barème** : Le répondant choisit entre emojis (1-5) au lieu de noter sur 100 selon les seuils (Satisfaisant ≥80, Moyen 50-80, Insuffisant <50).
 
-**`survey_template_sections`**
-- `id`, `template_id` (FK → survey_templates ON DELETE CASCADE), `title`, `code`, `description`, `order_index` (integer), `is_active` (boolean, default true)
+## Plan de refonte
 
-**`survey_template_questions`**
-- `id`, `section_id` (FK → survey_template_sections ON DELETE CASCADE), `label` (text), `question_type` (text: satisfaction/text/rating/nps/yes_no/multiple_choice/absolute_relative), `order_index`, `has_absolute_evaluation` (boolean), `has_competitor_evaluation` (boolean), `has_observation_absolute` (boolean), `has_observation_relative` (boolean), `is_required` (boolean), `options` (jsonb), `poids` (numeric, default 1)
+### Phase 1 — Restructurer les onglets
 
-**Colonnes ajoutées à `client_surveys`**
-- `template_id` (uuid nullable FK → survey_templates), `template_version` (integer nullable), `template_name` (text nullable), `client` (text), `process_id` (uuid nullable FK → processes), `survey_date` (date)
+**`SatisfactionClient.tsx`** : 3 onglets au lieu de 4
+- **Sondages** : liste unifiée de tous les sondages (ancien `client_surveys` + ancien `satisfaction_surveys` via un badge "Manuel")
+- **Résultats & Analyse** : vue enrichie avec section par section
+- **Modèles** : inchangé
 
-**`survey_answers`** (pour le nouveau système d'évaluation absolue/relative)
-- `id`, `survey_id` (FK → client_surveys), `question_label` (text), `section_title` (text), `absolute_rating` (numeric), `absolute_observation` (text), `relative_rating` (numeric), `relative_observation` (text), `created_at`
+Supprimer l'onglet "Historique" séparé. Les anciennes enquêtes (`satisfaction_surveys`) apparaissent dans le même tableau avec un badge "Saisie manuelle".
 
-### RLS
-- Toutes les tables en RLS activée
-- Lecture pour `authenticated` 
-- Écriture/modification/suppression limitée via `has_role(auth.uid(), 'admin')` OR `has_role(auth.uid(), 'rmq')`
+### Phase 2 — Corriger la génération depuis modèle
 
-### Modèle par défaut (seed via migration)
-Inséré avec `ON CONFLICT DO NOTHING` sur le code :
-- **Template** : "Enquête satisfaction client standard", code `TPL-SAT-001`, version 1, type `satisfaction_client`, `is_default = true`
-- **Section A** : "Qualité produits-services" (3 questions : clauses contractuelles, réactivité réclamations, contrôle fournisseur)
-- **Section B** : "Délais d'exécution" (3 questions : respect délais, réactivité urgent, moyens supplémentaires)
-- **Section C** : "Prix d'exécution" (3 questions : écart prix/contrat, rapport qualité/prix, travaux imprévus)
+**`SurveyFromTemplateWizard.tsx`** : Lors de la copie des questions du template vers `client_survey_questions`, préserver les métadonnées :
+- Stocker `has_absolute_evaluation`, `has_competitor_evaluation` dans un champ JSON (`options` ou nouveau champ `evaluation_config` via migration)
+- Conserver le nom de section dans un format structuré (`section_title` séparé de `question_text`)
+- Utiliser `question_type: "absolute_relative"` au lieu de `"satisfaction"`
 
-Chaque question a `has_absolute_evaluation = true`, `has_competitor_evaluation = true`, `has_observation_absolute = true`, `has_observation_relative = true`.
+**Migration SQL** : Ajouter à `client_survey_questions` :
+- `section_title` (text nullable) — pour regrouper les questions par section
+- `evaluation_config` (jsonb nullable) — pour stocker `{ has_absolute: true, has_competitor: true, has_obs_absolute: true, has_obs_relative: true }`
 
-Seuils de notation intégrés dans l'UI (pas en base) : Satisfaisant ≥ 80, Moyen 50-80, Insuffisant < 50.
+### Phase 3 — Page publique avec notation sur 100
 
-## Phase 2 — UI : Onglet "Modèles" dans SatisfactionClient
+**`SurveyPublicPage.tsx`** : Quand `question_type === "absolute_relative"` :
+- Afficher 2 colonnes : "Évaluation absolue" et "Évaluation / concurrence"
+- Chaque colonne : un slider ou input numérique 0-100
+- Sous chaque note : indicateur coloré automatique (vert ≥80, orange 50-80, rouge <50)
+- Champ observation texte sous chaque colonne
+- Sauvegarder dans `survey_answers` (table déjà créée) : `absolute_rating`, `relative_rating`, `absolute_observation`, `relative_observation`
 
-### Modification de `src/pages/SatisfactionClient.tsx`
-- Ajouter un 4e onglet "Modèles" avec icône `FileStack`
-- Contenu : composant `<SurveyTemplateManager />`
+### Phase 4 — Résultats détaillés avec Ia/Ir
 
-### Nouveau composant : `src/components/SurveyTemplateManager.tsx`
+**`SurveyResults.tsx`** : Refonte complète :
+- **Sélection du sondage** avec badge template si applicable
+- **KPI globaux** : Taux satisfaction, Ia moyen global, Ir moyen global, Nombre réponses
+- **Tableau par section** :
 
-**Liste des modèles** (tableau) :
-| Nom | Code | Version | Type | Statut | Par défaut | Créé le | Actions |
+```text
+┌──────────────────────────────────────┬────────┬────────┬────────┬────────┐
+│ Question                             │ Ia     │ Statut │ Ir     │ Statut │
+├──────────────────────────────────────┼────────┼────────┼────────┼────────┤
+│ A. Qualité produits-services         │        │        │        │        │
+│   Respect clauses contractuelles     │ 85     │ ✅     │ 72     │ ⚠️     │
+│   Réactivité réclamations            │ 60     │ ⚠️     │ 45     │ ❌     │
+│   Moyenne section A                  │ 72.5   │ ⚠️     │ 58.5   │ ⚠️     │
+├──────────────────────────────────────┼────────┼────────┼────────┼────────┤
+│ B. Délais d'exécution                │        │        │        │        │
+│   ...                                │        │        │        │        │
+└──────────────────────────────────────┴────────┴────────┴────────┴────────┘
+```
 
-**Actions** : Voir, Modifier, Dupliquer, Archiver, Définir par défaut
+- **Graphique radar** : Ia vs Ir par section
+- **Graphique barres** : comparaison Ia/Ir par question
+- **Alertes** : questions où Ir < Ia (concurrence meilleure que nous)
+- **Export CSV** des résultats détaillés
 
-**Dialog d'édition** (maximisable comme SurveyBuilder) :
-- Formulaire : nom, code, version, type, statut, description, notes internes
-- Éditeur de sections (ajout/suppression/réordonnement/activation)
-- Éditeur de questions par section (ajout/suppression/réordonnement/duplication)
-- Chaque question : label, type, pondération, flags (évaluation absolue, concurrence, observations)
-- Bouton "Prévisualiser" pour afficher le rendu du formulaire
+### Phase 5 — Corrections complémentaires
 
-## Phase 3 — Wizard de création de sondage depuis modèle
+- **SurveyBuilder** : Pour les sondages classiques (non template), garder le système actuel (Likert, NPS, etc.)
+- **Badge dans la liste** : Afficher clairement "ISO 9001" vs "Sondage libre" pour distinguer les types
+- **Ancien module** : Migrer les données `satisfaction_surveys` en lectures seules dans le tableau principal
 
-### Modification du flux "Nouveau sondage"
-
-Quand l'utilisateur clique "Nouveau sondage" :
-1. **Dialog de choix** avec 2 options :
-   - "Sondage vide" → ouvre le SurveyBuilder existant
-   - "À partir d'un modèle" → affiche la liste des templates actifs
-
-2. Si modèle choisi, **dialog wizard** :
-   - Étape 1 : Choisir client (texte libre), processus (select depuis table `processes`), date
-   - Étape 2 : Aperçu du modèle sélectionné
-   - Étape 3 : Générer → copie toutes les sections/questions dans `client_surveys` + `client_survey_questions`, enregistre `template_id`, `template_version`, `template_name`
-
-Le sondage généré est **autonome** : modification du template ultérieure n'affecte pas les sondages existants.
-
-## Phase 4 — Affichage enrichi
-
-- Dans la liste des sondages, afficher le badge "Modèle : TPL-SAT-001 v1" quand `template_id` est renseigné
-- Dans les résultats, calcul automatique des moyennes par section avec indicateurs Ia (absolu) et Ir (relatif)
-
-## Fichiers créés/modifiés
+## Fichiers modifiés/créés
 
 | Fichier | Action |
 |---|---|
-| `supabase/migrations/xxx_survey_templates.sql` | Créer tables, RLS, seed modèle par défaut |
-| `src/components/SurveyTemplateManager.tsx` | Nouveau — gestion complète des templates |
-| `src/components/SurveyTemplateEditor.tsx` | Nouveau — éditeur sections/questions |
-| `src/components/SurveyFromTemplateWizard.tsx` | Nouveau — wizard création depuis modèle |
-| `src/pages/SatisfactionClient.tsx` | Ajouter onglet Modèles + dialog de choix "vide ou modèle" |
+| `supabase/migrations/xxx_survey_questions_sections.sql` | Ajouter `section_title`, `evaluation_config` à `client_survey_questions` |
+| `src/pages/SatisfactionClient.tsx` | Fusionner onglets, supprimer Historique séparé |
+| `src/components/SurveyFromTemplateWizard.tsx` | Copier métadonnées évaluation, type correct |
+| `src/pages/SurveyPublicPage.tsx` | Ajouter rendu `absolute_relative` avec notation 0-100 |
+| `src/components/SurveyResults.tsx` | Refonte : tableau par section, Ia/Ir, radar, alertes |
 
 ## Contraintes respectées
 
-- Migrations idempotentes (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`)
-- RLS avec `has_role()` security definer
-- Pas de hardcoding d'URLs
-- Versioning des templates (le sondage mémorise la version source)
-- Interface cohérente avec le design system existant (Card, Dialog, Table, Badge, Select)
+- Migrations idempotentes (`IF NOT EXISTS`, colonnes nullable)
+- RLS existante suffisante (pas de nouvelles tables)
+- `survey_answers` déjà créée, sera utilisée pour stocker les réponses double-évaluation
+- Sondages classiques (Likert) continuent de fonctionner normalement
+- Pas de modification des données existantes
 
