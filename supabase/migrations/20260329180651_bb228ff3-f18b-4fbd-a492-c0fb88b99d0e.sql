@@ -1,0 +1,1 @@
+ALTER TABLE public.survey_answers ADD COLUMN IF NOT EXISTS response_id uuid REFERENCES public.client_survey_responses(id) ON DELETE CASCADE;
