@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Eye, Copy, Play, Square, ClipboardList, BarChart3, History, Users, FileStack } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Copy, Play, Square, ClipboardList, BarChart3, Users, FileStack } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import SurveyBuilder from "@/components/SurveyBuilder";
@@ -21,7 +21,6 @@ import SurveyTemplateManager from "@/components/SurveyTemplateManager";
 import SurveyFromTemplateWizard from "@/components/SurveyFromTemplateWizard";
 import { HelpTooltip } from "@/components/HelpTooltip";
 
-// --- Historique (ancien module) ---
 const statutColors: Record<string, string> = {
   planifiee: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   en_cours: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
@@ -51,6 +50,7 @@ const surveyTypeLabels: Record<string, string> = {
   nps: "NPS",
   enquete_post_projet: "Enquête post-projet",
   enquete_perception: "Perception qualité",
+  satisfaction_client: "Satisfaction client",
   autre: "Autre",
 };
 
@@ -97,7 +97,6 @@ export default function SatisfactionClient() {
     },
   });
 
-  // Fetch all shares for display
   const { data: allShares = [] } = useQuery({
     queryKey: ["all_survey_shares"],
     enabled: isAdminOrRmq,
@@ -107,7 +106,6 @@ export default function SatisfactionClient() {
     },
   });
 
-  // Fetch client_surveys
   const { data: clientSurveys = [] } = useQuery({
     queryKey: ["client_surveys"],
     queryFn: async () => {
@@ -117,13 +115,12 @@ export default function SatisfactionClient() {
     },
   });
 
-  // Filter surveys for responsable_processus
   const visibleSurveys = isAdminOrRmq
     ? clientSurveys
     : clientSurveys.filter((s: any) => myShares.includes(s.id));
 
-  // Fetch old surveys (historique)
-  const { data: surveys = [] } = useQuery({
+  // Fetch old surveys (historique) for unified display
+  const { data: oldSurveys = [] } = useQuery({
     queryKey: ["satisfaction_surveys"],
     queryFn: async () => {
       const { data, error } = await supabase.from("satisfaction_surveys").select("*").order("date_enquete", { ascending: false });
@@ -132,7 +129,6 @@ export default function SatisfactionClient() {
     },
   });
 
-  // Response counts per survey
   const { data: responseCounts = {} } = useQuery({
     queryKey: ["survey_response_counts"],
     queryFn: async () => {
@@ -144,7 +140,6 @@ export default function SatisfactionClient() {
     },
   });
 
-  // Survey CRUD
   const toggleStatus = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
       const { error } = await supabase.from("client_surveys").update({ status: newStatus }).eq("id", id);
@@ -178,7 +173,6 @@ export default function SatisfactionClient() {
     toast({ title: "Lien copié !", description: url });
   };
 
-  // Get shared users for a survey
   const getSharedUsers = (surveyId: string) => {
     return allShares.filter((s: any) => s.survey_id === surveyId);
   };
@@ -210,99 +204,156 @@ export default function SatisfactionClient() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">Satisfaction client <HelpTooltip term="satisfaction_client" /></h1>
-        <p className="text-muted-foreground mt-1">Sondages, résultats et historique des enquêtes</p>
+        <p className="text-muted-foreground mt-1">Sondages, résultats et modèles d'enquêtes</p>
       </div>
 
       <Tabs defaultValue="sondages">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="sondages" className="gap-1.5"><ClipboardList className="h-4 w-4" />Sondages</TabsTrigger>
-          <TabsTrigger value="resultats" className="gap-1.5"><BarChart3 className="h-4 w-4" />Résultats</TabsTrigger>
+          <TabsTrigger value="resultats" className="gap-1.5"><BarChart3 className="h-4 w-4" />Résultats & Analyse</TabsTrigger>
           <TabsTrigger value="modeles" className="gap-1.5"><FileStack className="h-4 w-4" />Modèles</TabsTrigger>
-          <TabsTrigger value="historique" className="gap-1.5"><History className="h-4 w-4" />Historique</TabsTrigger>
         </TabsList>
 
-        {/* ===== SONDAGES TAB ===== */}
+        {/* ===== SONDAGES TAB (unified: modern + old manual) ===== */}
         <TabsContent value="sondages" className="space-y-4 mt-4">
           {canEdit && (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={openNew} className="gap-1.5"><Plus className="h-4 w-4" />Saisie manuelle</Button>
               <Button onClick={openNewSurvey} className="gap-1.5"><Plus className="h-4 w-4" />Nouveau sondage</Button>
             </div>
           )}
 
-          {visibleSurveys.length === 0 ? (
+          {/* Modern surveys */}
+          {visibleSurveys.length === 0 && oldSurveys.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-30" />
               <p>{isResponsableProcessus && !isAdminOrRmq ? "Aucun sondage partagé avec vous." : "Aucun sondage créé."}</p>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {visibleSurveys.map((s: any) => {
-                const stCfg = surveyStatusConfig[s.status] || surveyStatusConfig.draft;
-                const typeLabel = surveyTypeLabels[s.type_sondage] || s.type_sondage;
-                const objLabel = objectifLabels[s.objectif] || s.objectif;
-                const shared = isAdminOrRmq ? getSharedUsers(s.id) : [];
-                return (
-                  <Card key={s.id} className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold truncate">{s.name}</h3>
-                          <Badge className={stCfg.color}>{stCfg.label}</Badge>
-                          <Badge variant="outline" className="text-[10px]">{typeLabel}</Badge>
-                          {s.template_name && <Badge variant="secondary" className="text-[10px]">📋 {s.template_name}</Badge>}
-                        </div>
-                        {s.description && <p className="text-sm text-muted-foreground line-clamp-1">{s.description}</p>}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                          {objLabel && <span className="font-medium text-primary/80">🎯 {objLabel}</span>}
-                          {s.department && <span>Département : {s.department}</span>}
-                          {s.product_service && <span>Produit : {s.product_service}</span>}
-                          <span>{(responseCounts as any)[s.id] || 0} réponse(s)</span>
-                          <span>Créé le {format(new Date(s.created_at), "dd/MM/yyyy")}</span>
-                        </div>
-                        {isAdminOrRmq && shared.length > 0 && (
-                          <div className="flex items-center gap-1 mt-2 flex-wrap">
-                            <Users className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-[10px] text-muted-foreground">Partagé avec :</span>
-                            {shared.map((sh: any, i: number) => (
-                              <Badge key={i} variant="secondary" className="text-[10px] py-0">
-                                {sh.profiles?.prenom} {sh.profiles?.nom}
-                              </Badge>
-                            ))}
+            <div className="space-y-6">
+              {/* Modern surveys */}
+              {visibleSurveys.length > 0 && (
+                <div className="grid gap-4">
+                  {visibleSurveys.map((s: any) => {
+                    const stCfg = surveyStatusConfig[s.status] || surveyStatusConfig.draft;
+                    const typeLabel = surveyTypeLabels[s.type_sondage] || s.type_sondage;
+                    const objLabel = objectifLabels[s.objectif] || s.objectif;
+                    const shared = isAdminOrRmq ? getSharedUsers(s.id) : [];
+                    const isIso = !!s.template_id;
+                    return (
+                      <Card key={s.id} className="p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h3 className="font-semibold truncate">{s.name}</h3>
+                              <Badge className={stCfg.color}>{stCfg.label}</Badge>
+                              {isIso ? (
+                                <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 text-[10px]">📋 ISO 9001</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px]">Sondage libre</Badge>
+                              )}
+                              <Badge variant="outline" className="text-[10px]">{typeLabel}</Badge>
+                              {s.template_name && <Badge variant="secondary" className="text-[10px]">{s.template_name}</Badge>}
+                            </div>
+                            {s.description && <p className="text-sm text-muted-foreground line-clamp-1">{s.description}</p>}
+                            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                              {objLabel && <span className="font-medium text-primary/80">🎯 {objLabel}</span>}
+                              {s.client && <span>Client : {s.client}</span>}
+                              {s.department && <span>Département : {s.department}</span>}
+                              <span>{(responseCounts as any)[s.id] || 0} réponse(s)</span>
+                              <span>Créé le {format(new Date(s.created_at), "dd/MM/yyyy")}</span>
+                            </div>
+                            {isAdminOrRmq && shared.length > 0 && (
+                              <div className="flex items-center gap-1 mt-2 flex-wrap">
+                                <Users className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-[10px] text-muted-foreground">Partagé avec :</span>
+                                {shared.map((sh: any, i: number) => (
+                                  <Badge key={i} variant="secondary" className="text-[10px] py-0">
+                                    {sh.profiles?.prenom} {sh.profiles?.nom}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {s.status === "active" && (
-                          <Button variant="outline" size="sm" onClick={() => copyLink(s.public_token)} className="gap-1 text-xs">
-                            <Copy className="h-3 w-3" />Copier lien
-                          </Button>
-                        )}
-                        {canEdit && (
-                          <>
-                            {s.status === "draft" && (
-                              <Button variant="outline" size="icon" onClick={() => toggleStatus.mutate({ id: s.id, newStatus: "active" })} title="Activer">
-                                <Play className="h-4 w-4 text-emerald-600" />
-                              </Button>
-                            )}
+                          <div className="flex items-center gap-1 shrink-0">
                             {s.status === "active" && (
-                              <Button variant="outline" size="icon" onClick={() => toggleStatus.mutate({ id: s.id, newStatus: "closed" })} title="Clôturer">
-                                <Square className="h-4 w-4 text-red-500" />
+                              <Button variant="outline" size="sm" onClick={() => copyLink(s.public_token)} className="gap-1 text-xs">
+                                <Copy className="h-3 w-3" />Copier lien
                               </Button>
                             )}
-                            <Button variant="ghost" size="icon" onClick={() => openEditSurvey(s)}><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => deleteSurvey.mutate(s.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                            {canEdit && (
+                              <>
+                                {s.status === "draft" && (
+                                  <Button variant="outline" size="icon" onClick={() => toggleStatus.mutate({ id: s.id, newStatus: "active" })} title="Activer">
+                                    <Play className="h-4 w-4 text-emerald-600" />
+                                  </Button>
+                                )}
+                                {s.status === "active" && (
+                                  <Button variant="outline" size="icon" onClick={() => toggleStatus.mutate({ id: s.id, newStatus: "closed" })} title="Clôturer">
+                                    <Square className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={() => openEditSurvey(s)}><Edit className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => deleteSurvey.mutate(s.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Old manual surveys in a collapsed table */}
+              {oldSurveys.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    Enquêtes manuelles <Badge variant="secondary" className="text-[10px]">{oldSurveys.length}</Badge>
+                  </h3>
+                  <Card>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Réf.</TableHead>
+                          <TableHead>Titre</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Score</TableHead>
+                          <TableHead>Statut</TableHead>
+                          <TableHead className="w-24">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {oldSurveys.map((s: any) => (
+                          <TableRow key={s.id}>
+                            <TableCell className="font-mono text-xs">{s.reference}</TableCell>
+                            <TableCell className="max-w-[180px] truncate">{s.titre}</TableCell>
+                            <TableCell>{s.date_enquete ? format(new Date(s.date_enquete), "dd/MM/yyyy") : "—"}</TableCell>
+                            <TableCell>{typeLabels[s.type_enquete] || s.type_enquete}</TableCell>
+                            <TableCell className="font-semibold">{s.score_global != null ? `${s.score_global}%` : "—"}</TableCell>
+                            <TableCell><Badge className={statutColors[s.statut]}>{statutLabels[s.statut]}</Badge></TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => { setViewing(s); setViewDialog(true); }}><Eye className="h-4 w-4" /></Button>
+                                {canEdit && <>
+                                  <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Edit className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
+                                </>}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </Card>
-                );
-              })}
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
 
-        {/* ===== RÉSULTATS TAB ===== */}
+        {/* ===== RÉSULTATS & ANALYSE TAB ===== */}
         <TabsContent value="resultats" className="mt-4">
           <SurveyResults />
         </TabsContent>
@@ -310,55 +361,6 @@ export default function SatisfactionClient() {
         {/* ===== MODÈLES TAB ===== */}
         <TabsContent value="modeles" className="mt-4">
           <SurveyTemplateManager />
-        </TabsContent>
-
-        {/* ===== HISTORIQUE TAB ===== */}
-        <TabsContent value="historique" className="space-y-4 mt-4">
-          {canEdit && (
-            <div className="flex justify-end">
-              <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nouvelle enquête</Button>
-            </div>
-          )}
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Réf.</TableHead>
-                  <TableHead>Titre</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Réponses</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="w-28">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {surveys.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Aucune enquête de satisfaction.</TableCell></TableRow>
-                ) : surveys.map((s: any) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-mono text-xs">{s.reference}</TableCell>
-                    <TableCell className="max-w-[180px] truncate">{s.titre}</TableCell>
-                    <TableCell>{format(new Date(s.date_enquete), "dd/MM/yyyy")}</TableCell>
-                    <TableCell>{typeLabels[s.type_enquete] || s.type_enquete}</TableCell>
-                    <TableCell className="font-semibold">{s.score_global != null ? `${s.score_global}%` : "—"}</TableCell>
-                    <TableCell>{s.nombre_reponses}</TableCell>
-                    <TableCell><Badge className={statutColors[s.statut]}>{statutLabels[s.statut]}</Badge></TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setViewing(s); setViewDialog(true); }}><Eye className="h-4 w-4" /></Button>
-                        {canEdit && <>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteMut.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
-                        </>}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
         </TabsContent>
       </Tabs>
 
