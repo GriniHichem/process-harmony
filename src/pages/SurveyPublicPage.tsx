@@ -156,6 +156,7 @@ export default function SurveyPublicPage() {
           const ar = absRelAnswers[q.id] || { absolute: 50, relative: 50, obsAbsolute: "", obsRelative: "" };
           return {
             survey_id: survey.id,
+            response_id: response.id,
             question_label: q.question_text,
             section_title: q.section_title || "",
             absolute_rating: ar.absolute,
