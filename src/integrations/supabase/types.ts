@@ -2592,6 +2592,7 @@ export type Database = {
           question_label: string
           relative_observation: string | null
           relative_rating: number | null
+          response_id: string | null
           section_title: string
           survey_id: string
         }
@@ -2603,6 +2604,7 @@ export type Database = {
           question_label: string
           relative_observation?: string | null
           relative_rating?: number | null
+          response_id?: string | null
           section_title?: string
           survey_id: string
         }
@@ -2614,10 +2616,18 @@ export type Database = {
           question_label?: string
           relative_observation?: string | null
           relative_rating?: number | null
+          response_id?: string | null
           section_title?: string
           survey_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "survey_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "client_survey_responses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "survey_answers_survey_id_fkey"
             columns: ["survey_id"]
