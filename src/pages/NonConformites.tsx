@@ -354,6 +354,11 @@ export default function NonConformites() {
           {editNC && (
             <>
               <DialogHeader><DialogTitle>Modifier {editNC.reference}</DialogTitle></DialogHeader>
+              {editNC.statut === "cloturee" && (
+                <div className="bg-muted/50 border rounded-md p-3 text-sm text-muted-foreground flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" /> Cette non-conformité est clôturée et ne peut plus être modifiée.
+                </div>
+              )}
               <Tabs defaultValue="general">
                 <TabsList className="w-full justify-start flex-wrap">
                   <TabsTrigger value="general">Général</TabsTrigger>
