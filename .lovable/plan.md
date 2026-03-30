@@ -1,116 +1,44 @@
 
 
-# Configuration documentaire — Types, Tags et Permissions par acteur
+# Déplacer Notifications & Documents config vers Administration
 
-## Objectif
+## Ce qui change
 
-Ajouter dans la configuration (SuperAdmin) une section "Documents" pour gérer les types de documents et les tags. Permettre le tagging des documents. Ajouter un système de permissions documentaires par acteur (lire, télécharger, supprimer) filtré par types et tags autorisés.
-
-## Phase 1 — Migration : nouvelles tables
-
-### `document_types` — Types de documents configurables
-```sql
-CREATE TABLE public.document_types (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  label TEXT NOT NULL UNIQUE,
-  code TEXT NOT NULL UNIQUE,  -- clé technique
-  actif BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
--- Seed avec les types existants de l'enum
+### 1. Sidebar — `AppSidebar.tsx`
+Ajouter 2 entrées dans `adminItems` (section Administration existante) :
+```
+{ title: "Config. notifications", url: "/admin/notifications", icon: Bell, module: "notifications" }
+{ title: "Config. documents", url: "/admin/documents-config", icon: FolderOpen, module: "gestion_documentaire" }
 ```
 
-### `document_tags` — Tags configurables
-```sql
-CREATE TABLE public.document_tags (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  label TEXT NOT NULL UNIQUE,
-  color TEXT DEFAULT '#6366f1',
-  created_at TIMESTAMPTZ DEFAULT now()
-);
--- Seed : technique, graphique, juridique
-```
+### 2. Permissions — `defaultPermissions.ts`
+- Ajouter `"notifications"` et `"gestion_documentaire"` dans `AppModule`, `ALL_MODULES`, `MODULE_LABELS`
+- Définir dans `DEFAULT_PERMISSIONS` : rmq = ALL_TRUE, autres rôles = NONE
+- Cela les fait apparaître automatiquement dans la matrice AdminPermissions
 
-### `document_tag_links` — Association documents ↔ tags (N:N)
-```sql
-CREATE TABLE public.document_tag_links (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  tag_id UUID NOT NULL REFERENCES document_tags(id) ON DELETE CASCADE,
-  UNIQUE(document_id, tag_id)
-);
-```
+### 3. Nouvelles routes — `App.tsx`
+- `/admin/notifications` → page avec `NotificationConfigMatrix` (scope global) protégée par `RoleGuard requiredModule="notifications"`
+- `/admin/documents-config` → page avec DocumentConfigTab (types, tags, permissions acteurs) protégée par `RoleGuard requiredModule="gestion_documentaire"`
 
-### `document_actor_permissions` — Permissions documentaires par acteur
-```sql
-CREATE TABLE public.document_actor_permissions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  acteur_id UUID NOT NULL REFERENCES acteurs(id) ON DELETE CASCADE,
-  can_read BOOLEAN DEFAULT true,
-  can_download BOOLEAN DEFAULT false,
-  can_delete BOOLEAN DEFAULT false,
-  allowed_type_ids UUID[] DEFAULT '{}',   -- types autorisés (vide = tous)
-  allowed_tag_ids UUID[] DEFAULT '{}',    -- tags autorisés (vide = tous)
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(acteur_id)
-);
-```
+### 4. Nouvelles pages
+- `src/pages/AdminNotificationsConfig.tsx` : encapsule `NotificationConfigMatrix` avec mode read-only si `!hasPermission("notifications", "can_edit")`
+- `src/pages/AdminDocumentsConfig.tsx` : encapsule le contenu DocumentConfigTab de SuperAdmin avec mode read-only si `!hasPermission("gestion_documentaire", "can_edit")`
 
-RLS : SELECT pour tous les authentifiés, INSERT/UPDATE/DELETE pour admin/rmq.
+### 5. SuperAdmin — `SuperAdmin.tsx`
+Retirer les onglets "Notifications" et "Documents". Il ne reste que : Identité, Logos, Email/SMTP (3 onglets).
 
-## Phase 2 — SuperAdmin : onglet "Documents"
-
-Ajouter un 5e onglet dans SuperAdmin (icône `FolderOpen`) contenant :
-
-**Section Types de documents** :
-- Liste des types existants avec toggle actif/inactif
-- Bouton "Ajouter un type" (label + code)
-- Suppression avec confirmation
-
-**Section Tags** :
-- Liste des tags avec pastille de couleur
-- Bouton "Ajouter un tag" (label + couleur)
-- Suppression avec confirmation
-
-## Phase 3 — Permissions documentaires par acteur
-
-Nouvelle page ou section dans AdminPermissions (ou dans SuperAdmin onglet Documents) :
-
-**Matrice acteur × permissions** :
-- Liste des acteurs (fonctions)
-- Pour chaque acteur : checkboxes Lire / Télécharger / Supprimer
-- Multi-select pour types autorisés (vide = tous)
-- Multi-select pour tags autorisés (vide = tous)
-- Sauvegarde dans `document_actor_permissions`
-
-## Phase 4 — Intégration dans Documents.tsx
-
-**Upload** :
-- Remplacer l'enum statique `type_document` par un select dynamique depuis `document_types`
-- Ajouter un multi-select de tags lors de l'upload
-
-**Affichage** :
-- Afficher les tags sous forme de badges colorés sur chaque document
-- Ajouter un filtre par tag
-
-**Contrôle d'accès** :
-- Avant chaque action (voir/télécharger/supprimer), vérifier `document_actor_permissions` pour l'acteur de l'utilisateur courant
-- Si l'acteur a des restrictions de type/tag, filtrer les documents visibles
+### 6. Mode lecture seule pour Admin
+- Admin a `can_read` par défaut sur ces 2 modules mais pas `can_edit`
+- Les pages affichent les données mais tous les boutons d'action et inputs sont `disabled` sans `can_edit`
 
 ## Fichiers modifiés
 
 | Fichier | Action |
 |---|---|
-| `supabase/migrations/xxx.sql` | Tables `document_types`, `document_tags`, `document_tag_links`, `document_actor_permissions` + seed + RLS |
-| `src/pages/SuperAdmin.tsx` | Nouvel onglet "Documents" avec CRUD types + tags |
-| `src/pages/Documents.tsx` | Types dynamiques, tags multi-select, filtres, contrôle d'accès par acteur |
-| `src/pages/AdminPermissions.tsx` | Section permissions documentaires par acteur (ou intégré dans SuperAdmin) |
-
-## Contraintes
-
-- Migration idempotente (`IF NOT EXISTS`)
-- Les documents existants conservent leur `type_document` enum — le select dynamique utilise les `document_types` mais reste compatible
-- Les tags sont optionnels sur les documents
-- Permissions vides (allowed_type_ids/allowed_tag_ids = `{}`) = accès à tous les types/tags
-- Admin et Super Admin contournent toujours les restrictions
+| `src/lib/defaultPermissions.ts` | +2 modules |
+| `src/pages/AdminNotificationsConfig.tsx` | Nouveau |
+| `src/pages/AdminDocumentsConfig.tsx` | Nouveau |
+| `src/pages/SuperAdmin.tsx` | Retirer 2 onglets |
+| `src/components/AppSidebar.tsx` | +2 items dans adminItems |
+| `src/App.tsx` | +2 routes admin |
 
