@@ -945,6 +945,50 @@ export type Database = {
         }
         Relationships: []
       }
+      document_actor_permissions: {
+        Row: {
+          acteur_id: string
+          allowed_tag_ids: string[] | null
+          allowed_type_ids: string[] | null
+          can_delete: boolean | null
+          can_download: boolean | null
+          can_read: boolean | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          acteur_id: string
+          allowed_tag_ids?: string[] | null
+          allowed_type_ids?: string[] | null
+          can_delete?: boolean | null
+          can_download?: boolean | null
+          can_read?: boolean | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          acteur_id?: string
+          allowed_tag_ids?: string[] | null
+          allowed_type_ids?: string[] | null
+          can_delete?: boolean | null
+          can_download?: boolean | null
+          can_read?: boolean | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_actor_permissions_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: true
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_processes: {
         Row: {
           created_at: string
@@ -980,6 +1024,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      document_tag_links: {
+        Row: {
+          document_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          document_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          document_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_tag_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_tag_links_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "document_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_tags: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          label: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          label: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          label?: string
+        }
+        Relationships: []
+      }
+      document_types: {
+        Row: {
+          actif: boolean | null
+          code: string
+          created_at: string | null
+          id: string
+          label: string
+        }
+        Insert: {
+          actif?: boolean | null
+          code: string
+          created_at?: string | null
+          id?: string
+          label: string
+        }
+        Update: {
+          actif?: boolean | null
+          code?: string
+          created_at?: string | null
+          id?: string
+          label?: string
+        }
+        Relationships: []
       }
       documents: {
         Row: {

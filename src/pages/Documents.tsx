@@ -8,15 +8,19 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, X, Eye, Download, ImageIcon, FolderOpen, Search, BarChart3, Clock, FileImage, File } from "lucide-react";
+import { Plus, FileText, Trash2, X, Eye, Download, ImageIcon, FolderOpen, Search, BarChart3, Clock, FileImage, File, Tag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 import { ImageViewerDialog } from "@/components/ImageViewerDialog";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
-import { format, subMonths, startOfMonth, isWithinInterval, parseISO } from "date-fns";
+import { format, subMonths, startOfMonth, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+
+type DocType = { id: string; label: string; code: string; actif: boolean; };
+type DocTag = { id: string; label: string; color: string; };
 
 type Doc = {
   id: string;
@@ -30,6 +34,7 @@ type Doc = {
   process_ids: string[];
   consulte_count: number;
   retired_at: string | null;
+  tag_ids: string[];
 };
 
 type AuditLog = {
@@ -40,12 +45,6 @@ type AuditLog = {
   user_id: string | null;
   new_value: any;
   old_value: any;
-};
-
-const typeLabels: Record<string, string> = {
-  procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
-  enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit",
-  preuve: "Preuve", image: "Image",
 };
 
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".tif"];
@@ -69,13 +68,17 @@ const CHART_COLORS = [
 ];
 
 export default function Documents() {
-  const { hasRole, hasPermission, user } = useAuth();
+  const { hasRole, hasPermission, user, profile } = useAuth();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
-  const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", selectedProcessIds: [] as string[] });
+  const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", selectedProcessIds: [] as string[], selectedTagIds: [] as string[] });
   const [file, setFile] = useState<File | null>(null);
+
+  // Dynamic types & tags
+  const [docTypes, setDocTypes] = useState<DocType[]>([]);
+  const [docTags, setDocTags] = useState<DocTag[]>([]);
 
   // Filters
   const [filterProcessId, setFilterProcessId] = useState("all");
@@ -83,6 +86,7 @@ export default function Documents() {
   const [filterSearch, setFilterSearch] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterTagId, setFilterTagId] = useState("all");
 
   // Viewers
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
@@ -99,7 +103,22 @@ export default function Documents() {
   const canDownload = hasRole("rmq") || hasRole("admin") || hasRole("super_admin");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
 
+  // Type labels from dynamic types
+  const typeLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    docTypes.forEach(t => { map[t.code] = t.label; });
+    return map;
+  }, [docTypes]);
+
   const fetchDocs = async () => {
+    // Fetch dynamic types & tags
+    const [typesRes, tagsRes] = await Promise.all([
+      supabase.from("document_types").select("*").order("label"),
+      supabase.from("document_tags").select("*").order("label"),
+    ]);
+    setDocTypes((typesRes.data ?? []) as DocType[]);
+    setDocTags((tagsRes.data ?? []) as DocTag[]);
+
     let procQuery = supabase.from("processes").select("id, nom").order("nom");
     if (isOnlyResponsable && user) procQuery = procQuery.eq("responsable_id", user.id);
     const { data: procData } = await procQuery;
@@ -109,12 +128,21 @@ export default function Documents() {
     const { data: docsData } = await supabase
       .from("documents").select("*").eq("archive", false).order("created_at", { ascending: false });
 
-    const { data: dpData } = await supabase.from("document_processes").select("document_id, process_id");
+    const [dpRes, tagLinksRes] = await Promise.all([
+      supabase.from("document_processes").select("document_id, process_id"),
+      supabase.from("document_tag_links").select("document_id, tag_id"),
+    ]);
     const dpMap = new Map<string, string[]>();
-    (dpData ?? []).forEach((dp: any) => {
+    (dpRes.data ?? []).forEach((dp: any) => {
       const list = dpMap.get(dp.document_id) || [];
       list.push(dp.process_id);
       dpMap.set(dp.document_id, list);
+    });
+    const tagMap = new Map<string, string[]>();
+    (tagLinksRes.data ?? []).forEach((tl: any) => {
+      const list = tagMap.get(tl.document_id) || [];
+      list.push(tl.tag_id);
+      tagMap.set(tl.document_id, list);
     });
 
     let enriched: Doc[] = (docsData ?? []).map((d: any) => ({
@@ -122,6 +150,7 @@ export default function Documents() {
       archive: d.archive, nom_fichier: d.nom_fichier, chemin_fichier: d.chemin_fichier,
       created_at: d.created_at, process_ids: dpMap.get(d.id) || [],
       consulte_count: d.consulte_count ?? 0, retired_at: d.retired_at,
+      tag_ids: tagMap.get(d.id) || [],
     }));
 
     if (isOnlyResponsable) {
@@ -183,9 +212,15 @@ export default function Documents() {
       await supabase.from("document_processes").insert(rows);
     }
 
+    // Save tag links
+    if (newDoc.selectedTagIds.length > 0) {
+      const tagRows = newDoc.selectedTagIds.map(tid => ({ document_id: insertedDoc.id, tag_id: tid }));
+      await supabase.from("document_tag_links").insert(tagRows);
+    }
+
     toast.success("Document ajouté");
     setDialogOpen(false);
-    setNewDoc({ titre: "", type_document: "procedure", selectedProcessIds: [] });
+    setNewDoc({ titre: "", type_document: "procedure", selectedProcessIds: [], selectedTagIds: [] });
     setFile(null);
     fetchDocs();
     fetchHistory();
@@ -208,12 +243,20 @@ export default function Documents() {
     setNewDoc({ ...newDoc, selectedProcessIds: newDoc.selectedProcessIds.filter(p => p !== pid) });
   };
   const getProcessName = (pid: string) => processes.find(p => p.id === pid)?.nom || pid;
+  const getTag = (tid: string) => docTags.find(t => t.id === tid);
+
+  const toggleTagSelection = (tid: string) => {
+    const current = newDoc.selectedTagIds;
+    const updated = current.includes(tid) ? current.filter(x => x !== tid) : [...current, tid];
+    setNewDoc({ ...newDoc, selectedTagIds: updated });
+  };
 
   // Filtered docs
   const filteredDocs = useMemo(() => {
     return docs.filter(d => {
       if (filterProcessId !== "all" && !d.process_ids.includes(filterProcessId)) return false;
       if (filterType !== "all" && d.type_document !== filterType) return false;
+      if (filterTagId !== "all" && !d.tag_ids.includes(filterTagId)) return false;
       if (filterSearch && !d.titre.toLowerCase().includes(filterSearch.toLowerCase())) return false;
       if (filterDateFrom) {
         try { if (parseISO(d.created_at) < parseISO(filterDateFrom)) return false; } catch {}
@@ -227,7 +270,7 @@ export default function Documents() {
       }
       return true;
     });
-  }, [docs, filterProcessId, filterType, filterSearch, filterDateFrom, filterDateTo]);
+  }, [docs, filterProcessId, filterType, filterSearch, filterDateFrom, filterDateTo, filterTagId]);
 
   const openFileViewer = async (doc: Doc) => {
     if (!doc.chemin_fichier) return;
@@ -331,9 +374,25 @@ export default function Documents() {
                   <Select value={newDoc.type_document} onValueChange={v => setNewDoc({ ...newDoc, type_document: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      {docTypes.filter(t => t.actif).map(t => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  <div className="flex flex-wrap gap-1">
+                    {docTags.map(tag => (
+                      <Badge
+                        key={tag.id}
+                        className="cursor-pointer text-xs px-2 py-1"
+                        style={newDoc.selectedTagIds.includes(tag.id) ? { backgroundColor: tag.color, color: "#fff" } : { backgroundColor: "transparent", border: `1px solid ${tag.color}`, color: tag.color }}
+                        onClick={() => toggleTagSelection(tag.id)}
+                      >
+                        {tag.label}
+                      </Badge>
+                    ))}
+                    {docTags.length === 0 && <p className="text-xs text-muted-foreground">Aucun tag configuré</p>}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Processus associés</Label>
@@ -479,7 +538,14 @@ export default function Documents() {
               <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les types</SelectItem>
-                {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                {docTypes.filter(t => t.actif).map(t => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterTagId} onValueChange={setFilterTagId}>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les tags</SelectItem>
+                {docTags.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterProcessId} onValueChange={setFilterProcessId}>
@@ -517,11 +583,17 @@ export default function Documents() {
                           {d.consulte_count > 0 && <> • {d.consulte_count} consultation{d.consulte_count > 1 ? "s" : ""}</>}
                           {d.created_at && <> • {format(parseISO(d.created_at), "dd/MM/yyyy")}</>}
                         </p>
-                        {d.process_ids.length > 0 && (
+                        {(d.process_ids.length > 0 || d.tag_ids.length > 0) && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {d.process_ids.map(pid => (
                               <Badge key={pid} variant="outline" className="text-xs">{getProcessName(pid)}</Badge>
                             ))}
+                            {d.tag_ids.map(tid => {
+                              const tag = getTag(tid);
+                              return tag ? (
+                                <Badge key={tid} className="text-xs" style={{ backgroundColor: tag.color, color: "#fff" }}>{tag.label}</Badge>
+                              ) : null;
+                            })}
                           </div>
                         )}
                       </div>
