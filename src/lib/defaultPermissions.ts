@@ -83,6 +83,8 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   utilisateurs: "Utilisateurs",
   groupes_acteurs: "Groupes d'acteurs",
   journal: "Journal d'activité",
+  notifications: "Notifications",
+  gestion_documentaire: "Config. documentaire",
 };
 
 export type AppRole = "super_admin" | "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
