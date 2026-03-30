@@ -29,7 +29,9 @@ export type AppModule =
   | "acteurs"
   | "utilisateurs"
   | "groupes_acteurs"
-  | "journal";
+  | "journal"
+  | "notifications"
+  | "gestion_documentaire";
 
 export const ALL_MODULES: AppModule[] = [
   "processus",
