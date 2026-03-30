@@ -111,6 +111,14 @@ export default function Documents() {
   }, [docTypes]);
 
   const fetchDocs = async () => {
+    // Fetch dynamic types & tags
+    const [typesRes, tagsRes] = await Promise.all([
+      supabase.from("document_types").select("*").order("label"),
+      supabase.from("document_tags").select("*").order("label"),
+    ]);
+    setDocTypes((typesRes.data ?? []) as DocType[]);
+    setDocTags((tagsRes.data ?? []) as DocTag[]);
+
     let procQuery = supabase.from("processes").select("id, nom").order("nom");
     if (isOnlyResponsable && user) procQuery = procQuery.eq("responsable_id", user.id);
     const { data: procData } = await procQuery;
@@ -120,12 +128,21 @@ export default function Documents() {
     const { data: docsData } = await supabase
       .from("documents").select("*").eq("archive", false).order("created_at", { ascending: false });
 
-    const { data: dpData } = await supabase.from("document_processes").select("document_id, process_id");
+    const [dpRes, tagLinksRes] = await Promise.all([
+      supabase.from("document_processes").select("document_id, process_id"),
+      supabase.from("document_tag_links").select("document_id, tag_id"),
+    ]);
     const dpMap = new Map<string, string[]>();
-    (dpData ?? []).forEach((dp: any) => {
+    (dpRes.data ?? []).forEach((dp: any) => {
       const list = dpMap.get(dp.document_id) || [];
       list.push(dp.process_id);
       dpMap.set(dp.document_id, list);
+    });
+    const tagMap = new Map<string, string[]>();
+    (tagLinksRes.data ?? []).forEach((tl: any) => {
+      const list = tagMap.get(tl.document_id) || [];
+      list.push(tl.tag_id);
+      tagMap.set(tl.document_id, list);
     });
 
     let enriched: Doc[] = (docsData ?? []).map((d: any) => ({
@@ -133,6 +150,7 @@ export default function Documents() {
       archive: d.archive, nom_fichier: d.nom_fichier, chemin_fichier: d.chemin_fichier,
       created_at: d.created_at, process_ids: dpMap.get(d.id) || [],
       consulte_count: d.consulte_count ?? 0, retired_at: d.retired_at,
+      tag_ids: tagMap.get(d.id) || [],
     }));
 
     if (isOnlyResponsable) {
