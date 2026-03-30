@@ -142,6 +142,8 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     utilisateurs: ALL_TRUE,
     groupes_acteurs: ALL_TRUE,
     journal: READ_DETAIL,
+    notifications: ALL_TRUE,
+    gestion_documentaire: ALL_TRUE,
   },
   responsable_processus: {
     processus: READ_EDIT,
