@@ -1,98 +1,116 @@
 
 
-# Refonte du module Gestion Documentaire — Dashboard, filtres avances, historique
+# Configuration documentaire — Types, Tags et Permissions par acteur
 
-## Problemes actuels
+## Objectif
 
-1. La page Documents est une simple liste de fichiers avec un filtre par processus uniquement
-2. Pas de dashboard avec KPI documentaires
-3. Pas de filtre par date ou type de document
-4. Pas de support explicite des images (seul le PDF a un viewer)
-5. Pas d'historique d'activite dedie (ajout, consultation, retrait)
+Ajouter dans la configuration (SuperAdmin) une section "Documents" pour gérer les types de documents et les tags. Permettre le tagging des documents. Ajouter un système de permissions documentaires par acteur (lire, télécharger, supprimer) filtré par types et tags autorisés.
 
-## Plan d'implementation
+## Phase 1 — Migration : nouvelles tables
 
-### Phase 1 — Migration : enrichir la table `documents`
-
-La table `documents` existe deja avec `type_document` (enum : procedure, instruction, formulaire, enregistrement, rapport, compte_rendu_audit, preuve). Il faut :
-
-- Ajouter le type `image` a l'enum `doc_type` pour supporter les images
-- Ajouter une colonne `consulte_count` (integer, default 0) pour tracker les consultations
-- Ajouter une colonne `retired_at` (timestamptz, nullable) pour la date de retrait
-- Ajouter une colonne `retired_by` (uuid, nullable) pour qui a retire le document
-
+### `document_types` — Types de documents configurables
 ```sql
-ALTER TYPE doc_type ADD VALUE IF NOT EXISTS 'image';
-ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS consulte_count integer DEFAULT 0;
-ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS retired_at timestamptz;
-ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS retired_by uuid;
+CREATE TABLE public.document_types (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  label TEXT NOT NULL UNIQUE,
+  code TEXT NOT NULL UNIQUE,  -- clé technique
+  actif BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+-- Seed avec les types existants de l'enum
 ```
 
-### Phase 2 — Nouvelle page `Documents.tsx` avec onglets
-
-Restructurer la page en 3 onglets :
-
-**Onglet 1 — Dashboard documentaire**
-- KPI cards : Total documents, Documents actifs, Documents archives/retires, Documents sans fichier, Repartition par type
-- Graphiques Recharts : Donut par type de document, BarChart par processus, Line chart ajouts par mois (6 derniers mois)
-- Top 5 documents les plus consultes
-
-**Onglet 2 — Documents** (vue actuelle amelioree)
-- Filtres : par type de document, par processus, par plage de dates (date creation), recherche texte sur titre
-- Support fichiers : PDF + images (jpg, png, gif, webp, svg, bmp, tiff)
-- Preview inline : PDF via PdfViewerDialog, images via Dialog avec `<img>`
-- Indicateur visuel du type (icone differente pour image vs PDF vs autre)
-- Accept sur le file input : `.pdf,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff`
-
-**Onglet 3 — Historique d'activite**
-- Lire les `audit_logs` filtres sur `entity_type = 'documents'`
-- Afficher : action (create/update/delete), titre du document, utilisateur, date/heure
-- Filtres : par action, par date
-- Badge colore par type d'action (vert = ajout, bleu = consultation, orange = modification, rouge = suppression)
-
-### Phase 3 — Viewer d'images
-
-Nouveau composant `ImageViewerDialog.tsx` :
-- Dialog fullscreen avec l'image en `object-contain`
-- Boutons zoom in/out
-- Nom du fichier en header
-- Reutilise le meme pattern que `PdfViewerDialog`
-
-### Phase 4 — Integration sidebar
-
-Deplacer "Documents" de la section "Manager processus" vers une position plus visible ou le garder la mais avec l'icone `FolderOpen` au lieu de `FileText` pour differencier la gestion documentaire.
-
-## Architecture technique
-
-```text
-Documents.tsx (page)
-├── Tab: Dashboard
-│   ├── KPI Cards (total, actifs, retires, par type)
-│   ├── Donut chart (types)
-│   ├── Bar chart (par processus)
-│   └── Line chart (ajouts mensuels)
-├── Tab: Documents
-│   ├── Filters (type, processus, dates, recherche)
-│   ├── Document cards (avec preview PDF/image)
-│   └── Upload dialog (PDF + images)
-└── Tab: Historique
-    ├── Filters (action, date)
-    └── Timeline audit_logs(entity_type='documents')
+### `document_tags` — Tags configurables
+```sql
+CREATE TABLE public.document_tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  label TEXT NOT NULL UNIQUE,
+  color TEXT DEFAULT '#6366f1',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+-- Seed : technique, graphique, juridique
 ```
 
-## Fichiers modifies
+### `document_tag_links` — Association documents ↔ tags (N:N)
+```sql
+CREATE TABLE public.document_tag_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  tag_id UUID NOT NULL REFERENCES document_tags(id) ON DELETE CASCADE,
+  UNIQUE(document_id, tag_id)
+);
+```
+
+### `document_actor_permissions` — Permissions documentaires par acteur
+```sql
+CREATE TABLE public.document_actor_permissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  acteur_id UUID NOT NULL REFERENCES acteurs(id) ON DELETE CASCADE,
+  can_read BOOLEAN DEFAULT true,
+  can_download BOOLEAN DEFAULT false,
+  can_delete BOOLEAN DEFAULT false,
+  allowed_type_ids UUID[] DEFAULT '{}',   -- types autorisés (vide = tous)
+  allowed_tag_ids UUID[] DEFAULT '{}',    -- tags autorisés (vide = tous)
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(acteur_id)
+);
+```
+
+RLS : SELECT pour tous les authentifiés, INSERT/UPDATE/DELETE pour admin/rmq.
+
+## Phase 2 — SuperAdmin : onglet "Documents"
+
+Ajouter un 5e onglet dans SuperAdmin (icône `FolderOpen`) contenant :
+
+**Section Types de documents** :
+- Liste des types existants avec toggle actif/inactif
+- Bouton "Ajouter un type" (label + code)
+- Suppression avec confirmation
+
+**Section Tags** :
+- Liste des tags avec pastille de couleur
+- Bouton "Ajouter un tag" (label + couleur)
+- Suppression avec confirmation
+
+## Phase 3 — Permissions documentaires par acteur
+
+Nouvelle page ou section dans AdminPermissions (ou dans SuperAdmin onglet Documents) :
+
+**Matrice acteur × permissions** :
+- Liste des acteurs (fonctions)
+- Pour chaque acteur : checkboxes Lire / Télécharger / Supprimer
+- Multi-select pour types autorisés (vide = tous)
+- Multi-select pour tags autorisés (vide = tous)
+- Sauvegarde dans `document_actor_permissions`
+
+## Phase 4 — Intégration dans Documents.tsx
+
+**Upload** :
+- Remplacer l'enum statique `type_document` par un select dynamique depuis `document_types`
+- Ajouter un multi-select de tags lors de l'upload
+
+**Affichage** :
+- Afficher les tags sous forme de badges colorés sur chaque document
+- Ajouter un filtre par tag
+
+**Contrôle d'accès** :
+- Avant chaque action (voir/télécharger/supprimer), vérifier `document_actor_permissions` pour l'acteur de l'utilisateur courant
+- Si l'acteur a des restrictions de type/tag, filtrer les documents visibles
+
+## Fichiers modifiés
 
 | Fichier | Action |
 |---|---|
-| `supabase/migrations/xxx.sql` | Ajouter `image` a l'enum, colonnes `consulte_count`, `retired_at`, `retired_by` |
-| `src/pages/Documents.tsx` | Refonte complete : 3 onglets (Dashboard, Documents, Historique) |
-| `src/components/ImageViewerDialog.tsx` | Nouveau — viewer d'images en dialog |
+| `supabase/migrations/xxx.sql` | Tables `document_types`, `document_tags`, `document_tag_links`, `document_actor_permissions` + seed + RLS |
+| `src/pages/SuperAdmin.tsx` | Nouvel onglet "Documents" avec CRUD types + tags |
+| `src/pages/Documents.tsx` | Types dynamiques, tags multi-select, filtres, contrôle d'accès par acteur |
+| `src/pages/AdminPermissions.tsx` | Section permissions documentaires par acteur (ou intégré dans SuperAdmin) |
 
 ## Contraintes
 
-- Migration idempotente (`IF NOT EXISTS`, `ADD VALUE IF NOT EXISTS`)
-- Les documents existants restent inchanges
-- Les audit_logs existants sur `entity_type = 'documents'` alimentent l'historique sans nouvelle table
-- Types d'images acceptes : PDF, JPG, JPEG, PNG, GIF, WEBP, SVG, BMP, TIFF
-- Le viewer detecte automatiquement si c'est un PDF ou une image pour choisir le bon composant
+- Migration idempotente (`IF NOT EXISTS`)
+- Les documents existants conservent leur `type_document` enum — le select dynamique utilise les `document_types` mais reste compatible
+- Les tags sont optionnels sur les documents
+- Permissions vides (allowed_type_ids/allowed_tag_ids = `{}`) = accès à tous les types/tags
+- Admin et Super Admin contournent toujours les restrictions
 
