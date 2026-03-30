@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen,
-  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList, Lock, Crown, TrendingUp
+  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList, Lock, Crown, TrendingUp, Bell
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -61,6 +61,8 @@ const adminItems: NavItem[] = [
   { title: "Utilisateurs", url: "/utilisateurs", icon: Users, module: "utilisateurs" },
   { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen, module: "groupes_acteurs" },
   { title: "Permissions", url: "/admin/permissions", icon: Lock },
+  { title: "Config. notifications", url: "/admin/notifications", icon: Bell, module: "notifications" },
+  { title: "Config. documents", url: "/admin/documents-config", icon: FolderOpen, module: "gestion_documentaire" },
 ];
 
 const groupHelpTerms: Record<string, string> = {

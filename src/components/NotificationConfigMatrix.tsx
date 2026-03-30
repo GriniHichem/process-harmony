@@ -36,6 +36,7 @@ const CHANNEL_OPTIONS = [
 interface Props {
   scope: string; // 'global' or user_id
   showDefaultOption?: boolean; // true for user prefs
+  readOnly?: boolean;
 }
 
 type ConfigMap = Record<string, string>; // key = entity_type:notif_type, value = channel
@@ -44,7 +45,7 @@ function makeKey(entity: string, notif: string) {
   return `${entity}:${notif}`;
 }
 
-export function NotificationConfigMatrix({ scope, showDefaultOption = false }: Props) {
+export function NotificationConfigMatrix({ scope, showDefaultOption = false, readOnly = false }: Props) {
   const [config, setConfig] = useState<ConfigMap>({});
   const [globalConfig, setGlobalConfig] = useState<ConfigMap>({});
   const [saving, setSaving] = useState(false);
@@ -193,6 +194,7 @@ export function NotificationConfigMatrix({ scope, showDefaultOption = false }: P
                         <Select
                           value={value}
                           onValueChange={(v) => handleChange(entity.key, notif.key, v)}
+                          disabled={readOnly}
                         >
                           <SelectTrigger className={`h-8 text-xs ${value === "default" ? "text-muted-foreground italic" : ""}`}>
                             <SelectValue placeholder={showDefaultOption ? `(${globalLabel})` : undefined} />
@@ -214,12 +216,14 @@ export function NotificationConfigMatrix({ scope, showDefaultOption = false }: P
           ))}
         </div>
 
-        <div className="flex justify-end pt-4 border-t mt-4">
-          <Button onClick={handleSave} disabled={saving} size="sm">
-            <Save className="h-4 w-4 mr-1" />
-            {saving ? "..." : "Enregistrer"}
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex justify-end pt-4 border-t mt-4">
+            <Button onClick={handleSave} disabled={saving} size="sm">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "..." : "Enregistrer"}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

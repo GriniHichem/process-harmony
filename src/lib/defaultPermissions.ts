@@ -29,7 +29,9 @@ export type AppModule =
   | "acteurs"
   | "utilisateurs"
   | "groupes_acteurs"
-  | "journal";
+  | "journal"
+  | "notifications"
+  | "gestion_documentaire";
 
 export const ALL_MODULES: AppModule[] = [
   "processus",
@@ -54,6 +56,8 @@ export const ALL_MODULES: AppModule[] = [
   "utilisateurs",
   "groupes_acteurs",
   "journal",
+  "notifications",
+  "gestion_documentaire",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -79,6 +83,8 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   utilisateurs: "Utilisateurs",
   groupes_acteurs: "Groupes d'acteurs",
   journal: "Journal d'activité",
+  notifications: "Notifications",
+  gestion_documentaire: "Config. documentaire",
 };
 
 export type AppRole = "super_admin" | "admin" | "rmq" | "responsable_processus" | "consultant" | "auditeur" | "acteur";
@@ -136,6 +142,8 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     utilisateurs: ALL_TRUE,
     groupes_acteurs: ALL_TRUE,
     journal: READ_DETAIL,
+    notifications: ALL_TRUE,
+    gestion_documentaire: ALL_TRUE,
   },
   responsable_processus: {
     processus: READ_EDIT,
@@ -160,6 +168,8 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     utilisateurs: NONE,
     groupes_acteurs: NONE,
     journal: READ_ONLY,
+    notifications: NONE,
+    gestion_documentaire: NONE,
   },
   consultant: {
     processus: READ_EDIT,
@@ -184,6 +194,8 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     utilisateurs: NONE,
     groupes_acteurs: NONE,
     journal: NONE,
+    notifications: NONE,
+    gestion_documentaire: NONE,
   },
   auditeur: {
     processus: READ_DETAIL,
@@ -208,6 +220,8 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     utilisateurs: NONE,
     groupes_acteurs: NONE,
     journal: READ_ONLY,
+    notifications: NONE,
+    gestion_documentaire: NONE,
   },
   acteur: {
     processus: READ_ONLY,
@@ -232,6 +246,8 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     utilisateurs: NONE,
     groupes_acteurs: NONE,
     journal: NONE,
+    notifications: NONE,
+    gestion_documentaire: NONE,
   },
 };
 
