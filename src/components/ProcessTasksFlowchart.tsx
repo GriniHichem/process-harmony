@@ -117,10 +117,15 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
   const startCx = centerX, startCy = curY;
   curY += CIRCLE_R * 2 + V_GAP;
 
-  function countLeaves(code: string): number {
+  // Recursively compute the width a subtree needs (in pixels)
+  function subtreeWidth(code: string): number {
     const ch = branchMap.get(code);
-    if (!ch || ch.length === 0) return 1;
-    return ch.reduce((s, c) => s + countLeaves(c.code), 0);
+    if (!ch || ch.length === 0) return CARD_W;
+    // Each child subtree needs its own width; sum them + gaps between children
+    const childWidths = ch.map(c => subtreeWidth(c.code));
+    const totalChildrenW = childWidths.reduce((a, b) => a + b, 0) + (ch.length - 1) * H_GAP;
+    // The gateway node itself is narrow, but the subtree must be at least as wide as CARD_W
+    return Math.max(CARD_W, totalChildrenW);
   }
 
   function layoutSequence(taskList: ProcessTask[], startY: number, cx: number): { lastY: number; lastCx: number; connectFromX: number; connectFromY: number } {
@@ -136,9 +141,10 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
       if (branches && branches.length > 0) {
         const gwY = y;
         const gwCx = cx;
-        const leafCounts = branches.map(b => countLeaves(b.code));
-        const totalLeaves = leafCounts.reduce((a, b) => a + b, 0);
-        const totalW = Math.max((totalLeaves - 1) * (CARD_W + H_GAP), (branches.length - 1) * (CARD_W + H_GAP));
+
+        // Compute actual width each branch subtree needs
+        const branchWidths = branches.map(b => subtreeWidth(b.code));
+        const totalW = branchWidths.reduce((a, b) => a + b, 0) + (branches.length - 1) * H_GAP;
 
         gateways.push({ code: task.code, type: task.type_flux, label: task.description, x: gwCx - GW_S / 2, y: gwY, s: GW_S });
 
@@ -152,9 +158,8 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
         const branchEnds: { x: number; y: number }[] = [];
 
         for (let bi = 0; bi < branches.length; bi++) {
-          const span = totalLeaves > 0 ? (leafCounts[bi] / totalLeaves) * totalW : 0;
-          const bCx = accX + span / 2;
-          accX += span;
+          const bw = branchWidths[bi];
+          const bCx = accX + bw / 2;
 
           const branch = branches[bi];
           const hasCondition = !!branch.condition;
@@ -175,6 +180,8 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
             branchEnds.push({ x: bCx, y: branchStartY + branchCardH });
             maxEndY = Math.max(maxEndY, branchStartY + branchCardH);
           }
+
+          accX += bw + H_GAP;
         }
 
         const mergeY = maxEndY + V_GAP;

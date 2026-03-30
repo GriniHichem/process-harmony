@@ -144,10 +144,11 @@ function computeLayout(tasks: ProcessTask[], acteurMap: Record<string, string>, 
   const startCy = curY;
   curY += CIRCLE_R * 2 + V_GAP;
 
-  function countLeaves(code: string): number {
+  function subtreeWidth(code: string): number {
     const ch = branchMap.get(code);
-    if (!ch || ch.length === 0) return 1;
-    return ch.reduce((s, c) => s + countLeaves(c.code), 0);
+    if (!ch || ch.length === 0) return CARD_W;
+    const childWidths = ch.map(c => subtreeWidth(c.code));
+    return childWidths.reduce((a, b) => a + b, 0) + (ch.length - 1) * H_GAP;
   }
 
   function layoutSequence(
@@ -164,12 +165,8 @@ function computeLayout(tasks: ProcessTask[], acteurMap: Record<string, string>, 
       if (branches && branches.length > 0) {
         const gwY = y;
         const gwCx = cx;
-        const leafCounts = branches.map(b => countLeaves(b.code));
-        const totalLeaves = leafCounts.reduce((a, b) => a + b, 0);
-        const totalW = Math.max(
-          (totalLeaves - 1) * (CARD_W + H_GAP),
-          (branches.length - 1) * (CARD_W + H_GAP)
-        );
+        const branchWidths = branches.map(b => subtreeWidth(b.code));
+        const totalW = branchWidths.reduce((a, b) => a + b, 0) + (branches.length - 1) * H_GAP;
 
         gateways.push({
           code: task.code, type: task.type_flux, label: task.description,
@@ -184,9 +181,8 @@ function computeLayout(tasks: ProcessTask[], acteurMap: Record<string, string>, 
         const branchEnds: { x: number; y: number }[] = [];
 
         for (let bi = 0; bi < branches.length; bi++) {
-          const span = totalLeaves > 0 ? (leafCounts[bi] / totalLeaves) * totalW : 0;
-          const bCx = accX + span / 2;
-          accX += span;
+          const bw = branchWidths[bi];
+          const bCx = accX + bw / 2;
 
           const branch = branches[bi];
           const isDefaultPath = task.type_flux === "conditionnel" && !branch.condition;
@@ -212,6 +208,7 @@ function computeLayout(tasks: ProcessTask[], acteurMap: Record<string, string>, 
             branchEnds.push({ x: bCx, y: branchStartY + h });
             maxEndY = Math.max(maxEndY, branchStartY + h);
           }
+          accX += bw + H_GAP;
         }
 
         const mergeY = maxEndY + V_GAP;
