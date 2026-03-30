@@ -212,9 +212,15 @@ export default function Documents() {
       await supabase.from("document_processes").insert(rows);
     }
 
+    // Save tag links
+    if (newDoc.selectedTagIds.length > 0) {
+      const tagRows = newDoc.selectedTagIds.map(tid => ({ document_id: insertedDoc.id, tag_id: tid }));
+      await supabase.from("document_tag_links").insert(tagRows);
+    }
+
     toast.success("Document ajouté");
     setDialogOpen(false);
-    setNewDoc({ titre: "", type_document: "procedure", selectedProcessIds: [] });
+    setNewDoc({ titre: "", type_document: "procedure", selectedProcessIds: [], selectedTagIds: [] });
     setFile(null);
     fetchDocs();
     fetchHistory();
