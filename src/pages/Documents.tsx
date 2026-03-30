@@ -243,12 +243,20 @@ export default function Documents() {
     setNewDoc({ ...newDoc, selectedProcessIds: newDoc.selectedProcessIds.filter(p => p !== pid) });
   };
   const getProcessName = (pid: string) => processes.find(p => p.id === pid)?.nom || pid;
+  const getTag = (tid: string) => docTags.find(t => t.id === tid);
+
+  const toggleTagSelection = (tid: string) => {
+    const current = newDoc.selectedTagIds;
+    const updated = current.includes(tid) ? current.filter(x => x !== tid) : [...current, tid];
+    setNewDoc({ ...newDoc, selectedTagIds: updated });
+  };
 
   // Filtered docs
   const filteredDocs = useMemo(() => {
     return docs.filter(d => {
       if (filterProcessId !== "all" && !d.process_ids.includes(filterProcessId)) return false;
       if (filterType !== "all" && d.type_document !== filterType) return false;
+      if (filterTagId !== "all" && !d.tag_ids.includes(filterTagId)) return false;
       if (filterSearch && !d.titre.toLowerCase().includes(filterSearch.toLowerCase())) return false;
       if (filterDateFrom) {
         try { if (parseISO(d.created_at) < parseISO(filterDateFrom)) return false; } catch {}
@@ -262,7 +270,7 @@ export default function Documents() {
       }
       return true;
     });
-  }, [docs, filterProcessId, filterType, filterSearch, filterDateFrom, filterDateTo]);
+  }, [docs, filterProcessId, filterType, filterSearch, filterDateFrom, filterDateTo, filterTagId]);
 
   const openFileViewer = async (doc: Doc) => {
     if (!doc.chemin_fichier) return;
