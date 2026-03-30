@@ -1,98 +1,98 @@
 
 
-# Refonte du module Non-Conformites — Actions structurees + Analyse causes racines
+# Refonte du module Gestion Documentaire — Dashboard, filtres avances, historique
 
 ## Problemes actuels
 
-1. **Actions = champ texte libre** (`plan_action`, `resultats_actions`) au lieu d'actions structurees comme dans le module risques
-2. **Analyse de cause racine = un seul champ texte** (`cause_racine`) sans methode guidee
-3. **Pas d'affectation de responsables** aux actions correctives (pas d'ActeurUserSelect)
-4. **Pas de suivi** des actions (statut, deadline, notes)
+1. La page Documents est une simple liste de fichiers avec un filtre par processus uniquement
+2. Pas de dashboard avec KPI documentaires
+3. Pas de filtre par date ou type de document
+4. Pas de support explicite des images (seul le PDF a un viewer)
+5. Pas d'historique d'activite dedie (ajout, consultation, retrait)
 
 ## Plan d'implementation
 
-### Phase 1 — Migration : nouvelles tables
+### Phase 1 — Migration : enrichir la table `documents`
 
-**Table `nc_actions`** (calquee sur `risk_actions`) :
+La table `documents` existe deja avec `type_document` (enum : procedure, instruction, formulaire, enregistrement, rapport, compte_rendu_audit, preuve). Il faut :
+
+- Ajouter le type `image` a l'enum `doc_type` pour supporter les images
+- Ajouter une colonne `consulte_count` (integer, default 0) pour tracker les consultations
+- Ajouter une colonne `retired_at` (timestamptz, nullable) pour la date de retrait
+- Ajouter une colonne `retired_by` (uuid, nullable) pour qui a retire le document
+
 ```sql
-CREATE TABLE public.nc_actions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nc_id UUID NOT NULL REFERENCES nonconformities(id) ON DELETE CASCADE,
-  description TEXT NOT NULL,
-  type_action TEXT DEFAULT 'corrective', -- corrective, preventive, amelioration
-  statut TEXT DEFAULT 'a_faire',
-  date_prevue DATE,
-  deadline DATE,
-  responsable TEXT, -- acteur_id
-  responsable_user_id UUID,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+ALTER TYPE doc_type ADD VALUE IF NOT EXISTS 'image';
+ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS consulte_count integer DEFAULT 0;
+ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS retired_at timestamptz;
+ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS retired_by uuid;
 ```
 
-**Table `nc_root_cause_analyses`** (une analyse par NC) :
-```sql
-CREATE TABLE public.nc_root_cause_analyses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nc_id UUID NOT NULL REFERENCES nonconformities(id) ON DELETE CASCADE,
-  methode TEXT NOT NULL, -- 'ishikawa_5m', 'ishikawa_7m', '5_pourquoi', 'qqoqcp', 'pareto', 'amdec'
-  data JSONB DEFAULT '{}', -- contenu structure selon la methode
-  conclusion TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+### Phase 2 — Nouvelle page `Documents.tsx` avec onglets
+
+Restructurer la page en 3 onglets :
+
+**Onglet 1 — Dashboard documentaire**
+- KPI cards : Total documents, Documents actifs, Documents archives/retires, Documents sans fichier, Repartition par type
+- Graphiques Recharts : Donut par type de document, BarChart par processus, Line chart ajouts par mois (6 derniers mois)
+- Top 5 documents les plus consultes
+
+**Onglet 2 — Documents** (vue actuelle amelioree)
+- Filtres : par type de document, par processus, par plage de dates (date creation), recherche texte sur titre
+- Support fichiers : PDF + images (jpg, png, gif, webp, svg, bmp, tiff)
+- Preview inline : PDF via PdfViewerDialog, images via Dialog avec `<img>`
+- Indicateur visuel du type (icone differente pour image vs PDF vs autre)
+- Accept sur le file input : `.pdf,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff`
+
+**Onglet 3 — Historique d'activite**
+- Lire les `audit_logs` filtres sur `entity_type = 'documents'`
+- Afficher : action (create/update/delete), titre du document, utilisateur, date/heure
+- Filtres : par action, par date
+- Badge colore par type d'action (vert = ajout, bleu = consultation, orange = modification, rouge = suppression)
+
+### Phase 3 — Viewer d'images
+
+Nouveau composant `ImageViewerDialog.tsx` :
+- Dialog fullscreen avec l'image en `object-contain`
+- Boutons zoom in/out
+- Nom du fichier en header
+- Reutilise le meme pattern que `PdfViewerDialog`
+
+### Phase 4 — Integration sidebar
+
+Deplacer "Documents" de la section "Manager processus" vers une position plus visible ou le garder la mais avec l'icone `FolderOpen` au lieu de `FileText` pour differencier la gestion documentaire.
+
+## Architecture technique
+
+```text
+Documents.tsx (page)
+├── Tab: Dashboard
+│   ├── KPI Cards (total, actifs, retires, par type)
+│   ├── Donut chart (types)
+│   ├── Bar chart (par processus)
+│   └── Line chart (ajouts mensuels)
+├── Tab: Documents
+│   ├── Filters (type, processus, dates, recherche)
+│   ├── Document cards (avec preview PDF/image)
+│   └── Upload dialog (PDF + images)
+└── Tab: Historique
+    ├── Filters (action, date)
+    └── Timeline audit_logs(entity_type='documents')
 ```
 
-RLS identique aux `risk_actions` (select all authenticated, insert/update/delete pour rmq, responsable_processus, admin).
-
-### Phase 2 — Composant `NcMoyensActions.tsx`
-
-Nouveau composant base sur `RiskMoyensActions` mais adapte aux NC :
-- CRUD des `nc_actions` avec `ActeurUserSelect` pour le responsable
-- Type d'action (corrective/preventive/amelioration) en plus du statut
-- Meme ItemCard avec statut, deadline, notes, responsable
-- Pas de section "Moyens" (specifique aux risques)
-
-### Phase 3 — Composant `RootCauseAnalysis.tsx`
-
-Composant d'analyse des causes racines avec :
-
-**Etape 1 — Choix de la methode** : Select parmi 6 methodes avec description
-
-**Etape 2 — Formulaire dynamique** selon la methode choisie :
-
-- **Ishikawa 5M/7M** : 5 ou 7 categories (Matiere, Milieu, Methodes, Materiel, Main-d'oeuvre, + Management, Mesure pour 7M). Chaque categorie = liste de causes editables (ajouter/supprimer). Stocke dans JSONB : `{ categories: { matiere: ["cause1", "cause2"], milieu: [...] } }`
-
-- **5 Pourquoi** : chaine de champs texte (Pourquoi 1 → Pourquoi 2 → ... → Cause racine). Bouton "Ajouter un pourquoi" jusqu'a 7 niveaux. JSONB : `{ pourquois: ["reponse1", "reponse2", ...] }`
-
-- **QQOQCP** : 7 champs structures (Qui, Quoi, Ou, Quand, Comment, Combien, Pourquoi). JSONB : `{ qui: "...", quoi: "...", ... }`
-
-- **Pareto** : tableau causes/frequences triable. JSONB : `{ items: [{cause: "...", frequence: 5}, ...] }`
-
-- **AMDEC** : tableau Mode de defaillance / Effet / Cause / Gravite / Occurrence / Detection / IPR. JSONB : `{ items: [{mode: "...", effet: "...", cause: "...", gravite: 3, occurrence: 2, detection: 4, ipr: 24}] }`
-
-**Etape 3 — Conclusion** : champ texte pour la synthese
-
-### Phase 4 — Refonte de `NonConformites.tsx`
-
-**Onglet "Analyse"** : remplacer le textarea par `<RootCauseAnalysis ncId={nc.id} canEdit={canEdit} />`
-
-**Onglet "Actions"** : remplacer les textareas (`plan_action`, `resultats_actions`) par `<NcMoyensActions ncId={nc.id} canEdit={canEdit} />`. Garder les champs `verification_efficacite` et `resultats_actions` comme champs de synthese au-dessus des actions structurees.
-
-**Vue detail** : afficher un resume de l'analyse (methode + conclusion) et le nombre d'actions avec leur statut global.
-
-## Fichiers
+## Fichiers modifies
 
 | Fichier | Action |
 |---|---|
-| `supabase/migrations/xxx.sql` | Tables `nc_actions` + `nc_root_cause_analyses` + RLS + triggers |
-| `src/components/NcMoyensActions.tsx` | Nouveau — CRUD actions NC (calque sur RiskMoyensActions) |
-| `src/components/RootCauseAnalysis.tsx` | Nouveau — analyse structuree multi-methode |
-| `src/pages/NonConformites.tsx` | Integration des 2 composants dans detail + edit |
+| `supabase/migrations/xxx.sql` | Ajouter `image` a l'enum, colonnes `consulte_count`, `retired_at`, `retired_by` |
+| `src/pages/Documents.tsx` | Refonte complete : 3 onglets (Dashboard, Documents, Historique) |
+| `src/components/ImageViewerDialog.tsx` | Nouveau — viewer d'images en dialog |
 
 ## Contraintes
 
-- Migrations idempotentes
-- Les anciens champs texte (`cause_racine`, `plan_action`) restent en base pour retrocompatibilite mais ne sont plus edites dans l'UI
-- RLS coherente avec les tables existantes
-- Triggers de notification et audit_logs sur `nc_actions`
+- Migration idempotente (`IF NOT EXISTS`, `ADD VALUE IF NOT EXISTS`)
+- Les documents existants restent inchanges
+- Les audit_logs existants sur `entity_type = 'documents'` alimentent l'historique sans nouvelle table
+- Types d'images acceptes : PDF, JPG, JPEG, PNG, GIF, WEBP, SVG, BMP, TIFF
+- Le viewer detecte automatiquement si c'est un PDF ou une image pour choisir le bon composant
 
