@@ -1447,6 +1447,94 @@ export type Database = {
         }
         Relationships: []
       }
+      nc_actions: {
+        Row: {
+          created_at: string
+          date_prevue: string | null
+          deadline: string | null
+          description: string
+          id: string
+          nc_id: string
+          responsable: string | null
+          responsable_user_id: string | null
+          statut: string
+          type_action: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description: string
+          id?: string
+          nc_id: string
+          responsable?: string | null
+          responsable_user_id?: string | null
+          statut?: string
+          type_action?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_prevue?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          nc_id?: string
+          responsable?: string | null
+          responsable_user_id?: string | null
+          statut?: string
+          type_action?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nc_actions_nc_id_fkey"
+            columns: ["nc_id"]
+            isOneToOne: false
+            referencedRelation: "nonconformities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nc_root_cause_analyses: {
+        Row: {
+          conclusion: string | null
+          created_at: string
+          data: Json
+          id: string
+          methode: string
+          nc_id: string
+          updated_at: string
+        }
+        Insert: {
+          conclusion?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          methode: string
+          nc_id: string
+          updated_at?: string
+        }
+        Update: {
+          conclusion?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          methode?: string
+          nc_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nc_root_cause_analyses_nc_id_fkey"
+            columns: ["nc_id"]
+            isOneToOne: false
+            referencedRelation: "nonconformities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nonconformities: {
         Row: {
           audit_id: string | null
