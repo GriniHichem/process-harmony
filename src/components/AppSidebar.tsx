@@ -29,11 +29,11 @@ const processItems: NavItem[] = [
   { title: "Processus", url: "/processus", icon: Network, module: "processus" },
   { title: "Cartographie", url: "/cartographie", icon: Map, module: "cartographie" },
   { title: "BPMN", url: "/bpmn", icon: Settings, module: "bpmn" },
+  { title: "Gestion documentaire", url: "/documents", icon: FolderOpen, module: "documents" },
 ];
 
 const qualityItems: NavItem[] = [
   { title: "Dashboard Indicateurs", url: "/dashboard-indicateurs", icon: TrendingUp, module: "indicateurs" },
-  { title: "Gestion documentaire", url: "/documents", icon: FolderOpen, module: "documents" },
   { title: "Indicateurs", url: "/indicateurs", icon: BarChart3, module: "indicateurs" },
   { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle, module: "risques" },
   { title: "Incidents", url: "/incidents", icon: AlertOctagon, module: "incidents" },
