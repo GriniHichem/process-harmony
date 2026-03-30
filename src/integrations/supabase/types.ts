@@ -985,11 +985,14 @@ export type Database = {
         Row: {
           archive: boolean
           chemin_fichier: string | null
+          consulte_count: number | null
           created_at: string
           description: string | null
           id: string
           nom_fichier: string | null
           process_id: string | null
+          retired_at: string | null
+          retired_by: string | null
           taille_fichier: number | null
           titre: string
           type_document: Database["public"]["Enums"]["document_type"]
@@ -1000,11 +1003,14 @@ export type Database = {
         Insert: {
           archive?: boolean
           chemin_fichier?: string | null
+          consulte_count?: number | null
           created_at?: string
           description?: string | null
           id?: string
           nom_fichier?: string | null
           process_id?: string | null
+          retired_at?: string | null
+          retired_by?: string | null
           taille_fichier?: number | null
           titre: string
           type_document: Database["public"]["Enums"]["document_type"]
@@ -1015,11 +1021,14 @@ export type Database = {
         Update: {
           archive?: boolean
           chemin_fichier?: string | null
+          consulte_count?: number | null
           created_at?: string
           description?: string | null
           id?: string
           nom_fichier?: string | null
           process_id?: string | null
+          retired_at?: string | null
+          retired_by?: string | null
           taille_fichier?: number | null
           titre?: string
           type_document?: Database["public"]["Enums"]["document_type"]
@@ -2988,6 +2997,7 @@ export type Database = {
         | "rapport"
         | "compte_rendu_audit"
         | "preuve"
+        | "image"
       finding_type:
         | "conformite"
         | "observation"
@@ -3181,6 +3191,7 @@ export const Constants = {
         "rapport",
         "compte_rendu_audit",
         "preuve",
+        "image",
       ],
       finding_type: [
         "conformite",
