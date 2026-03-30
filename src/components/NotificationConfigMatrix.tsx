@@ -194,6 +194,7 @@ export function NotificationConfigMatrix({ scope, showDefaultOption = false, rea
                         <Select
                           value={value}
                           onValueChange={(v) => handleChange(entity.key, notif.key, v)}
+                          disabled={readOnly}
                         >
                           <SelectTrigger className={`h-8 text-xs ${value === "default" ? "text-muted-foreground italic" : ""}`}>
                             <SelectValue placeholder={showDefaultOption ? `(${globalLabel})` : undefined} />
