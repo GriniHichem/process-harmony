@@ -294,9 +294,9 @@ export default function Documents() {
   // ===== History =====
   const actionBadge = (action: string) => {
     switch (action) {
-      case "create": return <Badge className="bg-green-500/10 text-green-700 border-green-200">Ajout</Badge>;
-      case "update": return <Badge className="bg-amber-500/10 text-amber-700 border-amber-200">Modification</Badge>;
-      case "delete": return <Badge className="bg-red-500/10 text-red-700 border-red-200">Suppression</Badge>;
+      case "create": return <Badge className="bg-primary/10 text-primary border-primary/20">Ajout</Badge>;
+      case "update": return <Badge className="bg-accent text-accent-foreground border-accent">Modification</Badge>;
+      case "delete": return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Suppression</Badge>;
       default: return <Badge variant="secondary">{action}</Badge>;
     }
   };
