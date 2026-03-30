@@ -45,7 +45,7 @@ function makeKey(entity: string, notif: string) {
   return `${entity}:${notif}`;
 }
 
-export function NotificationConfigMatrix({ scope, showDefaultOption = false }: Props) {
+export function NotificationConfigMatrix({ scope, showDefaultOption = false, readOnly = false }: Props) {
   const [config, setConfig] = useState<ConfigMap>({});
   const [globalConfig, setGlobalConfig] = useState<ConfigMap>({});
   const [saving, setSaving] = useState(false);
