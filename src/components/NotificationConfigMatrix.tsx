@@ -36,6 +36,7 @@ const CHANNEL_OPTIONS = [
 interface Props {
   scope: string; // 'global' or user_id
   showDefaultOption?: boolean; // true for user prefs
+  readOnly?: boolean;
 }
 
 type ConfigMap = Record<string, string>; // key = entity_type:notif_type, value = channel

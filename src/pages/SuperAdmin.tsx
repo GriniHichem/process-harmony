@@ -105,7 +105,7 @@ export default function SuperAdmin() {
       </div>
 
       <Tabs defaultValue="branding" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
           <TabsTrigger value="branding" className="gap-2">
             <Paintbrush className="h-4 w-4" />
             <span className="hidden sm:inline">Identité</span>
@@ -117,14 +117,6 @@ export default function SuperAdmin() {
           <TabsTrigger value="email" className="gap-2">
             <Mail className="h-4 w-4" />
             <span className="hidden sm:inline">Email / SMTP</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notifications</span>
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="gap-2">
-            <FolderOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Documents</span>
           </TabsTrigger>
         </TabsList>
 
@@ -462,81 +454,6 @@ export default function SuperAdmin() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        {/* ─── TAB: NOTIFICATIONS ─── */}
-        <TabsContent value="notifications" className="space-y-6">
-          <div className="grid gap-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Bell className="h-4 w-4" />
-                    Paramètres généraux
-                  </CardTitle>
-                  <CardDescription>Options globales des notifications</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
-                    <div>
-                      <Label className="text-sm font-medium">Notifications email</Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">Activer l'envoi d'emails de notification</p>
-                    </div>
-                    <Switch
-                      checked={form.notif_email_enabled !== "false"}
-                      onCheckedChange={(checked) => handleChange("notif_email_enabled", checked ? "true" : "false")}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
-                    <div>
-                      <Label className="text-sm font-medium">Délai de rappel (jours)</Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">Nombre de jours avant l'échéance pour un rappel automatique</p>
-                    </div>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={30}
-                      className="w-20"
-                      value={form.notif_rappel_jours_defaut || "3"}
-                      onChange={(e) => handleChange("notif_rappel_jours_defaut", e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Types de notifications</CardTitle>
-                  <CardDescription>Les notifications sont générées automatiquement pour :</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {[
-                      { color: "bg-blue-500", label: "Assignation", desc: "Quand un responsable est assigné" },
-                      { color: "bg-amber-500", label: "Échéance proche", desc: "Rappel avant la date limite" },
-                      { color: "bg-destructive", label: "Retard", desc: "Quand une action dépasse son échéance" },
-                      { color: "bg-emerald-500", label: "Changement de statut", desc: "Quand le statut est modifié" },
-                    ].map((t) => (
-                      <div key={t.label} className="flex items-start gap-3 rounded-lg border p-3">
-                        <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${t.color}`} />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{t.label}</p>
-                          <p className="text-xs text-muted-foreground">{t.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <NotificationConfigMatrix scope="global" />
-          </div>
-        </TabsContent>
-
-        {/* ─── TAB: DOCUMENTS ─── */}
-        <TabsContent value="documents">
-          <DocumentConfigTab />
         </TabsContent>
       </Tabs>
     </div>
