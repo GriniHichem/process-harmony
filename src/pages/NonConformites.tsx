@@ -432,11 +432,11 @@ export default function NonConformites() {
                 </TabsContent>
 
                 <TabsContent value="analyse" className="space-y-4">
-                  <RootCauseAnalysis ncId={editNC.id} canEdit={canEdit} />
+                  <RootCauseAnalysis ncId={editNC.id} canEdit={canEdit && editNC.statut !== "cloturee"} />
                 </TabsContent>
 
                 <TabsContent value="action" className="space-y-4">
-                  <NcMoyensActions ncId={editNC.id} canEdit={canEdit} />
+                  <NcMoyensActions ncId={editNC.id} canEdit={canEdit && editNC.statut !== "cloturee"} />
                   <div className="pt-4 border-t space-y-3">
                     <div className="space-y-2"><Label>Vérification d'efficacité</Label><Textarea value={editNC.verification_efficacite ?? ""} onChange={(e) => setEditNC({ ...editNC, verification_efficacite: e.target.value })} rows={3} placeholder="Critères et résultats de vérification..." /></div>
                     <div className="space-y-2"><Label>Résultats des actions correctives</Label><Textarea value={editNC.resultats_actions ?? ""} onChange={(e) => setEditNC({ ...editNC, resultats_actions: e.target.value })} rows={3} placeholder="Bilan et efficacité constatée..." /></div>
