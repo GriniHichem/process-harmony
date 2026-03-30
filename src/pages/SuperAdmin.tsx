@@ -460,9 +460,6 @@ export default function SuperAdmin() {
   );
 }
 
-/* ================================================================
-   Document Configuration Tab — Types, Tags & Permissions par acteur
-   ================================================================ */
 
 interface DocType { id: string; label: string; code: string; actif: boolean; }
 interface DocTag { id: string; label: string; color: string; }
