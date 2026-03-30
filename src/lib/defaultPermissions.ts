@@ -168,6 +168,8 @@ export const DEFAULT_PERMISSIONS: Record<Exclude<AppRole, "admin" | "super_admin
     utilisateurs: NONE,
     groupes_acteurs: NONE,
     journal: READ_ONLY,
+    notifications: NONE,
+    gestion_documentaire: NONE,
   },
   consultant: {
     processus: READ_EDIT,
