@@ -367,12 +367,15 @@ export default function NonConformites() {
                   <TabsTrigger value="action">Action & Vérification</TabsTrigger>
                 </TabsList>
 
+                {(() => {
+                  const frozen = editNC.statut === "cloturee";
+                  return (<>
                 <TabsContent value="general" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Référence</Label><Input value={editNC.reference} onChange={(e) => setEditNC({ ...editNC, reference: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>Référence</Label><Input value={editNC.reference} onChange={(e) => setEditNC({ ...editNC, reference: e.target.value })} disabled={frozen} /></div>
                     <div className="space-y-2">
                       <Label>Statut (workflow)</Label>
-                      <Select value={editNC.statut} onValueChange={(v) => setEditNC({ ...editNC, statut: v })}>
+                      <Select value={editNC.statut} onValueChange={(v) => setEditNC({ ...editNC, statut: v })} disabled={frozen}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ouverte">Ouverte</SelectItem>
@@ -386,11 +389,11 @@ export default function NonConformites() {
                       </Select>
                     </div>
                   </div>
-                  <div className="space-y-2"><Label>Description</Label><Textarea value={editNC.description} onChange={(e) => setEditNC({ ...editNC, description: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Description</Label><Textarea value={editNC.description} onChange={(e) => setEditNC({ ...editNC, description: e.target.value })} disabled={frozen} /></div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Gravité</Label>
-                      <Select value={editNC.gravite} onValueChange={(v) => setEditNC({ ...editNC, gravite: v })}>
+                      <Select value={editNC.gravite} onValueChange={(v) => setEditNC({ ...editNC, gravite: v })} disabled={frozen}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="mineure">Mineure</SelectItem>
@@ -399,16 +402,16 @@ export default function NonConformites() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2"><Label>Criticité (1-5)</Label><Input type="number" min={1} max={5} value={editNC.criticite ?? ""} onChange={(e) => setEditNC({ ...editNC, criticite: e.target.value ? parseInt(e.target.value) : null })} /></div>
+                    <div className="space-y-2"><Label>Criticité (1-5)</Label><Input type="number" min={1} max={5} value={editNC.criticite ?? ""} onChange={(e) => setEditNC({ ...editNC, criticite: e.target.value ? parseInt(e.target.value) : null })} disabled={frozen} /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Nature</Label><Input value={editNC.nature_nc ?? ""} onChange={(e) => setEditNC({ ...editNC, nature_nc: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Origine</Label><Input value={editNC.origine ?? ""} onChange={(e) => setEditNC({ ...editNC, origine: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>Nature</Label><Input value={editNC.nature_nc ?? ""} onChange={(e) => setEditNC({ ...editNC, nature_nc: e.target.value })} disabled={frozen} /></div>
+                    <div className="space-y-2"><Label>Origine</Label><Input value={editNC.origine ?? ""} onChange={(e) => setEditNC({ ...editNC, origine: e.target.value })} disabled={frozen} /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Audit lié</Label>
-                      <Select value={editNC.audit_id ?? ""} onValueChange={(v) => setEditNC({ ...editNC, audit_id: v || null })}>
+                      <Select value={editNC.audit_id ?? ""} onValueChange={(v) => setEditNC({ ...editNC, audit_id: v || null })} disabled={frozen}>
                         <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
                         <SelectContent>
                           {audits.map(a => <SelectItem key={a.id} value={a.id}>{a.reference}</SelectItem>)}
@@ -417,7 +420,7 @@ export default function NonConformites() {
                     </div>
                     <div className="space-y-2">
                       <Label>Processus</Label>
-                      <Select value={editNC.process_id ?? ""} onValueChange={(v) => setEditNC({ ...editNC, process_id: v || null })}>
+                      <Select value={editNC.process_id ?? ""} onValueChange={(v) => setEditNC({ ...editNC, process_id: v || null })} disabled={frozen}>
                         <SelectTrigger><SelectValue placeholder="Aucun" /></SelectTrigger>
                         <SelectContent>
                           {processes.map(p => <SelectItem key={p.id} value={p.id}>{p.code} — {p.nom}</SelectItem>)}
@@ -428,22 +431,24 @@ export default function NonConformites() {
                 </TabsContent>
 
                 <TabsContent value="correction" className="space-y-4">
-                  <div className="space-y-2"><Label>Correction immédiate</Label><Textarea value={editNC.correction_immediate ?? ""} onChange={(e) => setEditNC({ ...editNC, correction_immediate: e.target.value })} rows={4} placeholder="Actions immédiates pour contenir le problème..." /></div>
+                  <div className="space-y-2"><Label>Correction immédiate</Label><Textarea value={editNC.correction_immediate ?? ""} onChange={(e) => setEditNC({ ...editNC, correction_immediate: e.target.value })} rows={4} placeholder="Actions immédiates pour contenir le problème..." disabled={frozen} /></div>
                 </TabsContent>
 
                 <TabsContent value="analyse" className="space-y-4">
-                  <RootCauseAnalysis ncId={editNC.id} canEdit={canEdit && editNC.statut !== "cloturee"} />
+                  <RootCauseAnalysis ncId={editNC.id} canEdit={canEdit && !frozen} />
                 </TabsContent>
 
                 <TabsContent value="action" className="space-y-4">
-                  <NcMoyensActions ncId={editNC.id} canEdit={canEdit && editNC.statut !== "cloturee"} />
+                  <NcMoyensActions ncId={editNC.id} canEdit={canEdit && !frozen} />
                   <div className="pt-4 border-t space-y-3">
-                    <div className="space-y-2"><Label>Vérification d'efficacité</Label><Textarea value={editNC.verification_efficacite ?? ""} onChange={(e) => setEditNC({ ...editNC, verification_efficacite: e.target.value })} rows={3} placeholder="Critères et résultats de vérification..." /></div>
-                    <div className="space-y-2"><Label>Résultats des actions correctives</Label><Textarea value={editNC.resultats_actions ?? ""} onChange={(e) => setEditNC({ ...editNC, resultats_actions: e.target.value })} rows={3} placeholder="Bilan et efficacité constatée..." /></div>
+                    <div className="space-y-2"><Label>Vérification d'efficacité</Label><Textarea value={editNC.verification_efficacite ?? ""} onChange={(e) => setEditNC({ ...editNC, verification_efficacite: e.target.value })} rows={3} placeholder="Critères et résultats de vérification..." disabled={frozen} /></div>
+                    <div className="space-y-2"><Label>Résultats des actions correctives</Label><Textarea value={editNC.resultats_actions ?? ""} onChange={(e) => setEditNC({ ...editNC, resultats_actions: e.target.value })} rows={3} placeholder="Bilan et efficacité constatée..." disabled={frozen} /></div>
                   </div>
                 </TabsContent>
+                  </>);
+                })()}
               </Tabs>
-              <Button onClick={handleUpdate} className="w-full mt-4">Enregistrer</Button>
+              {editNC.statut !== "cloturee" && <Button onClick={handleUpdate} className="w-full mt-4">Enregistrer</Button>}
             </>
           )}
         </DialogContent>
