@@ -460,8 +460,6 @@ export default function SuperAdmin() {
   );
 }
 
-
-interface DocType { id: string; label: string; code: string; actif: boolean; }
 interface DocTag { id: string; label: string; color: string; }
 interface DocActeurPerm {
   id: string; acteur_id: string;
