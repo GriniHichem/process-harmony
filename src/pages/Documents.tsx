@@ -538,7 +538,14 @@ export default function Documents() {
               <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les types</SelectItem>
-                {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                {docTypes.filter(t => t.actif).map(t => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterTagId} onValueChange={setFilterTagId}>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les tags</SelectItem>
+                {docTags.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterProcessId} onValueChange={setFilterProcessId}>
