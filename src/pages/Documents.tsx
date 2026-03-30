@@ -8,15 +8,19 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, FileText, Trash2, X, Eye, Download, ImageIcon, FolderOpen, Search, BarChart3, Clock, FileImage, File } from "lucide-react";
+import { Plus, FileText, Trash2, X, Eye, Download, ImageIcon, FolderOpen, Search, BarChart3, Clock, FileImage, File, Tag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 import { ImageViewerDialog } from "@/components/ImageViewerDialog";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
-import { format, subMonths, startOfMonth, isWithinInterval, parseISO } from "date-fns";
+import { format, subMonths, startOfMonth, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+
+type DocType = { id: string; label: string; code: string; actif: boolean; };
+type DocTag = { id: string; label: string; color: string; };
 
 type Doc = {
   id: string;
@@ -30,6 +34,7 @@ type Doc = {
   process_ids: string[];
   consulte_count: number;
   retired_at: string | null;
+  tag_ids: string[];
 };
 
 type AuditLog = {
@@ -40,12 +45,6 @@ type AuditLog = {
   user_id: string | null;
   new_value: any;
   old_value: any;
-};
-
-const typeLabels: Record<string, string> = {
-  procedure: "Procédure", instruction: "Instruction", formulaire: "Formulaire",
-  enregistrement: "Enregistrement", rapport: "Rapport", compte_rendu_audit: "CR Audit",
-  preuve: "Preuve", image: "Image",
 };
 
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".tiff", ".tif"];
@@ -69,13 +68,17 @@ const CHART_COLORS = [
 ];
 
 export default function Documents() {
-  const { hasRole, hasPermission, user } = useAuth();
+  const { hasRole, hasPermission, user, profile } = useAuth();
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [processes, setProcesses] = useState<{ id: string; nom: string }[]>([]);
-  const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", selectedProcessIds: [] as string[] });
+  const [newDoc, setNewDoc] = useState({ titre: "", type_document: "procedure", selectedProcessIds: [] as string[], selectedTagIds: [] as string[] });
   const [file, setFile] = useState<File | null>(null);
+
+  // Dynamic types & tags
+  const [docTypes, setDocTypes] = useState<DocType[]>([]);
+  const [docTags, setDocTags] = useState<DocTag[]>([]);
 
   // Filters
   const [filterProcessId, setFilterProcessId] = useState("all");
@@ -83,6 +86,7 @@ export default function Documents() {
   const [filterSearch, setFilterSearch] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterTagId, setFilterTagId] = useState("all");
 
   // Viewers
   const [pdfViewerUrl, setPdfViewerUrl] = useState<string | null>(null);
@@ -98,6 +102,13 @@ export default function Documents() {
   const canDelete = hasPermission("documents", "can_delete");
   const canDownload = hasRole("rmq") || hasRole("admin") || hasRole("super_admin");
   const isOnlyResponsable = hasRole("responsable_processus") && !hasRole("admin") && !hasRole("rmq");
+
+  // Type labels from dynamic types
+  const typeLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    docTypes.forEach(t => { map[t.code] = t.label; });
+    return map;
+  }, [docTypes]);
 
   const fetchDocs = async () => {
     let procQuery = supabase.from("processes").select("id, nom").order("nom");
