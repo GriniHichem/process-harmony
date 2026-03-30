@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Settings, Upload, Eye, Save, Mail, Server, EyeOff, SendHorizonal, Bell, Paintbrush, Image, FolderOpen, Plus, Trash2, Tag } from "lucide-react";
+import { Settings, Upload, Eye, Save, Mail, Server, EyeOff, SendHorizonal, Paintbrush, Image } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

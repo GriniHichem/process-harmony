@@ -108,6 +108,8 @@ const App = () => (
               <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard requiredModule="utilisateurs"><Utilisateurs /></RoleGuard></ProtectedPage>} />
               <Route path="/groupes-acteurs" element={<ProtectedPage><RoleGuard requiredModule="groupes_acteurs"><GroupesActeurs /></RoleGuard></ProtectedPage>} />
               <Route path="/admin/permissions" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "super_admin"]}><AdminPermissions /></RoleGuard></ProtectedPage>} />
+              <Route path="/admin/notifications" element={<ProtectedPage><RoleGuard requiredModule="notifications"><AdminNotificationsConfig /></RoleGuard></ProtectedPage>} />
+              <Route path="/admin/documents-config" element={<ProtectedPage><RoleGuard requiredModule="gestion_documentaire"><AdminDocumentsConfig /></RoleGuard></ProtectedPage>} />
               {/* Notifications */}
               <Route path="/notifications" element={<ProtectedPage><Notifications /></ProtectedPage>} />
               {/* Super Admin */}

@@ -61,6 +61,8 @@ const adminItems: NavItem[] = [
   { title: "Utilisateurs", url: "/utilisateurs", icon: Users, module: "utilisateurs" },
   { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen, module: "groupes_acteurs" },
   { title: "Permissions", url: "/admin/permissions", icon: Lock },
+  { title: "Config. notifications", url: "/admin/notifications", icon: Bell, module: "notifications" },
+  { title: "Config. documents", url: "/admin/documents-config", icon: FolderOpen, module: "gestion_documentaire" },
 ];
 
 const groupHelpTerms: Record<string, string> = {
