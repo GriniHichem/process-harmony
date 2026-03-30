@@ -422,13 +422,15 @@ export default function NonConformites() {
                 </TabsContent>
 
                 <TabsContent value="analyse" className="space-y-4">
-                  <div className="space-y-2"><Label>Analyse de cause racine</Label><Textarea value={editNC.cause_racine ?? ""} onChange={(e) => setEditNC({ ...editNC, cause_racine: e.target.value })} rows={5} placeholder="5 Pourquoi, Ishikawa, arbre des causes..." /></div>
+                  <RootCauseAnalysis ncId={editNC.id} canEdit={canEdit} />
                 </TabsContent>
 
                 <TabsContent value="action" className="space-y-4">
-                  <div className="space-y-2"><Label>Plan d'action corrective</Label><Textarea value={editNC.plan_action ?? ""} onChange={(e) => setEditNC({ ...editNC, plan_action: e.target.value })} rows={4} placeholder="Actions correctives planifiées..." /></div>
-                  <div className="space-y-2"><Label>Vérification d'efficacité</Label><Textarea value={editNC.verification_efficacite ?? ""} onChange={(e) => setEditNC({ ...editNC, verification_efficacite: e.target.value })} rows={3} placeholder="Critères et résultats de vérification..." /></div>
-                  <div className="space-y-2"><Label>Résultats des actions correctives</Label><Textarea value={editNC.resultats_actions ?? ""} onChange={(e) => setEditNC({ ...editNC, resultats_actions: e.target.value })} rows={3} placeholder="Bilan et efficacité constatée..." /></div>
+                  <NcMoyensActions ncId={editNC.id} canEdit={canEdit} />
+                  <div className="pt-4 border-t space-y-3">
+                    <div className="space-y-2"><Label>Vérification d'efficacité</Label><Textarea value={editNC.verification_efficacite ?? ""} onChange={(e) => setEditNC({ ...editNC, verification_efficacite: e.target.value })} rows={3} placeholder="Critères et résultats de vérification..." /></div>
+                    <div className="space-y-2"><Label>Résultats des actions correctives</Label><Textarea value={editNC.resultats_actions ?? ""} onChange={(e) => setEditNC({ ...editNC, resultats_actions: e.target.value })} rows={3} placeholder="Bilan et efficacité constatée..." /></div>
+                  </div>
                 </TabsContent>
               </Tabs>
               <Button onClick={handleUpdate} className="w-full mt-4">Enregistrer</Button>
