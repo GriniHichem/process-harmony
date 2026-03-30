@@ -56,6 +56,8 @@ export const ALL_MODULES: AppModule[] = [
   "utilisateurs",
   "groupes_acteurs",
   "journal",
+  "notifications",
+  "gestion_documentaire",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
