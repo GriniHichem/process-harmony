@@ -374,9 +374,25 @@ export default function Documents() {
                   <Select value={newDoc.type_document} onValueChange={v => setNewDoc({ ...newDoc, type_document: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(typeLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      {docTypes.filter(t => t.actif).map(t => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  <div className="flex flex-wrap gap-1">
+                    {docTags.map(tag => (
+                      <Badge
+                        key={tag.id}
+                        className="cursor-pointer text-xs px-2 py-1"
+                        style={newDoc.selectedTagIds.includes(tag.id) ? { backgroundColor: tag.color, color: "#fff" } : { backgroundColor: "transparent", border: `1px solid ${tag.color}`, color: tag.color }}
+                        onClick={() => toggleTagSelection(tag.id)}
+                      >
+                        {tag.label}
+                      </Badge>
+                    ))}
+                    {docTags.length === 0 && <p className="text-xs text-muted-foreground">Aucun tag configuré</p>}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Processus associés</Label>
