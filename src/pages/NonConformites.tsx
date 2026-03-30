@@ -321,24 +321,20 @@ export default function NonConformites() {
                 </TabsContent>
 
                 <TabsContent value="analyse" className="space-y-4">
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Analyse de cause racine</Label>
-                    <p className="text-sm whitespace-pre-wrap">{detailNC.cause_racine || "Non renseignée"}</p>
-                  </div>
+                  <RootCauseAnalysis ncId={detailNC.id} canEdit={false} />
                 </TabsContent>
 
                 <TabsContent value="action" className="space-y-4">
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Plan d'action corrective</Label>
-                    <p className="text-sm whitespace-pre-wrap">{detailNC.plan_action || "Non renseigné"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Vérification d'efficacité</Label>
-                    <p className="text-sm whitespace-pre-wrap">{detailNC.verification_efficacite || "Non renseignée"}</p>
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-xs">Résultats des actions correctives</Label>
-                    <p className="text-sm whitespace-pre-wrap">{detailNC.resultats_actions || "Non renseignés"}</p>
+                  <NcMoyensActions ncId={detailNC.id} canEdit={false} />
+                  <div className="pt-4 border-t space-y-3">
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Vérification d'efficacité</Label>
+                      <p className="text-sm whitespace-pre-wrap">{detailNC.verification_efficacite || "Non renseignée"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Résultats des actions correctives</Label>
+                      <p className="text-sm whitespace-pre-wrap">{detailNC.resultats_actions || "Non renseignés"}</p>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
