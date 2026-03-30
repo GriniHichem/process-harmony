@@ -144,10 +144,11 @@ function computeLayout(tasks: ProcessTask[], acteurMap: Record<string, string>, 
   const startCy = curY;
   curY += CIRCLE_R * 2 + V_GAP;
 
-  function countLeaves(code: string): number {
+  function subtreeWidth(code: string): number {
     const ch = branchMap.get(code);
-    if (!ch || ch.length === 0) return 1;
-    return ch.reduce((s, c) => s + countLeaves(c.code), 0);
+    if (!ch || ch.length === 0) return CARD_W;
+    const childWidths = ch.map(c => subtreeWidth(c.code));
+    return childWidths.reduce((a, b) => a + b, 0) + (ch.length - 1) * H_GAP;
   }
 
   function layoutSequence(
