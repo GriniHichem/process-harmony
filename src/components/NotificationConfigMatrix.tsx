@@ -216,12 +216,14 @@ export function NotificationConfigMatrix({ scope, showDefaultOption = false, rea
           ))}
         </div>
 
-        <div className="flex justify-end pt-4 border-t mt-4">
-          <Button onClick={handleSave} disabled={saving} size="sm">
-            <Save className="h-4 w-4 mr-1" />
-            {saving ? "..." : "Enregistrer"}
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex justify-end pt-4 border-t mt-4">
+            <Button onClick={handleSave} disabled={saving} size="sm">
+              <Save className="h-4 w-4 mr-1" />
+              {saving ? "..." : "Enregistrer"}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
