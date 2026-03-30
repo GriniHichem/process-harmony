@@ -1799,6 +1799,8 @@ export type Database = {
           id: string
           ordre: number
           parent_code: string | null
+          position_x: number | null
+          position_y: number | null
           process_id: string
           responsable_id: string | null
           responsable_user_id: string | null
@@ -1816,6 +1818,8 @@ export type Database = {
           id?: string
           ordre?: number
           parent_code?: string | null
+          position_x?: number | null
+          position_y?: number | null
           process_id: string
           responsable_id?: string | null
           responsable_user_id?: string | null
@@ -1833,6 +1837,8 @@ export type Database = {
           id?: string
           ordre?: number
           parent_code?: string | null
+          position_x?: number | null
+          position_y?: number | null
           process_id?: string
           responsable_id?: string | null
           responsable_user_id?: string | null
