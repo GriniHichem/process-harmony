@@ -10,13 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Settings, Upload, Eye, Save, Mail, Server, EyeOff, SendHorizonal, Paintbrush, Image } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { NotificationConfigMatrix } from "@/components/NotificationConfigMatrix";
-import { useActeurs } from "@/hooks/useActeurs";
+import logo from "@/assets/logo.jpg";
 import logo from "@/assets/logo.jpg";
 
 export default function SuperAdmin() {
