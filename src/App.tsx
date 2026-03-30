@@ -43,6 +43,8 @@ const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const SurveyPublicPage = lazy(() => import("./pages/SurveyPublicPage"));
 const DashboardIndicateurs = lazy(() => import("./pages/DashboardIndicateurs"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const AdminNotificationsConfig = lazy(() => import("./pages/AdminNotificationsConfig"));
+const AdminDocumentsConfig = lazy(() => import("./pages/AdminDocumentsConfig"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
