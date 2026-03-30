@@ -583,11 +583,17 @@ export default function Documents() {
                           {d.consulte_count > 0 && <> • {d.consulte_count} consultation{d.consulte_count > 1 ? "s" : ""}</>}
                           {d.created_at && <> • {format(parseISO(d.created_at), "dd/MM/yyyy")}</>}
                         </p>
-                        {d.process_ids.length > 0 && (
+                        {(d.process_ids.length > 0 || d.tag_ids.length > 0) && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {d.process_ids.map(pid => (
                               <Badge key={pid} variant="outline" className="text-xs">{getProcessName(pid)}</Badge>
                             ))}
+                            {d.tag_ids.map(tid => {
+                              const tag = getTag(tid);
+                              return tag ? (
+                                <Badge key={tid} className="text-xs" style={{ backgroundColor: tag.color, color: "#fff" }}>{tag.label}</Badge>
+                              ) : null;
+                            })}
                           </div>
                         )}
                       </div>
