@@ -1,85 +1,91 @@
 
 
-# Amélioration Résultats & Analyse — Vue détaillée réponse par réponse
+# Logigramme interactif — Drag & Drop, positions persistées, outils avancés
 
-## Problème actuel
+## Analyse de l'existant
 
-Les résultats affichent uniquement des agrégats (moyennes, distributions) sans possibilité de consulter les réponses individuelles. Pour les sondages ciblés, les noms et emails des répondants ne sont pas visibles. Il manque des KPI avancés et un détail réponse par réponse.
+Le logigramme actuel (`ProcessTasksFlowchart.tsx`, 1038 lignes) utilise un moteur de layout automatique (`computeLayout`) qui calcule les positions de chaque noeud de facon déterministe. Il n'y a pas de positions stockées en base — les coordonnées sont recalculées a chaque rendu. Le composant gere deja zoom, pan, minimap et fullscreen.
 
-## Modifications dans `src/components/SurveyResults.tsx`
+La table `process_tasks` ne contient pas de colonnes `x`/`y` pour stocker les positions manuelles.
 
-### 1. Sous-onglets internes
+## Plan d'implementation
 
-Ajouter des sous-onglets dans la section résultats :
-- **Synthèse** : KPI globaux + graphiques (vue actuelle enrichie)
-- **Réponses individuelles** : liste de chaque réponse avec détail complet
-- **Commentaires** : vue dédiée aux commentaires (déplacée depuis la vue actuelle)
+### Phase 1 — Migration : ajouter colonnes position
 
-### 2. KPI enrichis (synthèse)
-
-Ajouter les KPI manquants :
-- **Taux de réponse** : si sondage ciblé, nombre réponses / nombre invités
-- **Meilleure question** : celle avec le score Ia le plus élevé
-- **Question la plus faible** : score Ia le plus bas
-- **Écart moyen Ia-Ir** : écart global entre performance absolue et concurrence
-- **Nombre de questions en alerte** : count Ir < Ia
-
-### 3. Onglet "Réponses individuelles"
-
-**En-tête par répondant** (card expansible) :
-- Nom du répondant (si sondage ciblé)
-- Email du répondant (si sondage ciblé)
-- Date de soumission
-- Badge "Anonyme" si pas de nom/email
-
-**Contenu détaillé** (au clic/expand) :
-- Pour chaque question du sondage, afficher :
-  - Libellé de la question
-  - Section (si ISO)
-  - Type de réponse
-  - Valeur de la réponse (note satisfaction, texte, Ia/Ir avec indicateurs couleur)
-  - Observations absolue et relative (si applicable)
-- Score individuel du répondant (moyenne de ses notes)
-
-**Pour les sondages ISO (absolute_relative)** :
-- Charger les `survey_answers` par `survey_id` et les regrouper par répondant via le `response_id` ou la date
-- Afficher tableau Ia/Ir par question pour chaque répondant
-
-**Pour les sondages classiques** :
-- Charger `client_survey_answers` via la relation `client_survey_responses`
-- Afficher la note ou le texte pour chaque question
-
-### 4. Filtres dans la vue réponses
-
-- Recherche par nom/email
-- Filtre par date de soumission
-- Tri par date (récent/ancien) ou par score
-
-### 5. Export CSV enrichi
-
-Ajouter un export CSV des réponses individuelles (en plus de l'export synthèse existant) avec colonnes : Nom, Email, Date, Question, Section, Réponse, Ia, Ir, Observations.
-
-### 6. Modification de la requête de données
-
-Enrichir le fetch pour inclure :
-- `survey_answers` regroupés par `response_id` (ajouter ce champ si manquant) ou par répondant
-- Les champs `respondent_name` et `respondent_email` de `client_survey_responses`
-
-## Migration SQL nécessaire
-
-Aucune migration structurelle. La table `survey_answers` existe déjà mais n'a pas de `response_id` pour lier les réponses Ia/Ir à un répondant spécifique. Il faut ajouter :
+Ajouter `position_x` (float, nullable) et `position_y` (float, nullable) a `process_tasks`. Quand ces colonnes sont NULL, le layout automatique s'applique. Quand elles ont des valeurs, la position manuelle est utilisee.
 
 ```sql
-ALTER TABLE survey_answers ADD COLUMN IF NOT EXISTS response_id uuid REFERENCES client_survey_responses(id) ON DELETE CASCADE;
+ALTER TABLE process_tasks
+ADD COLUMN IF NOT EXISTS position_x double precision,
+ADD COLUMN IF NOT EXISTS position_y double precision;
 ```
 
-Et mettre à jour `SurveyPublicPage.tsx` pour passer le `response_id` lors de la sauvegarde des `survey_answers`.
+### Phase 2 — Drag & Drop des noeuds
 
-## Fichiers modifiés
+Dans le composant principal :
+- Ajouter un etat `draggedNodeId` + `dragOffset`
+- Sur `mousedown` d'un noeud en mode edit : demarrer le drag
+- Sur `mousemove` : mettre a jour la position locale du noeud (dans un state `overrides` de type `Map<string, {x,y}>`)
+- Sur `mouseup` : sauvegarder `position_x`/`position_y` en base via update Supabase
+- Les connecteurs se recalculent automatiquement car ils sont derives des positions des noeuds
+
+Le layout engine sera modifie : apres calcul auto, si `task.position_x != null`, on ecrase les coordonnees par celles de la base.
+
+### Phase 3 — Toolbar enrichie
+
+Ajouter une barre d'outils au-dessus du canvas avec :
+- **Auto-layout** : bouton qui reset toutes les positions (`position_x = null, position_y = null`) et relance le calcul automatique
+- **Grille snap** : toggle qui arrondit les positions au nearest 20px lors du drop
+- **Alignement** : boutons pour aligner les noeuds selectionnes (horizontal/vertical center)
+- **Undo/Redo** : pile d'historique locale (positions + CRUD) avec max 20 etapes
+- **Dupliquer** : copier une activite (meme description, entrees/sorties, position decalee de +40px)
+- **Supprimer** : bouton dans la toolbar (en plus du dialog existant), avec confirmation
+
+### Phase 4 — Edition rapide par double-clic
+
+- Simple clic : selectionner le noeud (highlight)
+- Double-clic : ouvrir le `FlowchartNodeEditor` (comportement actuel du clic)
+- Le noeud selectionne affiche un contour + poignees de drag visuelles
+
+### Phase 5 — Ameliorations connecteurs
+
+Les edges sont deja recalcules dans `computeLayout`. On ajuste :
+- Quand un noeud est deplace, recalculer les edges en temps reel (pas seulement au drop)
+- Ajouter des fleches courbes (bezier) au lieu de lignes droites pour les branches laterales
+
+### Phase 6 — UX polish
+
+- Curseur `grab`/`grabbing` sur les noeuds en mode drag
+- Indicateur visuel de snap (lignes guides bleues quand aligne avec un autre noeud)
+- Animation de transition lors du retour en auto-layout
+- Raccourcis clavier : `Ctrl+Z` undo, `Ctrl+Y` redo, `Delete` supprimer, `Ctrl+D` dupliquer
+
+## Architecture technique
+
+```text
+ProcessTasksFlowchart.tsx
+├── State: positionOverrides Map<taskId, {x,y}>
+├── computeLayout() → positions auto
+├── applyOverrides() → merge positions manuelles
+├── Drag handlers (mousedown/move/up sur foreignObject)
+├── Toolbar (auto-layout, snap, align, undo/redo, duplicate, delete)
+├── Undo stack: Array<{type, data}>
+└── Save positions: supabase.update({position_x, position_y})
+```
+
+## Fichiers modifies
 
 | Fichier | Action |
 |---|---|
-| `supabase/migrations/xxx.sql` | Ajouter `response_id` à `survey_answers` |
-| `src/components/SurveyResults.tsx` | Sous-onglets, KPI enrichis, vue réponse par réponse, filtres, export |
-| `src/pages/SurveyPublicPage.tsx` | Passer `response_id` lors de l'insertion des `survey_answers` |
+| `supabase/migrations/xxx.sql` | Ajouter `position_x`, `position_y` a `process_tasks` |
+| `src/components/ProcessTasksFlowchart.tsx` | Drag&drop, toolbar enrichie, undo/redo, snap, alignement, double-clic edit |
+| `src/components/FlowchartNodeEditor.tsx` | Aucune modification structurelle, juste ajout prop `onDuplicate` |
+
+## Contraintes
+
+- Migration idempotente (`IF NOT EXISTS`)
+- Pas de breaking change : positions NULL = auto-layout (retrocompatible)
+- Le drag ne s'active qu'en mode `canEdit`
+- Les connecteurs se mettent a jour en temps reel pendant le drag
+- La sauvegarde des positions est debounced (300ms) pour eviter trop de requetes
 
