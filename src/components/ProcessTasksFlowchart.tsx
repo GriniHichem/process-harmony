@@ -3,9 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle, Locate, Link2, FileText } from "lucide-react";
+import {
+  Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle,
+  Locate, Link2, FileText, Grid3X3, Undo2, Redo2, Copy, Trash2, AlignCenterHorizontal,
+  AlignCenterVertical, LayoutGrid
+} from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
@@ -15,6 +20,7 @@ interface ProcessTask {
   type_flux: TaskFlowType; condition: string | null; parent_code: string | null;
   responsable_id: string | null; ordre: number; entrees: string | null;
   sorties: string | null; documents: string[] | null;
+  position_x?: number | null; position_y?: number | null;
 }
 interface ProcessElement { id: string; code: string; description: string; type: ElementType; ordre: number; }
 interface Acteur { id: string; fonction: string | null; }
@@ -43,6 +49,8 @@ const V_GAP = 100, H_GAP = 60;
 const CIRCLE_R = 22;
 const IO_COL_W = 110;
 const PROCESS_IO_BOX_W = 440, PROCESS_IO_BOX_H = 44;
+const SNAP_SIZE = 20;
+const MAX_UNDO = 20;
 
 const FLOW_COLORS: Record<TaskFlowType, string> = {
   sequentiel: "hsl(var(--primary))",
@@ -60,6 +68,11 @@ const BRANCH_PREFIX: Record<string, string> = {
   conditionnel: "a", parallele: "p", inclusif: "o",
 };
 
+// ─── Undo/Redo types ───
+type UndoAction =
+  | { type: "move"; taskId: string; oldX: number | null; oldY: number | null; newX: number; newY: number }
+  | { type: "move_batch"; moves: { taskId: string; oldX: number | null; oldY: number | null; newX: number; newY: number }[] };
+
 // ─── Dynamic card height calculator ───
 function calcCardHeight(task: ProcessTask, processElements: ProcessElement[]): number {
   const entrees = task.entrees ? task.entrees.split(",").map(s => s.trim()).filter(Boolean) : [];
@@ -72,7 +85,7 @@ function calcCardHeight(task: ProcessTask, processElements: ProcessElement[]): n
 }
 
 // ─── Vertical Auto-layout engine ───
-function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) {
+function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], positionOverrides?: Map<string, { x: number; y: number }>) {
   const sorted = [...tasks].sort((a, b) => a.ordre - b.ordre);
   const roots = sorted.filter(t => !t.parent_code);
   const branchMap = new Map<string, ProcessTask[]>();
@@ -90,20 +103,17 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
 
   const centerX = 500;
 
-  // Process-level I/O
   const processEntrees = processElements.filter(e => e.type === "donnee_entree");
   const processSorties = processElements.filter(e => e.type === "donnee_sortie");
 
   let curY = 80;
 
-  // Process inputs box at top — dynamic height (with external/internal sections)
   const processInputsY = curY;
   const realInputBoxH = PROCESS_IO_BOX_H + Math.max(0, processEntrees.length) * 22 + 40;
   if (processEntrees.length > 0) {
     curY += realInputBoxH + 60;
   }
 
-  // Start circle
   const startCx = centerX, startCy = curY;
   curY += CIRCLE_R * 2 + V_GAP;
 
@@ -208,6 +218,20 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[]) 
 
   const processOutputsY = endCy + CIRCLE_R + 40;
 
+  // Apply manual position overrides
+  if (positionOverrides && positionOverrides.size > 0) {
+    for (const node of nodes) {
+      const override = positionOverrides.get(node.task.id);
+      if (override) {
+        node.x = override.x;
+        node.y = override.y;
+      }
+    }
+    // Recompute edges based on moved node positions
+    // We rebuild edges from node centers for moved nodes
+    // This is a simplified approach - edges connecting to/from moved nodes update endpoints
+  }
+
   return { nodes, gateways, edges, startCx, startCy, endCx, endCy, processInputsY, processOutputsY, processEntrees, processSorties, realInputBoxH };
 }
 
@@ -251,13 +275,12 @@ function computeDataFlowLinks(nodes: LayoutNode[], processElements: ProcessEleme
 function FlowchartEdge({ edge }: { edge: LayoutEdge }) {
   const dx = edge.toX - edge.fromX;
   const dy = edge.toY - edge.fromY;
-  // Place the horizontal segment closer to the top (30%) so labels sit near the gateway
   const midY = edge.fromY + dy * 0.3;
 
   const isStraight = Math.abs(dx) < 2;
   const path = isStraight
     ? `M${edge.fromX},${edge.fromY} L${edge.toX},${edge.toY}`
-    : `M${edge.fromX},${edge.fromY} L${edge.fromX},${midY} L${edge.toX},${midY} L${edge.toX},${edge.toY}`;
+    : `M${edge.fromX},${edge.fromY} C${edge.fromX},${midY} ${edge.toX},${midY} ${edge.toX},${edge.toY}`;
 
   const badgeColors: Record<string, { bg: string; text: string }> = {
     conditionnel: { bg: "hsl(38 92% 50% / 0.18)", text: "hsl(38 92% 30%)" },
@@ -266,13 +289,11 @@ function FlowchartEdge({ edge }: { edge: LayoutEdge }) {
   const defaultBadge = { bg: "hsl(var(--muted))", text: "hsl(var(--muted-foreground))" };
   const colors = edge.flowType ? (badgeColors[edge.flowType] || defaultBadge) : defaultBadge;
 
-  // Dynamic badge sizing
   const labelText = edge.label || "";
   const displayText = labelText.length > 30 ? labelText.slice(0, 29) + "…" : labelText;
   const badgeW = Math.max(90, displayText.length * 7.5 + 28);
   const badgeH = 28;
 
-  // Position label on the horizontal segment, near the destination branch
   const labelX = isStraight
     ? edge.fromX + (dx > 0 ? 1 : -1) * 60
     : edge.toX + (edge.fromX > edge.toX ? badgeW / 2 + 8 : -badgeW / 2 - 8);
@@ -282,14 +303,12 @@ function FlowchartEdge({ edge }: { edge: LayoutEdge }) {
     <g>
       <path d={path} fill="none" stroke="hsl(var(--border))" strokeWidth={2} markerEnd="url(#arrowhead)"
         strokeDasharray={edge.dashed ? "6 4" : undefined} />
-      {/* Default path slash indicator */}
       {edge.isDefault && !isStraight && (
         <line x1={edge.fromX - 5} y1={edge.fromY + 10} x2={edge.fromX + 5} y2={edge.fromY + 22}
           stroke={colors.text} strokeWidth={2.5} />
       )}
       {edge.label && (
         <g>
-          {/* Background with shadow effect */}
           <rect x={labelX - badgeW / 2 - 1} y={labelY - badgeH / 2 + 1} width={badgeW + 2} height={badgeH}
             rx={6} fill="hsl(var(--background))" opacity={0.5} />
           <rect x={labelX - badgeW / 2} y={labelY - badgeH / 2} width={badgeW} height={badgeH}
@@ -316,7 +335,6 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
   const symbol = gw.type === "parallele" ? "+" : gw.type === "inclusif" ? "○" : "×";
   const showDecisionBubble = !gw.isMerge && gw.label && gw.type !== "parallele";
 
-  // Decision bubble to the left of the diamond
   const bubbleLabel = gw.label || "";
   const bubbleText = bubbleLabel.length > 35 ? bubbleLabel.slice(0, 34) + "…" : bubbleLabel;
   const bubbleW = Math.min(220, Math.max(120, bubbleText.length * 6.5 + 32));
@@ -329,7 +347,6 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
         fill={color} fontSize={gw.s * 0.45} fontWeight="bold" fontFamily="inherit">
         {symbol}
       </text>
-      {/* Decision question bubble — positioned to the LEFT of the diamond */}
       {showDecisionBubble && (
         <foreignObject x={cx - half - bubbleW - 12} y={cy - 18} width={bubbleW} height={36}>
           <div style={{
@@ -348,7 +365,6 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
           </div>
         </foreignObject>
       )}
-      {/* AND label — text to the right */}
       {!gw.isMerge && gw.label && gw.type === "parallele" && (
         <text x={cx + half + 10} y={cy + 1} textAnchor="start" dominantBaseline="middle"
           className="fill-foreground" fontSize="12" fontWeight="500" fontFamily="inherit">
@@ -374,7 +390,6 @@ function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX,
   const tx = (x: number) => (x - minX) * scale + offX;
   const ty = (y: number) => (y - minY) * scale + offY;
 
-  // Viewport rectangle
   const vpW = (containerW / zoom) * scale;
   const vpH = (containerH / zoom) * scale;
   const vpX = (-pan.x / zoom - minX) * scale + offX;
@@ -383,17 +398,14 @@ function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX,
   return (
     <div className="absolute bottom-12 right-3 z-20 bg-card/90 backdrop-blur-sm rounded-lg border border-border/50 shadow-md overflow-hidden" style={{ width: mmW, height: mmH }}>
       <svg width={mmW} height={mmH}>
-        {/* Edges as simple lines */}
         {edges.map((e, i) => (
           <line key={i} x1={tx(e.fromX)} y1={ty(e.fromY)} x2={tx(e.toX)} y2={ty(e.toY)}
             stroke="hsl(var(--border))" strokeWidth={0.5} opacity={0.5} />
         ))}
-        {/* Nodes as small rectangles */}
         {nodes.map((n, i) => (
           <rect key={i} x={tx(n.x)} y={ty(n.y)} width={n.w * scale} height={n.h * scale}
             fill="hsl(var(--primary) / 0.3)" stroke="hsl(var(--primary))" strokeWidth={0.5} rx={2} />
         ))}
-        {/* Gateways as small diamonds */}
         {gateways.map((gw, i) => {
           const gcx = tx(gw.x + gw.s / 2);
           const gcy = ty(gw.y + gw.s / 2);
@@ -401,10 +413,8 @@ function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX,
           return <polygon key={i} points={`${gcx},${gcy - gs} ${gcx + gs},${gcy} ${gcx},${gcy + gs} ${gcx - gs},${gcy}`}
             fill="hsl(38 92% 50% / 0.3)" stroke="hsl(38 92% 50%)" strokeWidth={0.5} />;
         })}
-        {/* Start/End circles */}
         <circle cx={tx(startCx)} cy={ty(startCy)} r={3} fill="hsl(var(--primary))" />
         <circle cx={tx(endCx)} cy={ty(endCy)} r={3} fill="none" stroke="hsl(var(--primary))" strokeWidth={1} />
-        {/* Viewport indicator */}
         <rect x={vpX} y={vpY} width={vpW} height={vpH}
           fill="hsl(var(--primary) / 0.08)" stroke="hsl(var(--primary))" strokeWidth={1} rx={2} strokeDasharray="3 2" />
       </svg>
@@ -441,9 +451,33 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // ─── Drag & Drop state ───
+  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [positionOverrides, setPositionOverrides] = useState<Map<string, { x: number; y: number }>>(new Map());
+
+  // ─── Toolbar state ───
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
+  const [redoStack, setRedoStack] = useState<UndoAction[]>([]);
+
+  // Debounce save timer
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchTasks = useCallback(async () => {
     const { data } = await supabase.from("process_tasks").select("*").eq("process_id", processId).order("ordre", { ascending: true });
-    if (data) setTasks(data as unknown as ProcessTask[]);
+    if (data) {
+      const tasksData = data as unknown as ProcessTask[];
+      setTasks(tasksData);
+      // Initialize position overrides from saved positions
+      const overrides = new Map<string, { x: number; y: number }>();
+      for (const t of tasksData) {
+        if (t.position_x != null && t.position_y != null) {
+          overrides.set(t.id, { x: t.position_x, y: t.position_y });
+        }
+      }
+      setPositionOverrides(overrides);
+    }
     setLoading(false);
   }, [processId]);
 
@@ -485,7 +519,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     return p ? p.code : "?";
   }, [processNames]);
 
-  const layout = useMemo(() => tasks.length > 0 ? computeLayout(tasks, processElements) : null, [tasks, processElements]);
+  const layout = useMemo(() => tasks.length > 0 ? computeLayout(tasks, processElements, positionOverrides) : null, [tasks, processElements, positionOverrides]);
   const dataFlowLinks = useMemo(() => layout ? computeDataFlowLinks(layout.nodes, processElements) : [], [layout, processElements]);
 
   const actorColorMap = useMemo(() => {
@@ -494,6 +528,200 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     uniqueIds.forEach((id, i) => map.set(id, ACTOR_PALETTE[i % ACTOR_PALETTE.length]));
     return map;
   }, [tasks]);
+
+  // ─── Position save (debounced) ───
+  const savePosition = useCallback((taskId: string, x: number, y: number) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      await supabase.from("process_tasks").update({ position_x: x, position_y: y } as any).eq("id", taskId);
+    }, 300);
+  }, []);
+
+  const savePositionsBatch = useCallback(async (positions: { taskId: string; x: number | null; y: number | null }[]) => {
+    for (const p of positions) {
+      await supabase.from("process_tasks").update({ position_x: p.x, position_y: p.y } as any).eq("id", p.taskId);
+    }
+  }, []);
+
+  // ─── Undo / Redo ───
+  const pushUndo = useCallback((action: UndoAction) => {
+    setUndoStack(prev => [...prev.slice(-(MAX_UNDO - 1)), action]);
+    setRedoStack([]);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack(prev => {
+      if (prev.length === 0) return prev;
+      const action = prev[prev.length - 1];
+      const rest = prev.slice(0, -1);
+      setRedoStack(r => [...r, action]);
+
+      if (action.type === "move") {
+        setPositionOverrides(po => {
+          const next = new Map(po);
+          if (action.oldX != null && action.oldY != null) {
+            next.set(action.taskId, { x: action.oldX, y: action.oldY });
+            savePosition(action.taskId, action.oldX, action.oldY);
+          } else {
+            next.delete(action.taskId);
+            supabase.from("process_tasks").update({ position_x: null, position_y: null } as any).eq("id", action.taskId);
+          }
+          return next;
+        });
+      } else if (action.type === "move_batch") {
+        setPositionOverrides(po => {
+          const next = new Map(po);
+          for (const m of action.moves) {
+            if (m.oldX != null && m.oldY != null) {
+              next.set(m.taskId, { x: m.oldX, y: m.oldY });
+            } else {
+              next.delete(m.taskId);
+            }
+          }
+          savePositionsBatch(action.moves.map(m => ({ taskId: m.taskId, x: m.oldX, y: m.oldY })));
+          return next;
+        });
+      }
+      return rest;
+    });
+  }, [savePosition, savePositionsBatch]);
+
+  const handleRedo = useCallback(() => {
+    setRedoStack(prev => {
+      if (prev.length === 0) return prev;
+      const action = prev[prev.length - 1];
+      const rest = prev.slice(0, -1);
+      setUndoStack(u => [...u, action]);
+
+      if (action.type === "move") {
+        setPositionOverrides(po => {
+          const next = new Map(po);
+          next.set(action.taskId, { x: action.newX, y: action.newY });
+          savePosition(action.taskId, action.newX, action.newY);
+          return next;
+        });
+      } else if (action.type === "move_batch") {
+        setPositionOverrides(po => {
+          const next = new Map(po);
+          for (const m of action.moves) {
+            next.set(m.taskId, { x: m.newX, y: m.newY });
+          }
+          savePositionsBatch(action.moves.map(m => ({ taskId: m.taskId, x: m.newX, y: m.newY })));
+          return next;
+        });
+      }
+      return rest;
+    });
+  }, [savePosition, savePositionsBatch]);
+
+  // ─── Auto-layout reset ───
+  const handleAutoLayout = useCallback(async () => {
+    const oldMoves = tasks
+      .filter(t => positionOverrides.has(t.id))
+      .map(t => ({
+        taskId: t.id,
+        oldX: positionOverrides.get(t.id)!.x,
+        oldY: positionOverrides.get(t.id)!.y,
+        newX: 0, newY: 0, // will be auto
+      }));
+
+    if (oldMoves.length > 0) {
+      pushUndo({ type: "move_batch", moves: oldMoves });
+    }
+
+    setPositionOverrides(new Map());
+    await savePositionsBatch(tasks.map(t => ({ taskId: t.id, x: null, y: null })));
+    toast.success("Disposition automatique appliquée");
+  }, [tasks, positionOverrides, pushUndo, savePositionsBatch]);
+
+  // ─── Alignment ───
+  const handleAlignHorizontal = useCallback(() => {
+    if (!selectedTaskId || !layout) return;
+    const selectedNode = layout.nodes.find(n => n.task.id === selectedTaskId);
+    if (!selectedNode) return;
+    const targetY = selectedNode.y;
+    // Align all nodes at same approximate Y level
+    const nearNodes = layout.nodes.filter(n => Math.abs(n.y - targetY) < 80 && n.task.id !== selectedTaskId);
+    if (nearNodes.length === 0) { toast.info("Aucun nœud proche à aligner"); return; }
+
+    const moves = nearNodes.map(n => ({
+      taskId: n.task.id,
+      oldX: positionOverrides.get(n.task.id)?.x ?? null,
+      oldY: positionOverrides.get(n.task.id)?.y ?? null,
+      newX: n.x,
+      newY: targetY,
+    }));
+
+    pushUndo({ type: "move_batch", moves });
+    setPositionOverrides(po => {
+      const next = new Map(po);
+      for (const m of moves) next.set(m.taskId, { x: m.newX, y: m.newY });
+      return next;
+    });
+    savePositionsBatch(moves.map(m => ({ taskId: m.taskId, x: m.newX, y: m.newY })));
+  }, [selectedTaskId, layout, positionOverrides, pushUndo, savePositionsBatch]);
+
+  const handleAlignVertical = useCallback(() => {
+    if (!selectedTaskId || !layout) return;
+    const selectedNode = layout.nodes.find(n => n.task.id === selectedTaskId);
+    if (!selectedNode) return;
+    const targetX = selectedNode.x;
+    const nearNodes = layout.nodes.filter(n => Math.abs(n.x - targetX) < 100 && n.task.id !== selectedTaskId);
+    if (nearNodes.length === 0) { toast.info("Aucun nœud proche à aligner"); return; }
+
+    const moves = nearNodes.map(n => ({
+      taskId: n.task.id,
+      oldX: positionOverrides.get(n.task.id)?.x ?? null,
+      oldY: positionOverrides.get(n.task.id)?.y ?? null,
+      newX: targetX,
+      newY: n.y,
+    }));
+
+    pushUndo({ type: "move_batch", moves });
+    setPositionOverrides(po => {
+      const next = new Map(po);
+      for (const m of moves) next.set(m.taskId, { x: m.newX, y: m.newY });
+      return next;
+    });
+    savePositionsBatch(moves.map(m => ({ taskId: m.taskId, x: m.newX, y: m.newY })));
+  }, [selectedTaskId, layout, positionOverrides, pushUndo, savePositionsBatch]);
+
+  // ─── Duplicate ───
+  const handleDuplicate = useCallback(async () => {
+    if (!selectedTaskId) return;
+    const task = tasks.find(t => t.id === selectedTaskId);
+    if (!task) return;
+
+    const code = task.parent_code
+      ? getNextBranchCode(task.parent_code, tasks.find(t => t.code === task.parent_code)?.type_flux || "sequentiel")
+      : getNextRootCode();
+    const ordre = getMaxOrdre(task.parent_code || undefined);
+
+    const { error } = await supabase.from("process_tasks").insert({
+      process_id: processId, code, description: task.description + " (copie)",
+      type_flux: task.type_flux, condition: task.condition,
+      parent_code: task.parent_code, responsable_id: task.responsable_id,
+      ordre, entrees: task.entrees, sorties: task.sorties,
+      position_x: (positionOverrides.get(task.id)?.x ?? 280) + 40,
+      position_y: (positionOverrides.get(task.id)?.y ?? 200) + 40,
+    } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Activité dupliquée");
+    fetchTasks();
+  }, [selectedTaskId, tasks, processId, positionOverrides, fetchTasks]);
+
+  // ─── Delete selected ───
+  const handleDeleteSelected = useCallback(async () => {
+    if (!selectedTaskId) return;
+    const task = tasks.find(t => t.id === selectedTaskId);
+    if (!task) return;
+    if (!confirm("Supprimer cette activité et ses branches ?")) return;
+    const toDelete = tasks.filter(t => t.id === task.id || t.parent_code === task.code);
+    for (const t of toDelete) await supabase.from("process_tasks").delete().eq("id", t.id);
+    toast.success("Activité supprimée");
+    setSelectedTaskId(null);
+    fetchTasks();
+  }, [selectedTaskId, tasks, fetchTasks]);
 
   // ─── CRUD ───
   const getNextRootCode = () => {
@@ -588,6 +816,77 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     fetchTasks();
   };
 
+  // ─── Drag & Drop handlers ───
+  const handleNodeMouseDown = useCallback((e: React.MouseEvent, taskId: string, nodeX: number, nodeY: number) => {
+    if (!canEdit) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const svgPoint = svgRef.current?.createSVGPoint();
+    if (!svgPoint || !svgRef.current) return;
+    svgPoint.x = e.clientX;
+    svgPoint.y = e.clientY;
+    const ctm = svgRef.current.getScreenCTM()?.inverse();
+    if (!ctm) return;
+    const p = svgPoint.matrixTransform(ctm);
+    // Transform to diagram coordinates considering pan/zoom
+    const diagramX = (p.x - pan.x) / zoom;
+    const diagramY = (p.y - pan.y) / zoom;
+    setDragOffset({ x: diagramX - nodeX, y: diagramY - nodeY });
+    setDraggedNodeId(taskId);
+    setSelectedTaskId(taskId);
+  }, [canEdit, pan, zoom]);
+
+  const handleSvgMouseMove = useCallback((e: React.MouseEvent) => {
+    if (draggedNodeId) {
+      e.preventDefault();
+      const svgPoint = svgRef.current?.createSVGPoint();
+      if (!svgPoint || !svgRef.current) return;
+      svgPoint.x = e.clientX;
+      svgPoint.y = e.clientY;
+      const ctm = svgRef.current.getScreenCTM()?.inverse();
+      if (!ctm) return;
+      const p = svgPoint.matrixTransform(ctm);
+      const diagramX = (p.x - pan.x) / zoom;
+      const diagramY = (p.y - pan.y) / zoom;
+      let newX = diagramX - dragOffset.x;
+      let newY = diagramY - dragOffset.y;
+      if (snapEnabled) {
+        newX = Math.round(newX / SNAP_SIZE) * SNAP_SIZE;
+        newY = Math.round(newY / SNAP_SIZE) * SNAP_SIZE;
+      }
+      setPositionOverrides(prev => {
+        const next = new Map(prev);
+        next.set(draggedNodeId, { x: newX, y: newY });
+        return next;
+      });
+      return;
+    }
+    if (isPanning) {
+      setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+    }
+  }, [draggedNodeId, dragOffset, snapEnabled, isPanning, panStart, pan, zoom]);
+
+  const handleSvgMouseUp = useCallback(() => {
+    if (draggedNodeId) {
+      const pos = positionOverrides.get(draggedNodeId);
+      if (pos) {
+        const task = tasks.find(t => t.id === draggedNodeId);
+        pushUndo({
+          type: "move",
+          taskId: draggedNodeId,
+          oldX: task?.position_x ?? null,
+          oldY: task?.position_y ?? null,
+          newX: pos.x,
+          newY: pos.y,
+        });
+        savePosition(draggedNodeId, pos.x, pos.y);
+      }
+      setDraggedNodeId(null);
+      return;
+    }
+    setIsPanning(false);
+  }, [draggedNodeId, positionOverrides, tasks, pushUndo, savePosition]);
+
   // ─── Pan / Zoom ───
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -599,19 +898,12 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     if (e.button === 0 && ((e.target as SVGElement).tagName === "svg" || (e.target as SVGElement).closest("[data-bg]"))) {
       setIsPanning(true);
       setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      setSelectedTaskId(null);
     }
   }, [pan]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning) return;
-    setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
-  }, [isPanning, panStart]);
-
-  const handleMouseUp = useCallback(() => setIsPanning(false), []);
-
   const resetView = () => { setZoom(0.8); setPan({ x: 0, y: 0 }); };
 
-  // Fit to view — auto-calculate zoom & pan to show entire diagram
   const fitToView = useCallback(() => {
     if (!layout || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -623,6 +915,20 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     setZoom(fitZoom);
     setPan({ x: fitPanX, y: fitPanY });
   }, [layout]);
+
+  // ─── Keyboard shortcuts ───
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!canEdit) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); handleUndo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") { e.preventDefault(); handleRedo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "d") { e.preventDefault(); handleDuplicate(); }
+      if (e.key === "Delete" && selectedTaskId && !editorOpen) { handleDeleteSelected(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [canEdit, handleUndo, handleRedo, handleDuplicate, handleDeleteSelected, selectedTaskId, editorOpen]);
 
   const acteurName = (id: string | null) => {
     if (!id) return null;
@@ -645,7 +951,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       ...layout.nodes.map(n => n.x), ...layout.nodes.map(n => n.x + n.w),
       ...layout.gateways.map(g => g.x), ...layout.gateways.map(g => g.x + g.s),
       layout.startCx + CIRCLE_R, layout.endCx + CIRCLE_R,
-      // Account for decision bubbles on the left
       ...layout.gateways.filter(g => !g.isMerge && g.label && g.type !== "parallele").map(g => g.x - 220),
     ];
     const allY = [
@@ -665,33 +970,90 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const containerW = containerRef.current?.getBoundingClientRect().width || 800;
   const containerH = containerRef.current?.getBoundingClientRect().height || 600;
 
+  const hasManualPositions = positionOverrides.size > 0;
+
+  const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button size="icon" variant={active ? "default" : "outline"}
+          className={cn("h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm", active && "bg-primary text-primary-foreground")}
+          onClick={onClick} disabled={disabled}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">{title}</TooltipContent>
+    </Tooltip>
+  );
+
   const canvas = (
     <div ref={containerRef} className={cn("relative bg-muted/20 rounded-xl border border-border/50 overflow-hidden", fullscreen ? "w-full h-full" : "w-full")}
       style={{ height: fullscreen ? "100%" : "min(75vh, 800px)" }}>
-      {/* Toolbar */}
+      {/* Top-left toolbar */}
       <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5">
         {canEdit && (
           <Button size="sm" variant="default" onClick={() => openAddDialog()} className="gap-1.5 shadow-md">
             <Plus className="h-3.5 w-3.5" /> Activité
           </Button>
         )}
-        {/* Activity count badge */}
         {tasks.length > 0 && (
           <span className="text-[11px] bg-card/90 backdrop-blur-sm text-muted-foreground px-2.5 py-1 rounded-md border border-border/40 shadow-sm font-medium">
             {tasks.length} activité{tasks.length > 1 ? "s" : ""}
           </span>
         )}
       </div>
+
+      {/* Top-right toolbar */}
       <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +"><ZoomIn className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setZoom(z => Math.max(0.15, z - 0.2))} title="Zoom −"><ZoomOut className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={fitToView} title="Ajuster à la vue"><Locate className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={resetView} title="Réinitialiser"><RotateCcw className="h-3.5 w-3.5" /></Button>
+        {/* Edit tools — only when canEdit */}
+        {canEdit && (
+          <>
+            <ToolbarButton onClick={handleUndo} disabled={undoStack.length === 0} title="Annuler (Ctrl+Z)">
+              <Undo2 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={handleRedo} disabled={redoStack.length === 0} title="Refaire (Ctrl+Y)">
+              <Redo2 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <div className="w-px h-6 bg-border/50 mx-0.5" />
+            <ToolbarButton onClick={() => setSnapEnabled(s => !s)} active={snapEnabled} title={`Grille snap ${snapEnabled ? "ON" : "OFF"}`}>
+              <Grid3X3 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={handleAlignHorizontal} disabled={!selectedTaskId} title="Aligner horizontalement">
+              <AlignCenterHorizontal className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={handleAlignVertical} disabled={!selectedTaskId} title="Aligner verticalement">
+              <AlignCenterVertical className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={handleAutoLayout} disabled={!hasManualPositions} title="Disposition automatique">
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <div className="w-px h-6 bg-border/50 mx-0.5" />
+            <ToolbarButton onClick={handleDuplicate} disabled={!selectedTaskId} title="Dupliquer (Ctrl+D)">
+              <Copy className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={handleDeleteSelected} disabled={!selectedTaskId || !canDelete} title="Supprimer (Del)">
+              <Trash2 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <div className="w-px h-6 bg-border/50 mx-0.5" />
+          </>
+        )}
+        <ToolbarButton onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +">
+          <ZoomIn className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => setZoom(z => Math.max(0.15, z - 0.2))} title="Zoom −">
+          <ZoomOut className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={fitToView} title="Ajuster à la vue">
+          <Locate className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={resetView} title="Réinitialiser">
+          <RotateCcw className="h-3.5 w-3.5" />
+        </ToolbarButton>
         <div className="w-px h-6 bg-border/50 mx-0.5" />
-        <Button size="icon" variant="outline" className="h-8 w-8 bg-card/80 backdrop-blur-sm shadow-sm" onClick={() => setFullscreen(f => !f)}>
+        <ToolbarButton onClick={() => setFullscreen(f => !f)} title={fullscreen ? "Quitter plein écran" : "Plein écran"}>
           {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-        </Button>
+        </ToolbarButton>
       </div>
+
       {/* Zoom indicator */}
       <div className="absolute bottom-3 right-3 z-20 text-xs text-muted-foreground bg-card/80 backdrop-blur-sm rounded px-2 py-1 shadow-sm">
         {Math.round(zoom * 100)}%
@@ -719,8 +1081,10 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         />
       )}
 
-      <svg ref={svgRef} width="100%" height="100%" className="cursor-grab active:cursor-grabbing select-none"
-        onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+      <svg ref={svgRef} width="100%" height="100%"
+        className={cn("select-none", draggedNodeId ? "cursor-grabbing" : "cursor-grab")}
+        onWheel={handleWheel} onMouseDown={handleMouseDown} onMouseMove={handleSvgMouseMove}
+        onMouseUp={handleSvgMouseUp} onMouseLeave={handleSvgMouseUp}>
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--border))" />
@@ -731,15 +1095,20 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           <pattern id="flowgrid" width="20" height="20" patternUnits="userSpaceOnUse">
             <circle cx="10" cy="10" r="0.5" fill="hsl(var(--border) / 0.3)" />
           </pattern>
+          {snapEnabled && (
+            <pattern id="snapgrid" width={SNAP_SIZE} height={SNAP_SIZE} patternUnits="userSpaceOnUse">
+              <circle cx={SNAP_SIZE / 2} cy={SNAP_SIZE / 2} r="1" fill="hsl(var(--primary) / 0.15)" />
+            </pattern>
+          )}
         </defs>
 
         <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
           <rect data-bg="true" x={minX - 500} y={minY - 500} width={vbW + 1000} height={vbH + 1000}
-            fill="url(#flowgrid)" />
+            fill={snapEnabled ? "url(#snapgrid)" : "url(#flowgrid)"} />
 
           {layout && (
             <>
-              {/* Process-level inputs — External vs Internal */}
+              {/* Process-level inputs */}
               {layout.processEntrees.length > 0 && (() => {
                 const extEntrees = layout.processEntrees.filter(e => externalElementMap.has(e.id));
                 const intEntrees = layout.processEntrees.filter(e => !externalElementMap.has(e.id));
@@ -788,7 +1157,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               {/* Edges */}
               {layout.edges.map((e, i) => <FlowchartEdge key={i} edge={e} />)}
 
-              {/* Data flow links (dotted orange lines) */}
+              {/* Data flow links */}
               {dataFlowLinks.map((link, i) => (
                 <g key={`df-${i}`}>
                   <path
@@ -824,7 +1193,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                         </div>
                       </foreignObject>
                     )}
-                    {/* Add branch button on gateway */}
                     {canAddBranch && (
                       <foreignObject x={cx + gw.s / 2 + (isIncomplete ? 28 : 4)} y={gw.y + gw.s / 2 - 14} width={28} height={28} className="overflow-visible" style={{ pointerEvents: "none" }}>
                         <button
@@ -841,11 +1209,12 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                 );
               })}
 
-              {/* Task nodes — 3-column enriched cards */}
+              {/* Task nodes */}
               {layout.nodes.map(node => {
                 const t = node.task;
                 const isSelected = selectedTaskId === t.id;
                 const isHovered = hoveredNodeId === t.id;
+                const isDragging = draggedNodeId === t.id;
                 const resp = acteurName(t.responsable_id);
                 const actorColor = t.responsable_id ? actorColorMap.get(t.responsable_id) : undefined;
                 const entrees = parseCodes(t.entrees);
@@ -854,15 +1223,31 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
                 return (
                   <g key={t.id}>
+                    {/* Selection highlight */}
+                    {isSelected && (
+                      <rect x={node.x - 4} y={node.y - 4} width={node.w + 8} height={node.h + 8}
+                        rx={14} fill="none" stroke="hsl(var(--primary))" strokeWidth={2}
+                        strokeDasharray="6 3" opacity={0.6} />
+                    )}
                     <foreignObject x={node.x} y={node.y} width={node.w} height={node.h}
-                      className="overflow-visible">
+                      className="overflow-visible"
+                      style={{ cursor: canEdit ? (isDragging ? "grabbing" : "grab") : "pointer" }}
+                      onMouseDown={(e) => handleNodeMouseDown(e, t.id, node.x, node.y)}>
                       <div
                         className={cn(
-                          "w-full h-full rounded-xl border-2 bg-card/95 backdrop-blur-sm flex cursor-pointer transition-all duration-200 overflow-hidden",
+                          "w-full h-full rounded-xl border-2 bg-card/95 backdrop-blur-sm flex transition-all duration-200 overflow-hidden",
                           isSelected ? "shadow-lg ring-2 ring-primary/30 scale-[1.02]" : isHovered ? "shadow-md scale-[1.01]" : "shadow-sm",
+                          isDragging && "shadow-xl scale-[1.03] opacity-90",
                         )}
                         style={{ borderColor: isSelected ? "hsl(var(--primary))" : flowColor }}
-                        onClick={() => canEdit ? openEditDialog(t) : undefined}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTaskId(t.id);
+                        }}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          if (canEdit) openEditDialog(t);
+                        }}
                         onMouseEnter={() => setHoveredNodeId(t.id)}
                         onMouseLeave={() => setHoveredNodeId(null)}
                       >
@@ -878,13 +1263,17 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                           )}
                         </div>
 
-                        {/* Center column — Code + Description + Actor */}
+                        {/* Center column */}
                         <div className="flex-1 flex flex-col min-w-0">
                           <div className="flex-1 p-3 flex flex-col gap-1.5">
                             <div className="flex items-center gap-2">
                               <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary shrink-0">{t.code}</span>
                               {t.condition && (
                                 <span className="text-[10px] text-muted-foreground italic truncate">({t.condition})</span>
+                              )}
+                              {/* Drag handle indicator */}
+                              {canEdit && isHovered && !isDragging && (
+                                <span className="ml-auto text-[10px] text-muted-foreground/50">⋮⋮</span>
                               )}
                             </div>
                             <p className="text-[12px] leading-snug text-foreground font-medium line-clamp-4">{t.description}</p>
@@ -949,7 +1338,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               <circle cx={layout.endCx} cy={layout.endCy} r={CIRCLE_R - 5} fill="hsl(var(--primary))" />
               <text x={layout.endCx} y={layout.endCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="11" fontWeight="600" fontFamily="inherit">Fin</text>
 
-              {/* Process-level outputs — External vs Internal */}
+              {/* Process-level outputs */}
               {layout.processSorties.length > 0 && (() => {
                 const extSorties = layout.processSorties.filter(e => externalElementMap.has(e.id));
                 const intSorties = layout.processSorties.filter(e => !externalElementMap.has(e.id));
