@@ -208,6 +208,7 @@ function computeLayout(tasks: ProcessTask[], acteurMap: Record<string, string>, 
             branchEnds.push({ x: bCx, y: branchStartY + h });
             maxEndY = Math.max(maxEndY, branchStartY + h);
           }
+          accX += bw + H_GAP;
         }
 
         const mergeY = maxEndY + V_GAP;
