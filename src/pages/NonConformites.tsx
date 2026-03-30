@@ -260,7 +260,7 @@ export default function NonConformites() {
                   <DialogTitle className="flex items-center gap-2">
                     <XCircle className="h-5 w-5 text-destructive" /> {detailNC.reference}
                   </DialogTitle>
-                   {canEdit && (
+               {canEdit && detailNC.statut !== "cloturee" && (
                     <div className="flex items-center gap-4 pr-8">
                       <Button variant="outline" size="sm" onClick={() => { setEditNC({ ...detailNC }); setDetailNC(null); }}>
                         <Pencil className="mr-2 h-4 w-4" /> Modifier
@@ -271,6 +271,11 @@ export default function NonConformites() {
                         </Button>
                       )}
                     </div>
+                   )}
+                   {detailNC.statut === "cloturee" && (
+                     <Badge variant="outline" className="text-xs bg-muted mr-8">
+                       <CheckCircle2 className="h-3 w-3 mr-1" /> Clôturée — Figée
+                     </Badge>
                    )}
                 </div>
               </DialogHeader>
