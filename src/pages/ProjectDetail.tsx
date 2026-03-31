@@ -211,7 +211,23 @@ export default function ProjectDetail() {
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             {project.date_debut && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {project.date_debut}</span>}
-            {project.date_fin && <span>→ {project.date_fin}</span>}
+            {project.date_fin && (
+              <span className="flex items-center gap-1">
+                → {project.date_fin}
+                {(() => {
+                  const today = new Date(); today.setHours(0, 0, 0, 0);
+                  const dl = parseISO(project.date_fin);
+                  const daysLeft = differenceInDays(dl, today);
+                  if (daysLeft < 0) return <Badge className="bg-destructive/15 text-destructive text-[10px] ml-1">En retard de {Math.abs(daysLeft)}j</Badge>;
+                  if (daysLeft <= 7) return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
+                  return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
+                })()}
+              </span>
+            )}
+            <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground ml-auto" onClick={fetchDeadlineLogs}>
+              <History className="h-3.5 w-3.5" />
+              Historique échéances
+            </Button>
           </div>
 
           <div className="flex items-center gap-3 max-w-md">
