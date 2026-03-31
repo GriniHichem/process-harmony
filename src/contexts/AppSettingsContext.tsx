@@ -17,6 +17,15 @@ export interface AppSettings {
   smtp_user: string;
   notif_email_enabled: string;
   notif_rappel_jours_defaut: string;
+  license_mode: string;
+  license_key: string;
+  license_trial_days: string;
+  license_trial_start: string;
+  license_activated_at: string;
+  license_expires_at: string;
+  license_alert_days_before: string;
+  license_alert_interval_days: string;
+  license_grace_days: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
