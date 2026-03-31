@@ -45,6 +45,7 @@ const DashboardIndicateurs = lazy(() => import("./pages/DashboardIndicateurs"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const AdminNotificationsConfig = lazy(() => import("./pages/AdminNotificationsConfig"));
 const AdminDocumentsConfig = lazy(() => import("./pages/AdminDocumentsConfig"));
+const Modules = lazy(() => import("./pages/Modules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="/survey/:token" element={<Suspense fallback={<PageLoader />}><SurveyPublicPage /></Suspense>} />
               {/* Principal */}
               <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
+              <Route path="/modules" element={<ProtectedPage><Modules /></ProtectedPage>} />
               <Route path="/acteurs" element={<ProtectedPage><RoleGuard requiredModule="acteurs"><Acteurs /></RoleGuard></ProtectedPage>} />
               {/* Processus */}
               <Route path="/processus" element={<ProtectedPage><RoleGuard requiredModule="processus"><Processus /></RoleGuard></ProtectedPage>} />

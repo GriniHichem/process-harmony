@@ -1,0 +1,391 @@
+import { useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAppSettings } from "@/contexts/AppSettingsContext";
+import { useHelpMode } from "@/contexts/HelpModeContext";
+import { ROLE_LABELS, type AppRole, type AppModule } from "@/lib/defaultPermissions";
+import { GlobalSearch } from "@/components/GlobalSearch";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
+  ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon,
+  FolderOpen, BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList,
+  Lock, Crown, TrendingUp, Bell, Menu, HelpCircle, Eye, EyeOff, KeyRound, Info,
+  ChevronRight, Grid3X3, Home,
+} from "lucide-react";
+import defaultLogo from "@/assets/logo.jpg";
+
+type NavItem = { title: string; url: string; icon: any; module?: AppModule; description?: string };
+
+const moduleGroups: { label: string; icon: any; items: NavItem[] }[] = [
+  {
+    label: "Principal",
+    icon: Home,
+    items: [
+      { title: "Tableau de bord", url: "/", icon: LayoutDashboard, description: "Vue d'ensemble et KPIs" },
+      { title: "Acteurs", url: "/acteurs", icon: Contact, module: "acteurs", description: "Référentiel des acteurs" },
+      { title: "Évaluation processus", url: "/evaluation-processus", icon: ClipboardList, module: "evaluation_processus", description: "Évaluer la performance" },
+    ],
+  },
+  {
+    label: "Processus",
+    icon: Network,
+    items: [
+      { title: "Processus", url: "/processus", icon: Network, module: "processus", description: "Liste des processus" },
+      { title: "Cartographie", url: "/cartographie", icon: Map, module: "cartographie", description: "Vue d'ensemble visuelle" },
+      { title: "BPMN", url: "/bpmn", icon: Settings, module: "bpmn", description: "Diagrammes de flux" },
+      { title: "Gestion documentaire", url: "/documents", icon: FolderOpen, module: "documents", description: "Documents et fichiers" },
+    ],
+  },
+  {
+    label: "Manager processus",
+    icon: BarChart3,
+    items: [
+      { title: "Dashboard Indicateurs", url: "/dashboard-indicateurs", icon: TrendingUp, module: "indicateurs", description: "Synthèse des indicateurs" },
+      { title: "Indicateurs", url: "/indicateurs", icon: BarChart3, module: "indicateurs", description: "Suivi des métriques" },
+      { title: "Risques & Opportunités", url: "/risques", icon: AlertTriangle, module: "risques", description: "Analyse des risques" },
+      { title: "Incidents", url: "/incidents", icon: AlertOctagon, module: "incidents", description: "Gestion des incidents" },
+      { title: "Enjeux du contexte", url: "/enjeux-contexte", icon: Landmark, module: "enjeux_contexte", description: "Enjeux internes/externes" },
+    ],
+  },
+  {
+    label: "Pilotage SMQ",
+    icon: Target,
+    items: [
+      { title: "Politique qualité", url: "/politique-qualite", icon: BookOpen, module: "politique_qualite", description: "Orientations stratégiques" },
+      { title: "Revue de processus", url: "/revue-direction", icon: CalendarCheck, module: "revue_direction", description: "Bilans processus" },
+      { title: "Revue de direction", url: "/revue-direction-iso", icon: Target, module: "revue_direction_iso", description: "Revue stratégique" },
+      { title: "Compétences", url: "/competences", icon: GraduationCap, module: "competences", description: "Formations et compétences" },
+      { title: "Satisfaction client", url: "/satisfaction-client", icon: SmilePlus, module: "satisfaction_client", description: "Enquêtes et satisfaction" },
+      { title: "Fournisseurs", url: "/fournisseurs", icon: Truck, module: "fournisseurs", description: "Évaluation fournisseurs" },
+    ],
+  },
+  {
+    label: "Audit & Amélioration",
+    icon: ClipboardCheck,
+    items: [
+      { title: "Tableau Audit/NC", url: "/dashboard-audit", icon: BarChart3, module: "audits", description: "Synthèse Audit & NC" },
+      { title: "Audits", url: "/audits", icon: ClipboardCheck, module: "audits", description: "Planification et suivi" },
+      { title: "Non-conformités", url: "/non-conformites", icon: XCircle, module: "non_conformites", description: "Traitement des NC" },
+      { title: "Actions", url: "/actions", icon: Zap, module: "actions", description: "Actions correctives" },
+      { title: "Journal d'activité", url: "/journal", icon: ScrollText, module: "journal", description: "Historique système" },
+    ],
+  },
+  {
+    label: "Administration",
+    icon: Settings,
+    items: [
+      { title: "Utilisateurs", url: "/utilisateurs", icon: Users, module: "utilisateurs", description: "Gestion des comptes" },
+      { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen, module: "groupes_acteurs", description: "Organisation des groupes" },
+      { title: "Permissions", url: "/admin/permissions", icon: Lock, description: "Matrice des droits" },
+      { title: "Config. notifications", url: "/admin/notifications", icon: Bell, module: "notifications", description: "Règles de notification" },
+      { title: "Config. documents", url: "/admin/documents-config", icon: FolderOpen, module: "gestion_documentaire", description: "Types et tags documents" },
+    ],
+  },
+];
+
+export { moduleGroups };
+
+function HeaderHelpButton() {
+  const { helpMode, toggleHelpMode } = useHelpMode();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant={helpMode ? "default" : "ghost"}
+          size="sm"
+          className={`h-8 gap-1.5 ${helpMode ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"}`}
+          onClick={toggleHelpMode}
+        >
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{helpMode ? "Désactiver le mode aide" : "Activer le mode aide"}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+export function AppNavbar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { profile, roles, hasRole, hasPermission, signOut } = useAuth();
+  const { settings } = useAppSettings();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [accessible, setAccessible] = useState(() => localStorage.getItem("qprocess-accessible") === "true");
+
+  const showAdmin = hasRole("admin") || hasRole("rmq") || hasRole("super_admin");
+  const showSuperAdmin = hasRole("super_admin");
+  const logoSrc = settings.logo_url || defaultLogo;
+
+  const toggleAccessible = () => {
+    const next = !accessible;
+    setAccessible(next);
+    document.documentElement.classList.toggle("theme-accessible", next);
+    localStorage.setItem("qprocess-accessible", String(next));
+  };
+
+  const filterItems = (items: NavItem[]) =>
+    items.filter((item) => !item.module || hasPermission(item.module, "can_read"));
+
+  const isActive = (url: string) => location.pathname === url;
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 h-14 border-b border-border/40 bg-card/95 backdrop-blur-lg" style={{ boxShadow: "0 1px 3px 0 hsl(var(--foreground) / 0.04)" }}>
+        <div className="flex h-full items-center justify-between px-4 max-w-[1600px] mx-auto">
+          {/* Left: Logo + Nav */}
+          <div className="flex items-center gap-4">
+            <Link to="/" className="flex items-center gap-2.5 shrink-0">
+              <img src={logoSrc} alt={settings.company_name} className="h-7 object-contain" />
+              {settings.brand_logo_url && (
+                <img src={settings.brand_logo_url} alt="Logo marque" className="h-6 object-contain" />
+              )}
+              <span className="text-sm font-bold tracking-tight text-foreground hidden sm:inline">
+                {settings.app_name}
+              </span>
+              <span className="text-[9px] font-semibold text-primary-foreground bg-primary/90 px-1.5 py-0.5 rounded-full leading-none hidden sm:inline">
+                SMQ
+              </span>
+            </Link>
+
+            <div className="h-5 w-px bg-border/50 hidden md:block" />
+
+            {/* Desktop nav links */}
+            <nav className="hidden md:flex items-center gap-1">
+              <Link
+                to="/"
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive("/") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+              >
+                Accueil
+              </Link>
+
+              <Link
+                to="/modules"
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive("/modules") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+              >
+                Modules
+              </Link>
+
+              {/* Modules dropdown */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1">
+                    Navigation
+                    <ChevronRight className="h-3 w-3 rotate-90" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[520px] p-0" align="start" sideOffset={8}>
+                  <div className="grid grid-cols-2 gap-0 max-h-[70vh] overflow-y-auto">
+                    {moduleGroups.map((group) => {
+                      if (group.label === "Administration" && !showAdmin) return null;
+                      const visible = filterItems(group.items);
+                      if (visible.length === 0) return null;
+                      return (
+                        <div key={group.label} className="p-3 border-b border-r border-border/30 last:border-b-0">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <group.icon className="h-3.5 w-3.5" />
+                            {group.label}
+                          </p>
+                          <div className="space-y-0.5">
+                            {visible.map((item) => (
+                              <button
+                                key={item.url}
+                                onClick={() => navigate(item.url)}
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${isActive(item.url) ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/60 hover:text-foreground"}`}
+                              >
+                                <item.icon className="h-4 w-4 shrink-0" />
+                                {item.title}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {showSuperAdmin && (
+                      <div className="p-3 border-b border-r border-border/30">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <Crown className="h-3.5 w-3.5" />
+                          Super Admin
+                        </p>
+                        <button
+                          onClick={() => navigate("/super-admin")}
+                          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${isActive("/super-admin") ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/60"}`}
+                        >
+                          <Crown className="h-4 w-4" />
+                          Configuration
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </nav>
+          </div>
+
+          {/* Center: Search */}
+          <div className="hidden lg:flex flex-1 justify-center max-w-xs mx-4">
+            <GlobalSearch />
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-1">
+            <div className="lg:hidden">
+              <GlobalSearch />
+            </div>
+
+            <NotificationBell />
+            <HeaderHelpButton />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setInfoOpen(true)}>
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>À propos</TooltipContent>
+            </Tooltip>
+
+            <div className="flex items-center gap-px border border-border/40 rounded-md p-px bg-muted/30">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant={accessible ? "default" : "ghost"} size="icon" className="h-6 w-6 rounded-[5px]" onClick={toggleAccessible}>
+                    {accessible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{accessible ? "Désactiver le confort visuel" : "Confort visuel"}</TooltipContent>
+              </Tooltip>
+              <DarkModeToggle />
+            </div>
+
+            <div className="h-5 w-px bg-border/40 mx-0.5" />
+
+            {/* Profile dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-muted/50 transition-colors">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-[11px] font-bold shadow-sm ring-2 ring-background">
+                    {profile?.prenom?.[0] ?? ""}{profile?.nom?.[0] ?? ""}
+                  </div>
+                  <div className="text-right hidden lg:block">
+                    <p className="text-xs font-semibold text-foreground leading-tight">{profile?.prenom} {profile?.nom}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize leading-tight">
+                      {roles.map(r => ROLE_LABELS[r as AppRole] || r).join(", ").replace(/_/g, " ")}
+                    </p>
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="font-normal">
+                  <p className="text-sm font-medium">{profile?.prenom} {profile?.nom}</p>
+                  <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Modifier mot de passe
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Déconnexion
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Mobile hamburger */}
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden text-muted-foreground">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
+                <div className="p-4 border-b border-border/40">
+                  <p className="font-bold text-foreground">{settings.app_name}</p>
+                  <p className="text-xs text-muted-foreground">SMQ</p>
+                </div>
+                <nav className="p-2 space-y-4">
+                  {moduleGroups.map((group) => {
+                    if (group.label === "Administration" && !showAdmin) return null;
+                    const visible = filterItems(group.items);
+                    if (visible.length === 0) return null;
+                    return (
+                      <div key={group.label}>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
+                          {group.label}
+                        </p>
+                        {visible.map((item) => (
+                          <button
+                            key={item.url}
+                            onClick={() => { navigate(item.url); setMobileOpen(false); }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${isActive(item.url) ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/50"}`}
+                          >
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            {item.title}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })}
+                  {showSuperAdmin && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">Super Admin</p>
+                      <button
+                        onClick={() => { navigate("/super-admin"); setMobileOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground/80 hover:bg-muted/50"
+                      >
+                        <Crown className="h-4 w-4" />
+                        Configuration
+                      </button>
+                    </div>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </header>
+
+      {/* About dialog */}
+      {infoOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setInfoOpen(false)}>
+          <div className="bg-card rounded-xl shadow-xl border border-border/50 max-w-sm w-full mx-4 p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-3">
+              {settings.app_name}
+            </h2>
+            <p className="text-sm text-muted-foreground">{settings.company_name}</p>
+            <p className="text-sm font-medium text-foreground mt-1">{settings.app_version}</p>
+            <p className="text-xs text-muted-foreground italic mt-2">{settings.app_description}</p>
+            <div className="h-px bg-border my-3" />
+            <p className="text-xs text-muted-foreground">{settings.info_copyright}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Développé par <span className="font-semibold text-foreground">{settings.info_credits}</span>
+            </p>
+            {settings.info_credits_help && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Aide contextuelle par <span className="font-semibold text-foreground">{settings.info_credits_help}</span>
+              </p>
+            )}
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => setInfoOpen(false)}>Fermer</Button>
+          </div>
+        </div>
+      )}
+
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
+    </>
+  );
+}
