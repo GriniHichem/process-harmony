@@ -49,7 +49,13 @@ const AdminDocumentsConfig = lazy(() => import("./pages/AdminDocumentsConfig"));
 const Modules = lazy(() => import("./pages/Modules"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
