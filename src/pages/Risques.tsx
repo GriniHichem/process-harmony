@@ -18,6 +18,7 @@ import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
+import { LinkedActionDetails } from "@/components/projects/LinkedActionDetails";
 
 type Risk = {
   id: string;
