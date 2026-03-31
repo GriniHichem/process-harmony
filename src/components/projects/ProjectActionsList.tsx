@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
+import { format, differenceInDays, parseISO, isAfter, isBefore } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface ProjectAction {
   id: string;
@@ -38,6 +44,18 @@ interface ProjectTask {
   ordre: number;
 }
 
+interface DeadlineLog {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  entity_title: string;
+  old_echeance: string | null;
+  new_echeance: string | null;
+  changed_by: string | null;
+  reason: string | null;
+  created_at: string;
+}
+
 const ACTION_STATUS: Record<string, { label: string; class: string }> = {
   planifiee: { label: "Planifiée", class: "bg-muted text-muted-foreground" },
   en_cours: { label: "En cours", class: "bg-primary/15 text-primary" },
@@ -51,15 +69,41 @@ const TASK_STATUS: Record<string, { label: string; icon: any; class: string }> =
   termine: { label: "Terminé", icon: CheckCircle2, class: "text-emerald-600" },
 };
 
+/** Compute date status relative to today and project deadline */
+function getDateStatus(echeance: string | null, projectDeadline: string | null, statut: string) {
+  if (!echeance || statut === "terminee" || statut === "termine") return { status: "ok" as const, label: "", color: "" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadline = parseISO(echeance);
+  const daysLeft = differenceInDays(deadline, today);
+
+  // Check if exceeds project deadline
+  if (projectDeadline && isAfter(deadline, parseISO(projectDeadline))) {
+    return { status: "exceeds" as const, label: "Dépasse la deadline du projet", color: "text-orange-600 dark:text-orange-400" };
+  }
+  if (daysLeft < 0) {
+    return { status: "overdue" as const, label: `En retard de ${Math.abs(daysLeft)} jour${Math.abs(daysLeft) > 1 ? "s" : ""}`, color: "text-destructive" };
+  }
+  if (daysLeft <= 3) {
+    return { status: "urgent" as const, label: `${daysLeft} jour${daysLeft > 1 ? "s" : ""} restant${daysLeft > 1 ? "s" : ""}`, color: "text-orange-600 dark:text-orange-400" };
+  }
+  if (daysLeft <= 7) {
+    return { status: "warning" as const, label: `${daysLeft} jours restants`, color: "text-amber-600 dark:text-amber-400" };
+  }
+  return { status: "ok" as const, label: "", color: "" };
+}
+
 interface Props {
   projectId: string;
+  projectDeadline: string | null;
   canEdit: boolean;
   canDelete: boolean;
   canReadDetail?: boolean;
   onProgressChange: (avancement: number) => void;
 }
 
-export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetail = true, onProgressChange }: Props) {
+export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDelete, canReadDetail = true, onProgressChange }: Props) {
+  const { user } = useAuth();
   const [actions, setActions] = useState<ProjectAction[]>([]);
   const [tasksMap, setTasksMap] = useState<Record<string, ProjectTask[]>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -67,6 +111,21 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
   const [newActionTitle, setNewActionTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const { acteurs, getActeurLabel } = useActeurs();
+
+  // Deadline change dialog
+  const [deadlineDialog, setDeadlineDialog] = useState<{
+    open: boolean;
+    entityType: "action" | "task";
+    entityId: string;
+    entityTitle: string;
+    oldDate: string | null;
+    newDate: string;
+  } | null>(null);
+  const [deadlineReason, setDeadlineReason] = useState("");
+
+  // Deadline logs
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [deadlineLogs, setDeadlineLogs] = useState<DeadlineLog[]>([]);
 
   const fetchActions = async () => {
     const { data, error } = await supabase
@@ -95,6 +154,16 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
       setTasksMap({});
       onProgressChange(0);
     }
+  };
+
+  const fetchDeadlineLogs = async () => {
+    const { data } = await supabase
+      .from("project_deadline_logs")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setDeadlineLogs((data ?? []) as DeadlineLog[]);
   };
 
   useEffect(() => { fetchActions(); }, [projectId]);
@@ -142,6 +211,58 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
     fetchActions();
   };
 
+  /** Handle date change with validation and logging */
+  const handleDateChange = (entityType: "action" | "task", entityId: string, entityTitle: string, oldDate: string | null, newDate: string) => {
+    // Validate against project deadline
+    if (projectDeadline && newDate && isAfter(parseISO(newDate), parseISO(projectDeadline))) {
+      toast.warning(
+        `⚠️ Cette date (${newDate}) dépasse la deadline du projet (${projectDeadline}). Vous pouvez quand même la définir, mais elle sera signalée.`,
+        { duration: 5000 }
+      );
+    }
+
+    // If there was an existing date, require reason
+    if (oldDate && oldDate !== newDate) {
+      setDeadlineDialog({ open: true, entityType, entityId, entityTitle, oldDate, newDate });
+      setDeadlineReason("");
+    } else {
+      // First time setting date — just save
+      if (entityType === "action") {
+        updateAction(entityId, { echeance: newDate || null });
+      } else {
+        updateTask(entityId, { echeance: newDate || null });
+      }
+    }
+  };
+
+  const confirmDeadlineChange = async () => {
+    if (!deadlineDialog) return;
+    const { entityType, entityId, entityTitle, oldDate, newDate } = deadlineDialog;
+
+    // Log the change
+    await supabase.from("project_deadline_logs").insert({
+      entity_type: entityType,
+      entity_id: entityId,
+      entity_title: entityTitle,
+      project_id: projectId,
+      old_echeance: oldDate,
+      new_echeance: newDate || null,
+      changed_by: user?.id ?? null,
+      reason: deadlineReason.trim() || null,
+    });
+
+    // Apply the update
+    if (entityType === "action") {
+      await updateAction(entityId, { echeance: newDate || null });
+    } else {
+      await updateTask(entityId, { echeance: newDate || null });
+    }
+
+    setDeadlineDialog(null);
+    setDeadlineReason("");
+    toast.success("Échéance modifiée et tracée");
+  };
+
   const updateAction = async (id: string, updates: Partial<ProjectAction>) => {
     const { error } = await supabase.from("project_actions").update(updates).eq("id", id);
     if (error) { toast.error(error.message); return; }
@@ -172,16 +293,69 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
     return <p className="text-sm text-muted-foreground py-4">Vous n'avez pas la permission de consulter les actions.</p>;
   }
 
+  const DateIndicator = ({ echeance, statut }: { echeance: string | null; statut: string }) => {
+    const ds = getDateStatus(echeance, projectDeadline, statut);
+    if (ds.status === "ok" || !echeance) return null;
+
+    const IconComp = ds.status === "overdue" ? ShieldAlert : ds.status === "exceeds" ? AlertTriangle : CalendarClock;
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-flex items-center gap-1 ${ds.color}`}>
+              <IconComp className="h-3.5 w-3.5" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs max-w-52">
+            <p>{ds.label}</p>
+            {ds.status === "exceeds" && projectDeadline && (
+              <p className="mt-0.5 opacity-75">Deadline projet : {projectDeadline}</p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
     <div className="space-y-4">
+      {/* Project deadline banner */}
+      {projectDeadline && (
+        <div className="flex items-center justify-between rounded-lg border border-border/40 bg-muted/20 px-4 py-2.5">
+          <div className="flex items-center gap-2 text-sm">
+            <CalendarClock className="h-4 w-4 text-primary" />
+            <span className="font-medium text-foreground">Deadline du projet :</span>
+            <span className="text-muted-foreground">{projectDeadline}</span>
+            {(() => {
+              const today = new Date(); today.setHours(0, 0, 0, 0);
+              const dl = parseISO(projectDeadline);
+              const daysLeft = differenceInDays(dl, today);
+              if (daysLeft < 0) return <Badge className="bg-destructive/15 text-destructive text-[10px] ml-1">En retard de {Math.abs(daysLeft)}j</Badge>;
+              if (daysLeft <= 7) return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
+              return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
+            })()}
+          </div>
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => { fetchDeadlineLogs(); setLogsOpen(true); }}>
+            <History className="h-3.5 w-3.5" />
+            Historique
+          </Button>
+        </div>
+      )}
+
       {actions.map((action) => {
         const tasks = tasksMap[action.id] ?? [];
         const isOpen = expanded === action.id;
         const st = ACTION_STATUS[action.statut] ?? ACTION_STATUS.planifiee;
+        const actionDateStatus = getDateStatus(action.echeance, projectDeadline, action.statut);
 
         return (
           <Collapsible key={action.id} open={isOpen} onOpenChange={() => setExpanded(isOpen ? null : action.id)}>
-            <div className="border border-border/40 rounded-xl overflow-hidden bg-card" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <div className={`border rounded-xl overflow-hidden bg-card transition-colors ${
+              actionDateStatus.status === "overdue" ? "border-destructive/40" :
+              actionDateStatus.status === "exceeds" ? "border-orange-400/40" :
+              actionDateStatus.status === "urgent" ? "border-amber-400/40" :
+              "border-border/40"
+            }`} style={{ boxShadow: "var(--shadow-sm)" }}>
               <CollapsibleTrigger className="w-full">
                 <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer">
                   {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
@@ -189,7 +363,12 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
                     <p className="font-medium text-sm line-clamp-1">{action.title}</p>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                       <span>{tasks.length} tâche{tasks.length !== 1 ? "s" : ""}</span>
-                      {action.echeance && <span>• Échéance: {action.echeance}</span>}
+                      {action.echeance && (
+                        <span className="flex items-center gap-1">
+                          • Échéance: {action.echeance}
+                          <DateIndicator echeance={action.echeance} statut={action.statut} />
+                        </span>
+                      )}
                       {action.responsable_id && <span>• {getActeurLabel(action.responsable_id)}</span>}
                     </div>
                   </div>
@@ -218,8 +397,17 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-muted-foreground">Échéance</label>
-                        <Input type="date" className="h-8 w-36 text-xs" value={action.echeance ?? ""} onChange={(e) => updateAction(action.id, { echeance: e.target.value || null })} />
+                        <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                          Échéance
+                          <DateIndicator echeance={action.echeance} statut={action.statut} />
+                        </label>
+                        <Input
+                          type="date"
+                          className={`h-8 w-36 text-xs ${actionDateStatus.status !== "ok" ? "border-orange-400/60" : ""}`}
+                          value={action.echeance ?? ""}
+                          max={projectDeadline ?? undefined}
+                          onChange={(e) => handleDateChange("action", action.id, action.title, action.echeance, e.target.value)}
+                        />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-medium text-muted-foreground">Responsable</label>
@@ -257,8 +445,13 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
                     {tasks.map((task) => {
                       const ts = TASK_STATUS[task.statut] ?? TASK_STATUS.a_faire;
                       const TaskIcon = ts.icon;
+                      const taskDateStatus = getDateStatus(task.echeance, projectDeadline, task.statut);
                       return (
-                        <div key={task.id} className="flex items-center gap-2 rounded-lg border border-border/30 bg-background px-3 py-2 group">
+                        <div key={task.id} className={`flex items-center gap-2 rounded-lg border bg-background px-3 py-2 group ${
+                          taskDateStatus.status === "overdue" ? "border-destructive/30" :
+                          taskDateStatus.status === "exceeds" ? "border-orange-400/30" :
+                          "border-border/30"
+                        }`}>
                           {canEdit ? (
                             <button
                               className={`shrink-0 ${ts.class}`}
@@ -276,7 +469,18 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
                           <span className={`text-sm flex-1 ${task.statut === "termine" ? "line-through text-muted-foreground" : ""}`}>
                             {task.title}
                           </span>
-                          {task.echeance && <span className="text-[10px] text-muted-foreground">{task.echeance}</span>}
+                          {canEdit ? (
+                            <Input
+                              type="date"
+                              className={`h-6 w-28 text-[10px] border-dashed ${taskDateStatus.status !== "ok" ? "border-orange-400/60" : ""}`}
+                              value={task.echeance ?? ""}
+                              max={projectDeadline ?? undefined}
+                              onChange={(e) => handleDateChange("task", task.id, task.title, task.echeance, e.target.value)}
+                            />
+                          ) : (
+                            task.echeance && <span className="text-[10px] text-muted-foreground">{task.echeance}</span>
+                          )}
+                          <DateIndicator echeance={task.echeance} statut={task.statut} />
                           <span className="text-[10px] text-muted-foreground w-8 text-right">{task.avancement}%</span>
                           {canDelete && (
                             <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive">
@@ -343,6 +547,94 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
           </Button>
         </div>
       )}
+
+      {/* Deadline change confirmation dialog */}
+      <Dialog open={!!deadlineDialog?.open} onOpenChange={(o) => !o && setDeadlineDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5 text-primary" />
+              Modification d'échéance
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/30 p-3 space-y-2">
+              <p className="text-sm font-medium">{deadlineDialog?.entityTitle}</p>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Ancienne :</span>
+                  <Badge variant="outline" className="text-xs">{deadlineDialog?.oldDate ?? "Non définie"}</Badge>
+                </div>
+                <span className="text-muted-foreground">→</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Nouvelle :</span>
+                  <Badge className="bg-primary/15 text-primary text-xs">{deadlineDialog?.newDate || "Retirée"}</Badge>
+                </div>
+              </div>
+              {deadlineDialog?.newDate && projectDeadline && isAfter(parseISO(deadlineDialog.newDate), parseISO(projectDeadline)) && (
+                <div className="flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Cette date dépasse la deadline du projet ({projectDeadline})
+                </div>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Motif du changement</label>
+              <Textarea
+                value={deadlineReason}
+                onChange={(e) => setDeadlineReason(e.target.value)}
+                placeholder="Pourquoi cette modification ? (optionnel)"
+                rows={2}
+                className="text-sm"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeadlineDialog(null)}>Annuler</Button>
+              <Button onClick={confirmDeadlineChange}>
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Confirmer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deadline logs history dialog */}
+      <Dialog open={logsOpen} onOpenChange={setLogsOpen}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Historique des modifications d'échéances
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {deadlineLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Aucune modification d'échéance enregistrée</p>
+            ) : (
+              deadlineLogs.map((log) => (
+                <div key={log.id} className="rounded-lg border border-border/30 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{log.entity_title}</span>
+                    <Badge variant="outline" className="text-[10px]">{log.entity_type === "action" ? "Action" : "Tâche"}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Badge variant="outline" className="text-destructive/80 border-destructive/20">{log.old_echeance ?? "—"}</Badge>
+                    <span className="text-muted-foreground">→</span>
+                    <Badge className="bg-primary/15 text-primary">{log.new_echeance ?? "—"}</Badge>
+                  </div>
+                  {log.reason && (
+                    <p className="text-xs text-muted-foreground italic">💬 {log.reason}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {format(parseISO(log.created_at), "dd MMM yyyy 'à' HH:mm", { locale: fr })}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
