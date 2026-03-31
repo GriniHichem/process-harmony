@@ -357,6 +357,7 @@ export default function NonConformites() {
                       <p className="text-sm whitespace-pre-wrap">{detailNC.resultats_actions || "Non renseignés"}</p>
                     </div>
                   </div>
+                  <LinkedActionDetails entityType="nonconformity" entityId={detailNC.id} />
                 </TabsContent>
               </Tabs>
             </>

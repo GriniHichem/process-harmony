@@ -360,6 +360,9 @@ export default function Indicateurs() {
         {/* Moyens & Actions */}
         <IndicatorMoyensActions indicatorId={selectedIndicator.id} moyens={null} canEdit={canCreate} onMoyensUpdate={() => {}} />
 
+        {/* Linked project actions */}
+        <LinkedActionDetails entityType="indicator" entityId={selectedIndicator.id} />
+
         {/* Chart */}
         {!isOnlyActeur && (
           <Card className="card-elevated border-border/50 overflow-hidden">

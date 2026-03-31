@@ -330,6 +330,9 @@ export default function Risques() {
                     <div className="border-t pt-4">
                       <RiskIncidents riskId={r.id} canEdit={canEditActions} />
                     </div>
+                    <div className="border-t pt-4">
+                      <LinkedActionDetails entityType="risk" entityId={r.id} />
+                    </div>
                   </div>
                 )}
               </CardContent>
