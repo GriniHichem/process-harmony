@@ -219,12 +219,12 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressCh
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] font-medium text-muted-foreground">Responsable</label>
-                        <ActeurUserSelect
-                          acteurId={action.responsable_id ?? ""}
-                          userId={action.responsable_user_id ?? ""}
-                          onActeurChange={(v) => updateAction(action.id, { responsable_id: v || null })}
-                          onUserChange={(v) => updateAction(action.id, { responsable_user_id: v || null })}
-                        />
+                        <Select value={action.responsable_id ?? ""} onValueChange={(v) => updateAction(action.id, { responsable_id: v || null })}>
+                          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Assigner" /></SelectTrigger>
+                          <SelectContent>
+                            {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
                       {canDelete && (
                         <AlertDialog>
