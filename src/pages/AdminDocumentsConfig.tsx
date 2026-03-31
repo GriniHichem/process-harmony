@@ -9,9 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { FolderOpen, Plus, Trash2, Tag, Settings } from "lucide-react";
+import { FolderOpen, Plus, Trash2, Tag, Settings, ChevronDown } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
 
 interface DocType { id: string; label: string; code: string; actif: boolean; }
