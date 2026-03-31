@@ -586,6 +586,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         return (
           <Collapsible key={action.id} open={isOpen} onOpenChange={() => setExpanded(isOpen ? null : action.id)}>
             <div className={`border rounded-xl overflow-hidden bg-card transition-colors ${
+              action.pinned ? "border-primary/40 border-l-4 border-l-primary" :
               isFrozen ? "border-emerald-500/40 bg-emerald-50/5" :
               actionDateStatus.status === "overdue" ? "border-destructive/40" :
               actionDateStatus.status === "exceeds" ? "border-orange-400/40" :
