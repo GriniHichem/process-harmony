@@ -380,7 +380,7 @@ export default function NonConformites() {
                 </TabsList>
 
                 {(() => {
-                  const frozen = editNC.statut === "cloturee";
+                  const frozen = originalStatut === "cloturee";
                   return (<>
                 <TabsContent value="general" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
