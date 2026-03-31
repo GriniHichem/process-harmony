@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
 
 type Risk = {
   id: string;
@@ -291,6 +292,7 @@ export default function Risques() {
                     <div>
                       <p className="font-medium">{r.description}</p>
                       <p className="text-xs text-muted-foreground">{scoreDisplay}</p>
+                      <LinkedProjectBadge entityType="risk" entityId={r.id} />
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

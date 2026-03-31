@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
 
 type IndicatorType = "activite" | "resultat" | "perception" | "interne";
 type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType; moyens?: string | null };
@@ -576,7 +577,8 @@ export default function Indicateurs() {
                 <h3 className="font-semibold text-foreground text-sm leading-snug mb-2 line-clamp-2">{ind.nom}</h3>
 
                 {/* Process name */}
-                <p className="text-xs text-muted-foreground mb-3 truncate">{getProcessName(ind.process_id)}</p>
+                <p className="text-xs text-muted-foreground mb-1 truncate">{getProcessName(ind.process_id)}</p>
+                <LinkedProjectBadge entityType="indicator" entityId={ind.id} />
 
                 {/* Metrics row */}
                 <div className="flex items-center gap-3 pt-3 border-t border-border/50">

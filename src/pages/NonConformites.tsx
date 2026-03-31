@@ -16,6 +16,7 @@ import { Plus, XCircle, Pencil, ChevronRight, CheckCircle2, AlertTriangle, Trash
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
 import { NcMoyensActions } from "@/components/NcMoyensActions";
 import { RootCauseAnalysis } from "@/components/RootCauseAnalysis";
 
@@ -246,6 +247,7 @@ export default function NonConformites() {
                     <p className="text-xs text-muted-foreground line-clamp-1">
                       {nc.nature_nc && `${nc.nature_nc} • `}{nc.description}
                     </p>
+                    <LinkedProjectBadge entityType="nonconformity" entityId={nc.id} />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

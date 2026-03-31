@@ -2227,6 +2227,38 @@ export type Database = {
           },
         ]
       }
+      project_action_links: {
+        Row: {
+          action_id: string
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action_id: string
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action_id?: string
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_action_links_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "project_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_actions: {
         Row: {
           avancement: number
