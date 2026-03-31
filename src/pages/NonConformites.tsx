@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +72,8 @@ export default function NonConformites() {
   });
 
   const [deleteNC, setDeleteNC] = useState<NC | null>(null);
+  const [confirmClotureOpen, setConfirmClotureOpen] = useState(false);
+  const [originalStatut, setOriginalStatut] = useState<string>("");
 
   const canCreate = hasPermission("non_conformites", "can_edit");
   const canEdit = hasPermission("non_conformites", "can_edit");
@@ -125,6 +128,11 @@ export default function NonConformites() {
 
   const handleUpdate = async () => {
     if (!editNC) return;
+    // If changing to cloturee, show confirmation first
+    if (editNC.statut === "cloturee" && originalStatut !== "cloturee" && !confirmClotureOpen) {
+      setConfirmClotureOpen(true);
+      return;
+    }
     const { error } = await supabase.from("nonconformities").update({
       reference: editNC.reference,
       description: editNC.description,
@@ -142,7 +150,12 @@ export default function NonConformites() {
       resultats_actions: editNC.resultats_actions,
     }).eq("id", editNC.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Non-conformité mise à jour");
+    if (editNC.statut === "cloturee" && originalStatut !== "cloturee") {
+      toast.success("Non-conformité clôturée définitivement. Aucune modification ne sera possible.");
+    } else {
+      toast.success("Non-conformité mise à jour");
+    }
+    setConfirmClotureOpen(false);
     setEditNC(null);
     fetchNCs();
   };
@@ -262,7 +275,7 @@ export default function NonConformites() {
                   </DialogTitle>
                {canEdit && detailNC.statut !== "cloturee" && (
                     <div className="flex items-center gap-4 pr-8">
-                      <Button variant="outline" size="sm" onClick={() => { setEditNC({ ...detailNC }); setDetailNC(null); }}>
+                      <Button variant="outline" size="sm" onClick={() => { setOriginalStatut(detailNC.statut); setEditNC({ ...detailNC }); setDetailNC(null); }}>
                         <Pencil className="mr-2 h-4 w-4" /> Modifier
                       </Button>
                       {canDelete && (
@@ -354,7 +367,7 @@ export default function NonConformites() {
           {editNC && (
             <>
               <DialogHeader><DialogTitle>Modifier {editNC.reference}</DialogTitle></DialogHeader>
-              {editNC.statut === "cloturee" && (
+              {originalStatut === "cloturee" && (
                 <div className="bg-muted/50 border rounded-md p-3 text-sm text-muted-foreground flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4" /> Cette non-conformité est clôturée et ne peut plus être modifiée.
                 </div>
@@ -368,7 +381,7 @@ export default function NonConformites() {
                 </TabsList>
 
                 {(() => {
-                  const frozen = editNC.statut === "cloturee";
+                  const frozen = originalStatut === "cloturee";
                   return (<>
                 <TabsContent value="general" className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -448,7 +461,11 @@ export default function NonConformites() {
                   </>);
                 })()}
               </Tabs>
-              {editNC.statut !== "cloturee" && <Button onClick={handleUpdate} className="w-full mt-4">Enregistrer</Button>}
+              {originalStatut !== "cloturee" && (
+                <Button onClick={handleUpdate} className="w-full mt-4">
+                  {editNC.statut === "cloturee" ? "Clôturer définitivement" : "Enregistrer"}
+                </Button>
+              )}
             </>
           )}
         </DialogContent>
@@ -461,6 +478,22 @@ export default function NonConformites() {
         title="Supprimer la non-conformité"
         description={`Supprimer définitivement ${deleteNC?.reference ?? ""} ? Cette action est irréversible.`}
       />
+
+      <AlertDialog open={confirmClotureOpen} onOpenChange={setConfirmClotureOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la clôture définitive</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir clôturer <strong>{editNC?.reference}</strong> ?
+              Cette action est irréversible : la non-conformité sera figée et aucune modification ne sera possible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUpdate}>Clôturer définitivement</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
