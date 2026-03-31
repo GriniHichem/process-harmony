@@ -2227,6 +2227,246 @@ export type Database = {
           },
         ]
       }
+      project_actions: {
+        Row: {
+          avancement: number
+          created_at: string
+          date_debut: string | null
+          description: string | null
+          echeance: string | null
+          id: string
+          ordre: number
+          project_id: string
+          responsable_id: string | null
+          responsable_user_id: string | null
+          statut: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          avancement?: number
+          created_at?: string
+          date_debut?: string | null
+          description?: string | null
+          echeance?: string | null
+          id?: string
+          ordre?: number
+          project_id: string
+          responsable_id?: string | null
+          responsable_user_id?: string | null
+          statut?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          avancement?: number
+          created_at?: string
+          date_debut?: string | null
+          description?: string | null
+          echeance?: string | null
+          id?: string
+          ordre?: number
+          project_id?: string
+          responsable_id?: string | null
+          responsable_user_id?: string | null
+          statut?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_actions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_actions_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_actors: {
+        Row: {
+          acteur_id: string
+          created_at: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          acteur_id: string
+          created_at?: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          acteur_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_actors_acteur_id_fkey"
+            columns: ["acteur_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_actors_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_processes: {
+        Row: {
+          created_at: string
+          id: string
+          process_id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          process_id: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          process_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_processes_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_processes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_tasks: {
+        Row: {
+          action_id: string
+          avancement: number
+          created_at: string
+          date_debut: string | null
+          echeance: string | null
+          id: string
+          ordre: number
+          responsable_id: string | null
+          responsable_user_id: string | null
+          statut: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_id: string
+          avancement?: number
+          created_at?: string
+          date_debut?: string | null
+          echeance?: string | null
+          id?: string
+          ordre?: number
+          responsable_id?: string | null
+          responsable_user_id?: string | null
+          statut?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string
+          avancement?: number
+          created_at?: string
+          date_debut?: string | null
+          echeance?: string | null
+          id?: string
+          ordre?: number
+          responsable_id?: string | null
+          responsable_user_id?: string | null
+          statut?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "project_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_debut: string | null
+          date_fin: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          resources: string | null
+          slogan: string | null
+          statut: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_debut?: string | null
+          date_fin?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          resources?: string | null
+          slogan?: string | null
+          statut?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_debut?: string | null
+          date_fin?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          resources?: string | null
+          slogan?: string | null
+          statut?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quality_objectives: {
         Row: {
           cible: string
