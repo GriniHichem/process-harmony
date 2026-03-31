@@ -105,6 +105,7 @@ const App = () => (
               <Route path="/audits" element={<ProtectedPage><RoleGuard requiredModule="audits"><Audits /></RoleGuard></ProtectedPage>} />
               <Route path="/non-conformites" element={<ProtectedPage><RoleGuard requiredModule="non_conformites"><NonConformites /></RoleGuard></ProtectedPage>} />
               <Route path="/actions" element={<ProtectedPage><RoleGuard requiredModule="actions"><Actions /></RoleGuard></ProtectedPage>} />
+              <Route path="/actions/:projectId" element={<ProtectedPage><RoleGuard requiredModule="actions"><ProjectDetail /></RoleGuard></ProtectedPage>} />
               <Route path="/journal" element={<ProtectedPage><RoleGuard requiredModule="journal"><Journal /></RoleGuard></ProtectedPage>} />
               {/* Administration */}
               <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard requiredModule="utilisateurs"><Utilisateurs /></RoleGuard></ProtectedPage>} />
