@@ -285,6 +285,7 @@ export default function ProjectDetail() {
           <TabsContent value="actions">
             <ProjectActionsList
               projectId={projectId!}
+              projectDeadline={project.date_fin}
               canEdit={canEdit}
               canDelete={canDelete}
               canReadDetail={canReadDetail}

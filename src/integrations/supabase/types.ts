@@ -2326,6 +2326,53 @@ export type Database = {
           },
         ]
       }
+      project_deadline_logs: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          entity_id: string
+          entity_title: string
+          entity_type: string
+          id: string
+          new_echeance: string | null
+          old_echeance: string | null
+          project_id: string
+          reason: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          entity_id: string
+          entity_title: string
+          entity_type: string
+          id?: string
+          new_echeance?: string | null
+          old_echeance?: string | null
+          project_id: string
+          reason?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_title?: string
+          entity_type?: string
+          id?: string
+          new_echeance?: string | null
+          old_echeance?: string | null
+          project_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_deadline_logs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_processes: {
         Row: {
           created_at: string
