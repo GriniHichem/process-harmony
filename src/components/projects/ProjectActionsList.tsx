@@ -11,11 +11,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
-import { format, differenceInDays, parseISO, isAfter, isBefore } from "date-fns";
+import { format, differenceInDays, parseISO, isAfter } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface ProjectAction {
@@ -23,12 +25,15 @@ interface ProjectAction {
   title: string;
   description: string | null;
   responsable_id: string | null;
+  responsable_id_2: string | null;
+  responsable_id_3: string | null;
   responsable_user_id: string | null;
   date_debut: string | null;
   echeance: string | null;
   statut: string;
   avancement: number;
   ordre: number;
+  multi_tasks: boolean;
 }
 
 interface ProjectTask {
@@ -69,15 +74,12 @@ const TASK_STATUS: Record<string, { label: string; icon: any; class: string }> =
   termine: { label: "Terminé", icon: CheckCircle2, class: "text-emerald-600" },
 };
 
-/** Compute date status relative to today and project deadline */
 function getDateStatus(echeance: string | null, projectDeadline: string | null, statut: string) {
   if (!echeance || statut === "terminee" || statut === "termine") return { status: "ok" as const, label: "", color: "" };
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const deadline = parseISO(echeance);
   const daysLeft = differenceInDays(deadline, today);
-
-  // Check if exceeds project deadline
   if (projectDeadline && isAfter(deadline, parseISO(projectDeadline))) {
     return { status: "exceeds" as const, label: "Dépasse la deadline du projet", color: "text-orange-600 dark:text-orange-400" };
   }
@@ -112,6 +114,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const { acteurs, getActeurLabel } = useActeurs();
 
+  // Track which actions show extra responsables
+  const [showResp2, setShowResp2] = useState<Set<string>>(new Set());
+  const [showResp3, setShowResp3] = useState<Set<string>>(new Set());
+
   // Deadline change dialog
   const [deadlineDialog, setDeadlineDialog] = useState<{
     open: boolean;
@@ -127,6 +133,9 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const [logsOpen, setLogsOpen] = useState(false);
   const [deadlineLogs, setDeadlineLogs] = useState<DeadlineLog[]>([]);
 
+  // Confirm disable multi_tasks
+  const [disableMultiDialog, setDisableMultiDialog] = useState<string | null>(null);
+
   const fetchActions = async () => {
     const { data, error } = await supabase
       .from("project_actions")
@@ -134,8 +143,19 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       .eq("project_id", projectId)
       .order("ordre");
     if (error) { console.error("Fetch actions error:", error); toast.error("Erreur chargement actions: " + error.message); return; }
-    const acts = (data ?? []) as ProjectAction[];
+    const acts = (data ?? []).map((d: any) => ({ ...d, multi_tasks: d.multi_tasks ?? false, responsable_id_2: d.responsable_id_2 ?? null, responsable_id_3: d.responsable_id_3 ?? null })) as ProjectAction[];
     setActions(acts);
+
+    // Init showResp2/3 for actions that already have values
+    const r2 = new Set<string>();
+    const r3 = new Set<string>();
+    acts.forEach(a => {
+      if (a.responsable_id_2) r2.add(a.id);
+      if (a.responsable_id_3) r3.add(a.id);
+    });
+    setShowResp2(prev => new Set([...prev, ...r2]));
+    setShowResp3(prev => new Set([...prev, ...r3]));
+
     if (acts.length > 0) {
       const { data: tasks } = await supabase
         .from("project_tasks")
@@ -193,12 +213,14 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     const title = newTaskTitle[actionId]?.trim();
     if (!title) return;
     const existing = tasksMap[actionId] ?? [];
+    const action = actions.find(a => a.id === actionId);
     const payload: any = {
       action_id: actionId,
       title,
       ordre: existing.length,
       statut: "a_faire",
       avancement: 0,
+      echeance: action?.echeance ?? null, // inherit from action
     };
     const { error } = await supabase.from("project_tasks").insert(payload);
     if (error) {
@@ -211,59 +233,35 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     fetchActions();
   };
 
-  /** Handle date change with validation and logging */
   const handleDateChange = (entityType: "action" | "task", entityId: string, entityTitle: string, oldDate: string | null, newDate: string) => {
-    // Validate against project deadline
     if (projectDeadline && newDate && isAfter(parseISO(newDate), parseISO(projectDeadline))) {
-      toast.warning(
-        `⚠️ Cette date (${newDate}) dépasse la deadline du projet (${projectDeadline}). Vous pouvez quand même la définir, mais elle sera signalée.`,
-        { duration: 5000 }
-      );
+      toast.warning(`⚠️ Cette date dépasse la deadline du projet (${projectDeadline}).`, { duration: 5000 });
     }
-
-    // If there was an existing date, require reason
     if (oldDate && oldDate !== newDate) {
       setDeadlineDialog({ open: true, entityType, entityId, entityTitle, oldDate, newDate });
       setDeadlineReason("");
     } else {
-      // First time setting date — just save
-      if (entityType === "action") {
-        updateAction(entityId, { echeance: newDate || null });
-      } else {
-        updateTask(entityId, { echeance: newDate || null });
-      }
+      if (entityType === "action") updateAction(entityId, { echeance: newDate || null });
+      else updateTask(entityId, { echeance: newDate || null });
     }
   };
 
   const confirmDeadlineChange = async () => {
     if (!deadlineDialog) return;
     const { entityType, entityId, entityTitle, oldDate, newDate } = deadlineDialog;
-
-    // Log the change
     await supabase.from("project_deadline_logs").insert({
-      entity_type: entityType,
-      entity_id: entityId,
-      entity_title: entityTitle,
-      project_id: projectId,
-      old_echeance: oldDate,
-      new_echeance: newDate || null,
-      changed_by: user?.id ?? null,
-      reason: deadlineReason.trim() || null,
+      entity_type: entityType, entity_id: entityId, entity_title: entityTitle,
+      project_id: projectId, old_echeance: oldDate, new_echeance: newDate || null,
+      changed_by: user?.id ?? null, reason: deadlineReason.trim() || null,
     });
-
-    // Apply the update
-    if (entityType === "action") {
-      await updateAction(entityId, { echeance: newDate || null });
-    } else {
-      await updateTask(entityId, { echeance: newDate || null });
-    }
-
+    if (entityType === "action") await updateAction(entityId, { echeance: newDate || null });
+    else await updateTask(entityId, { echeance: newDate || null });
     setDeadlineDialog(null);
     setDeadlineReason("");
     toast.success("Échéance modifiée et tracée");
   };
 
-  const updateAction = async (id: string, updates: Partial<ProjectAction>) => {
+  const updateAction = async (id: string, updates: Record<string, any>) => {
     const { error } = await supabase.from("project_actions").update(updates).eq("id", id);
     if (error) { toast.error(error.message); return; }
     fetchActions();
@@ -276,7 +274,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     fetchActions();
   };
 
-  const updateTask = async (id: string, updates: Partial<ProjectTask>) => {
+  const updateTask = async (id: string, updates: Record<string, any>) => {
     const { error } = await supabase.from("project_tasks").update(updates).eq("id", id);
     if (error) { toast.error(error.message); return; }
     fetchActions();
@@ -289,6 +287,55 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     fetchActions();
   };
 
+  /** Toggle multi-tasks mode */
+  const toggleMultiTasks = async (action: ProjectAction) => {
+    if (action.multi_tasks) {
+      // Want to disable — check if tasks exist
+      const tasks = tasksMap[action.id] ?? [];
+      if (tasks.length > 0) {
+        setDisableMultiDialog(action.id);
+        return;
+      }
+      await updateAction(action.id, { multi_tasks: false });
+    } else {
+      // Enable — create first task automatically
+      await supabase.from("project_actions").update({ multi_tasks: true }).eq("id", action.id);
+      await supabase.from("project_tasks").insert({
+        action_id: action.id,
+        title: action.title,
+        ordre: 0,
+        statut: "a_faire",
+        avancement: 0,
+        echeance: action.echeance ?? null,
+      });
+      toast.success("Mode multi-tâches activé");
+      fetchActions();
+    }
+  };
+
+  const confirmDisableMulti = async (actionId: string) => {
+    // Delete all tasks then disable
+    await supabase.from("project_tasks").delete().eq("action_id", actionId);
+    await updateAction(actionId, { multi_tasks: false, avancement: 0 });
+    setDisableMultiDialog(null);
+    toast.success("Mode multi-tâches désactivé, tâches supprimées");
+  };
+
+  /** Update avancement for simple action (no multi-tasks) */
+  const handleSimpleAvancement = async (actionId: string, value: number) => {
+    const statut = value === 100 ? "terminee" : value > 0 ? "en_cours" : "planifiee";
+    await updateAction(actionId, { avancement: value, statut });
+  };
+
+  /** Recalculate action avancement from tasks average */
+  const recalcActionFromTasks = async (actionId: string) => {
+    const tasks = tasksMap[actionId] ?? [];
+    if (tasks.length === 0) return;
+    const avg = Math.round(tasks.reduce((s, t) => s + t.avancement, 0) / tasks.length);
+    const statut = avg === 100 ? "terminee" : avg > 0 ? "en_cours" : "planifiee";
+    await updateAction(actionId, { avancement: avg, statut });
+  };
+
   if (!canReadDetail) {
     return <p className="text-sm text-muted-foreground py-4">Vous n'avez pas la permission de consulter les actions.</p>;
   }
@@ -296,7 +343,6 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const DateIndicator = ({ echeance, statut }: { echeance: string | null; statut: string }) => {
     const ds = getDateStatus(echeance, projectDeadline, statut);
     if (ds.status === "ok" || !echeance) return null;
-
     const IconComp = ds.status === "overdue" ? ShieldAlert : ds.status === "exceeds" ? AlertTriangle : CalendarClock;
     return (
       <TooltipProvider>
@@ -316,6 +362,19 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       </TooltipProvider>
     );
   };
+
+  const ResponsableSelector = ({ actionId, field, value, label }: { actionId: string; field: string; value: string | null; label: string }) => (
+    <div className="space-y-1">
+      <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
+      <Select value={value ?? ""} onValueChange={(v) => updateAction(actionId, { [field]: v || null })}>
+        <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Assigner" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Non assigné</SelectItem>
+          {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -347,6 +406,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         const isOpen = expanded === action.id;
         const st = ACTION_STATUS[action.statut] ?? ACTION_STATUS.planifiee;
         const actionDateStatus = getDateStatus(action.echeance, projectDeadline, action.statut);
+        const hasResp2 = showResp2.has(action.id) || !!action.responsable_id_2;
+        const hasResp3 = showResp3.has(action.id) || !!action.responsable_id_3;
 
         return (
           <Collapsible key={action.id} open={isOpen} onOpenChange={() => setExpanded(isOpen ? null : action.id)}>
@@ -360,9 +421,20 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                 <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer">
                   {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="font-medium text-sm line-clamp-1">{action.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm line-clamp-1">{action.title}</p>
+                      {action.multi_tasks && (
+                        <Badge variant="outline" className="text-[9px] gap-1 h-4">
+                          <ListTodo className="h-2.5 w-2.5" /> Multi-tâches
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                      <span>{tasks.length} tâche{tasks.length !== 1 ? "s" : ""}</span>
+                      {action.multi_tasks ? (
+                        <span>{tasks.length} tâche{tasks.length !== 1 ? "s" : ""}</span>
+                      ) : (
+                        <span>Action simple</span>
+                      )}
                       {action.echeance && (
                         <span className="flex items-center gap-1">
                           • Échéance: {action.echeance}
@@ -370,6 +442,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                         </span>
                       )}
                       {action.responsable_id && <span>• {getActeurLabel(action.responsable_id)}</span>}
+                      {action.responsable_id_2 && <span>• {getActeurLabel(action.responsable_id_2)}</span>}
+                      {action.responsable_id_3 && <span>• {getActeurLabel(action.responsable_id_3)}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
@@ -386,126 +460,223 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                 <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/5">
                   {/* Action inline edit */}
                   {canEdit && (
-                    <div className="flex flex-wrap gap-3 items-end">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-muted-foreground">Statut</label>
-                        <Select value={action.statut} onValueChange={(v) => updateAction(action.id, { statut: v })}>
-                          <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(ACTION_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-3 items-end">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-medium text-muted-foreground">Statut</label>
+                          <Select value={action.statut} onValueChange={(v) => updateAction(action.id, { statut: v })}>
+                            <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(ACTION_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                            Échéance
+                            <DateIndicator echeance={action.echeance} statut={action.statut} />
+                          </label>
+                          <Input
+                            type="date"
+                            className={`h-8 w-36 text-xs ${actionDateStatus.status !== "ok" ? "border-orange-400/60" : ""}`}
+                            value={action.echeance ?? ""}
+                            max={projectDeadline ?? undefined}
+                            onChange={(e) => handleDateChange("action", action.id, action.title, action.echeance, e.target.value)}
+                          />
+                        </div>
+
+                        {/* Multi-tâches toggle */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                            <ListTodo className="h-3 w-3" /> Multi-tâches
+                          </label>
+                          <div className="flex items-center gap-2 h-8">
+                            <Switch
+                              checked={action.multi_tasks}
+                              onCheckedChange={() => toggleMultiTasks(action)}
+                            />
+                            <span className="text-[10px] text-muted-foreground">{action.multi_tasks ? "Activé" : "Désactivé"}</span>
+                          </div>
+                        </div>
+
+                        {canDelete && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive ml-auto">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer cette action ?</AlertDialogTitle>
+                                <AlertDialogDescription>L'action et toutes ses tâches seront supprimées.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteAction(action.id)} className="bg-destructive text-destructive-foreground">Supprimer</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
-                          Échéance
-                          <DateIndicator echeance={action.echeance} statut={action.statut} />
-                        </label>
-                        <Input
-                          type="date"
-                          className={`h-8 w-36 text-xs ${actionDateStatus.status !== "ok" ? "border-orange-400/60" : ""}`}
-                          value={action.echeance ?? ""}
-                          max={projectDeadline ?? undefined}
-                          onChange={(e) => handleDateChange("action", action.id, action.title, action.echeance, e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-muted-foreground">Responsable</label>
-                        <Select value={action.responsable_id ?? ""} onValueChange={(v) => updateAction(action.id, { responsable_id: v || null })}>
-                          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Assigner" /></SelectTrigger>
-                          <SelectContent>
-                            {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {canDelete && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive ml-auto">
-                              <Trash2 className="h-3.5 w-3.5" />
+
+                      {/* Responsables row */}
+                      <div className="flex flex-wrap items-end gap-2">
+                        <ResponsableSelector actionId={action.id} field="responsable_id" value={action.responsable_id} label="Responsable 1" />
+
+                        {hasResp2 ? (
+                          <div className="flex items-end gap-1">
+                            <ResponsableSelector actionId={action.id} field="responsable_id_2" value={action.responsable_id_2} label="Responsable 2" />
+                            <Button
+                              variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                updateAction(action.id, { responsable_id_2: null });
+                                setShowResp2(prev => { const n = new Set(prev); n.delete(action.id); return n; });
+                              }}
+                            >
+                              <X className="h-3 w-3" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Supprimer cette action ?</AlertDialogTitle>
-                              <AlertDialogDescription>L'action et toutes ses tâches seront supprimées.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteAction(action.id)} className="bg-destructive text-destructive-foreground">Supprimer</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost" size="sm" className="h-8 text-xs gap-1 text-muted-foreground"
+                            onClick={() => setShowResp2(prev => new Set([...prev, action.id]))}
+                          >
+                            <UserPlus className="h-3 w-3" /> +Resp. 2
+                          </Button>
+                        )}
+
+                        {hasResp2 && (hasResp3 ? (
+                          <div className="flex items-end gap-1">
+                            <ResponsableSelector actionId={action.id} field="responsable_id_3" value={action.responsable_id_3} label="Responsable 3" />
+                            <Button
+                              variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => {
+                                updateAction(action.id, { responsable_id_3: null });
+                                setShowResp3(prev => { const n = new Set(prev); n.delete(action.id); return n; });
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost" size="sm" className="h-8 text-xs gap-1 text-muted-foreground"
+                            onClick={() => setShowResp3(prev => new Set([...prev, action.id]))}
+                          >
+                            <UserPlus className="h-3 w-3" /> +Resp. 3
+                          </Button>
+                        ))}
+                      </div>
+
+                      {/* Simple mode: avancement slider */}
+                      {!action.multi_tasks && (
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-medium text-muted-foreground">Avancement : {action.avancement}%</label>
+                          <div className="flex items-center gap-3 max-w-sm">
+                            <Slider
+                              value={[action.avancement]}
+                              max={100}
+                              step={5}
+                              onValueCommit={(v) => handleSimpleAvancement(action.id, v[0])}
+                              className="flex-1"
+                            />
+                            <span className="text-xs font-semibold text-primary w-10 text-right">{action.avancement}%</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Multi-tasks mode: calculated avancement (read-only) */}
+                      {action.multi_tasks && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <ListTodo className="h-3.5 w-3.5 text-primary" />
+                          <span>Avancement calculé automatiquement depuis les tâches : <span className="font-semibold text-foreground">{action.avancement}%</span></span>
+                        </div>
                       )}
                     </div>
                   )}
 
-                  {/* Tasks */}
-                  <div className="space-y-1.5">
-                    {tasks.map((task) => {
-                      const ts = TASK_STATUS[task.statut] ?? TASK_STATUS.a_faire;
-                      const TaskIcon = ts.icon;
-                      const taskDateStatus = getDateStatus(task.echeance, projectDeadline, task.statut);
-                      return (
-                        <div key={task.id} className={`flex items-center gap-2 rounded-lg border bg-background px-3 py-2 group ${
-                          taskDateStatus.status === "overdue" ? "border-destructive/30" :
-                          taskDateStatus.status === "exceeds" ? "border-orange-400/30" :
-                          "border-border/30"
-                        }`}>
-                          {canEdit ? (
-                            <button
-                              className={`shrink-0 ${ts.class}`}
-                              onClick={() => {
-                                const next = task.statut === "a_faire" ? "en_cours" : task.statut === "en_cours" ? "termine" : "a_faire";
-                                const av = next === "termine" ? 100 : next === "en_cours" ? 50 : 0;
-                                updateTask(task.id, { statut: next, avancement: av });
-                              }}
-                            >
-                              <TaskIcon className="h-4 w-4" />
-                            </button>
-                          ) : (
-                            <TaskIcon className={`h-4 w-4 shrink-0 ${ts.class}`} />
-                          )}
-                          <span className={`text-sm flex-1 ${task.statut === "termine" ? "line-through text-muted-foreground" : ""}`}>
-                            {task.title}
-                          </span>
-                          {canEdit ? (
-                            <Input
-                              type="date"
-                              className={`h-6 w-28 text-[10px] border-dashed ${taskDateStatus.status !== "ok" ? "border-orange-400/60" : ""}`}
-                              value={task.echeance ?? ""}
-                              max={projectDeadline ?? undefined}
-                              onChange={(e) => handleDateChange("task", task.id, task.title, task.echeance, e.target.value)}
-                            />
-                          ) : (
-                            task.echeance && <span className="text-[10px] text-muted-foreground">{task.echeance}</span>
-                          )}
-                          <DateIndicator echeance={task.echeance} statut={task.statut} />
-                          <span className="text-[10px] text-muted-foreground w-8 text-right">{task.avancement}%</span>
-                          {canDelete && (
-                            <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive">
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {/* Tasks — only shown in multi-tasks mode */}
+                  {action.multi_tasks && (
+                    <>
+                      <div className="space-y-1.5">
+                        {tasks.map((task) => {
+                          const ts = TASK_STATUS[task.statut] ?? TASK_STATUS.a_faire;
+                          const TaskIcon = ts.icon;
+                          const taskDateStatus = getDateStatus(task.echeance, projectDeadline, task.statut);
+                          return (
+                            <div key={task.id} className={`flex items-center gap-2 rounded-lg border bg-background px-3 py-2 group ${
+                              taskDateStatus.status === "overdue" ? "border-destructive/30" :
+                              taskDateStatus.status === "exceeds" ? "border-orange-400/30" :
+                              "border-border/30"
+                            }`}>
+                              {canEdit ? (
+                                <button
+                                  className={`shrink-0 ${ts.class}`}
+                                  onClick={async () => {
+                                    const next = task.statut === "a_faire" ? "en_cours" : task.statut === "en_cours" ? "termine" : "a_faire";
+                                    const av = next === "termine" ? 100 : next === "en_cours" ? 50 : 0;
+                                    await updateTask(task.id, { statut: next, avancement: av });
+                                    // Recalc after state updates
+                                    setTimeout(() => recalcActionFromTasks(action.id), 300);
+                                  }}
+                                >
+                                  <TaskIcon className="h-4 w-4" />
+                                </button>
+                              ) : (
+                                <TaskIcon className={`h-4 w-4 shrink-0 ${ts.class}`} />
+                              )}
+                              <span className={`text-sm flex-1 ${task.statut === "termine" ? "line-through text-muted-foreground" : ""}`}>
+                                {task.title}
+                              </span>
+                              {canEdit && (
+                                <Select value={task.responsable_id ?? ""} onValueChange={(v) => updateTask(task.id, { responsable_id: v || null })}>
+                                  <SelectTrigger className="h-6 w-32 text-[10px] border-dashed"><SelectValue placeholder="Resp." /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">Non assigné</SelectItem>
+                                    {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              {canEdit ? (
+                                <Input
+                                  type="date"
+                                  className={`h-6 w-28 text-[10px] border-dashed ${taskDateStatus.status !== "ok" ? "border-orange-400/60" : ""}`}
+                                  value={task.echeance ?? ""}
+                                  max={projectDeadline ?? undefined}
+                                  onChange={(e) => handleDateChange("task", task.id, task.title, task.echeance, e.target.value)}
+                                />
+                              ) : (
+                                task.echeance && <span className="text-[10px] text-muted-foreground">{task.echeance}</span>
+                              )}
+                              <DateIndicator echeance={task.echeance} statut={task.statut} />
+                              <span className="text-[10px] text-muted-foreground w-8 text-right">{task.avancement}%</span>
+                              {canDelete && (
+                                <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive">
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                  {/* Add task */}
-                  {canEdit && (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nouvelle tâche..."
-                        value={newTaskTitle[action.id] ?? ""}
-                        onChange={(e) => setNewTaskTitle((p) => ({ ...p, [action.id]: e.target.value }))}
-                        className="h-8 text-xs"
-                        onKeyDown={(e) => e.key === "Enter" && addTask(action.id)}
-                      />
-                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => addTask(action.id)}>
-                        <Plus className="h-3 w-3 mr-1" />Tâche
-                      </Button>
-                    </div>
+                      {/* Add task */}
+                      {canEdit && (
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Nouvelle tâche..."
+                            value={newTaskTitle[action.id] ?? ""}
+                            onChange={(e) => setNewTaskTitle((p) => ({ ...p, [action.id]: e.target.value }))}
+                            className="h-8 text-xs"
+                            onKeyDown={(e) => e.key === "Enter" && addTask(action.id)}
+                          />
+                          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => addTask(action.id)}>
+                            <Plus className="h-3 w-3 mr-1" />Tâche
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Comments / Notes */}
@@ -519,10 +690,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                     </button>
                     {notesOpen === action.id && (
                       <div className="mt-2">
-                        <ElementNotes
-                          elementType="project_action"
-                          elementId={action.id}
-                        />
+                        <ElementNotes elementType="project_action" elementId={action.id} />
                       </div>
                     )}
                   </div>
@@ -635,6 +803,24 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm disable multi-tasks dialog */}
+      <AlertDialog open={!!disableMultiDialog} onOpenChange={(o) => !o && setDisableMultiDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Désactiver le mode multi-tâches ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Toutes les tâches existantes de cette action seront supprimées. L'avancement sera remis à 0.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={() => disableMultiDialog && confirmDisableMulti(disableMultiDialog)} className="bg-destructive text-destructive-foreground">
+              Désactiver et supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

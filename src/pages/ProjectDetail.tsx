@@ -114,9 +114,9 @@ export default function ProjectDetail() {
         echeance: a.echeance,
         statut: a.statut,
         avancement: a.avancement,
-        responsable: getActeurLabel(a.responsable_id),
+        responsable: [getActeurLabel(a.responsable_id), getActeurLabel(a.responsable_id_2), getActeurLabel(a.responsable_id_3)].filter(Boolean).join(", "),
         level: "action" as const,
-        children: (tasksMap[a.id] ?? []).map((t: any) => ({
+        children: a.multi_tasks ? (tasksMap[a.id] ?? []).map((t: any) => ({
           id: t.id,
           title: t.title,
           date_debut: t.date_debut,
@@ -125,7 +125,7 @@ export default function ProjectDetail() {
           avancement: t.avancement,
           responsable: getActeurLabel(t.responsable_id),
           level: "task" as const,
-        })),
+        })) : [],
       })),
     }];
     setGanttItems(gantt);
