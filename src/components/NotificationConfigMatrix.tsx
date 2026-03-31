@@ -18,6 +18,8 @@ const ENTITY_TYPES = [
   { key: "nc_actions", label: "Actions NC", category: "Non-conformités" },
   { key: "process_tasks", label: "Tâches processus", category: "Processus" },
   { key: "processes", label: "Processus", category: "Processus" },
+  { key: "project_actions", label: "Actions projet", category: "Projets" },
+  { key: "project_tasks", label: "Tâches projet", category: "Projets" },
 ] as const;
 
 const NOTIF_TYPES = [

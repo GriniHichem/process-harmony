@@ -27,6 +27,8 @@ const SOURCES: DeadlineSource[] = [
   { table: "indicator_moyens", deadline_col: "deadline", responsible_col: "responsable", responsible_type: "text", statut_col: "statut", entity_url_fn: () => "/indicateurs", description_col: "description" },
   { table: "context_issue_actions", deadline_col: "date_revue", responsible_col: "responsable", responsible_type: "text", statut_col: "statut", entity_url_fn: () => "/enjeux-contexte", description_col: "description" },
   { table: "nc_actions", deadline_col: "deadline", responsible_col: "responsable", responsible_type: "text", statut_col: "statut", entity_url_fn: () => "/non-conformites", description_col: "description" },
+  { table: "project_actions", deadline_col: "echeance", responsible_col: "responsable_id", responsible_type: "uuid", statut_col: "statut", entity_url_fn: (row: any) => "/projects/" + row.project_id, description_col: "title" },
+  { table: "project_tasks", deadline_col: "echeance", responsible_col: "responsable_id", responsible_type: "uuid", statut_col: "statut", entity_url_fn: (row: any) => "/projects/" + row.action_id, description_col: "title" },
 ];
 
 serve(async (req) => {
