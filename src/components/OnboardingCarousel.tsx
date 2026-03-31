@@ -120,7 +120,7 @@ export function OnboardingCarousel({ onComplete }: { onComplete: () => void }) {
       >
         <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px] pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col items-center text-center px-8 py-14 md:py-20 min-h-[420px] justify-center gap-6">
+        <div className="relative z-10 flex flex-col items-center text-center px-8 py-14 md:py-20 min-h-[420px] justify-center gap-6 pointer-events-none select-none">
           {/* Slide 1 — Welcome */}
           {isFirst && (
             <>
@@ -150,7 +150,7 @@ export function OnboardingCarousel({ onComplete }: { onComplete: () => void }) {
               <Button
                 size="lg"
                 onClick={onComplete}
-                className="mt-4 bg-white text-gray-900 hover:bg-white/90 font-bold text-lg px-10 py-6 rounded-xl shadow-xl animate-fade-in"
+                className="mt-4 bg-white text-gray-900 hover:bg-white/90 font-bold text-lg px-10 py-6 rounded-xl shadow-xl animate-fade-in pointer-events-auto"
                 style={{ animationDelay: "0.3s" }}
               >
                 Commencer 🚀
@@ -185,20 +185,20 @@ export function OnboardingCarousel({ onComplete }: { onComplete: () => void }) {
           )}
         </div>
 
-        {/* Arrows */}
+        {/* Arrows — above content */}
         {!isFirst && (
-          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors">
+          <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors">
             <ChevronLeft className="h-5 w-5" />
           </button>
         )}
         {!isLast && (
-          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors">
+          <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-10 w-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors">
             <ChevronRight className="h-5 w-5" />
           </button>
         )}
 
         {/* Dots */}
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
           {slides.map((_, i) => (
             <button
               key={i}
