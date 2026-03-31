@@ -455,6 +455,11 @@ export default function SuperAdmin() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* ─── TAB: LICENCE ─── */}
+        <TabsContent value="license" className="space-y-6">
+          <LicenseTab form={form} handleChange={handleChange} />
+        </TabsContent>
       </Tabs>
     </div>
   );
