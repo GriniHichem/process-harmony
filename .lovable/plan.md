@@ -1,78 +1,93 @@
 
 
-# Liaison des actions de projet aux entités du SMQ
+# Systeme de Licence — Super Admin
 
 ## Vue d'ensemble
 
-Créer une table de liaison `project_action_links` qui permet de connecter une action de projet à des entités existantes : indicateurs, risques/opportunités, enjeux de contexte, non-conformités. La liaison est en lecture seule dans les entités cibles (on voit le projet + action liée). Dans l'action, on peut ajouter/supprimer des liens.
+Implementer un systeme complet de gestion de licence dans le Super Admin, avec periode d'essai, activation par code 32 caracteres, alertes configurables, et blocage global en mode lecture seule a l'expiration.
 
-## Migration SQL
+## Cycle de vie de la licence
 
-```sql
-CREATE TABLE IF NOT EXISTS project_action_links (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  action_id uuid NOT NULL REFERENCES project_actions(id) ON DELETE CASCADE,
-  entity_type text NOT NULL CHECK (entity_type IN ('indicator', 'risk', 'context_issue', 'nonconformity')),
-  entity_id uuid NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(action_id, entity_type, entity_id)
-);
-
-ALTER TABLE project_action_links ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Authenticated users can manage project_action_links"
-  ON project_action_links FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```text
+┌─────────────┐    ┌──────────────┐    ┌──────────────────┐    ┌─────────────┐
+│  Essai       │───>│  Licence     │───>│  Grace (1 mois)  │───>│  Bloquee    │
+│  (N jours)   │    │  Active      │    │  Alertes visibles│    │  Lecture    │
+│              │    │              │    │                  │    │  seule      │
+└─────────────┘    └──────────────┘    └──────────────────┘    └─────────────┘
+       │                                                              │
+       └──────────────── Code 32 chars ──────────────────────────────>│
+                         = Reactivation                               │
 ```
 
-## Nouveau composant — `ProjectActionLinks.tsx`
+## Parametres stockes dans `app_settings`
 
-Composant dédié affiché dans chaque carte d'action (section collapsible) :
+| Cle | Defaut | Description |
+|---|---|---|
+| `license_mode` | `trial` | `trial`, `active`, `grace`, `expired` |
+| `license_key` | `""` | Code 32 caracteres d'activation |
+| `license_trial_days` | `30` | Duree periode d'essai en jours |
+| `license_trial_start` | date installation | Date debut essai |
+| `license_activated_at` | `""` | Date d'activation de la licence |
+| `license_expires_at` | `""` | Date expiration licence |
+| `license_alert_days_before` | `90` | Jours avant expiration pour notifier (defaut 3 mois) |
+| `license_alert_interval_days` | `7` | Frequence des rappels d'alerte |
+| `license_grace_days` | `30` | Duree du mois de grace apres expiration |
 
-**Fonctionnalités :**
-- Affiche les liens existants sous forme de badges colorés par type (icone + label de l'entité)
-- Bouton "Lier une entité" ouvre un Dialog avec :
-  - Select du type d'entité (Indicateur, Risque, Opportunité, Enjeu, Non-conformité)
-  - Select de l'entité (chargé dynamiquement depuis la table correspondante)
-  - Bouton confirmer
-- Suppression d'un lien via bouton X sur le badge
-- En lecture seule si `!canEdit` ou action figée
+## Implementation — 4 parties
 
-**Couleurs par type :**
-- Indicateur : bleu
-- Risque : rouge
-- Opportunité : vert
-- Enjeu : violet
-- Non-conformité : orange
+### 1. Migration SQL : valeurs par defaut licence
 
-**Données chargées :**
-- `indicators` → `nom`
-- `risks_opportunities` → `description` + `type` (pour distinguer risque/opportunité)
-- `context_issues` → `intitule`
-- `nonconformities` → `reference` + `description`
+Inserer les cles de licence dans `app_settings` avec les valeurs par defaut (trial_start = now()).
 
-## Affichage côté entités cibles (lecture seule)
+### 2. Contexte Licence (`LicenseContext.tsx`)
 
-Dans les pages Indicateurs, Risques, Enjeux, NC — ajouter un petit encart "Lié au projet" quand un lien existe :
-- Badge avec icone projet + titre du projet + titre de l'action
-- Lien cliquable vers `/actions/{projectId}`
+Nouveau contexte qui :
+- Lit les parametres licence depuis `AppSettings`
+- Calcule l'etat courant (`trial`, `active`, `grace`, `expired`) et les jours restants
+- Expose `isReadOnly` (true si `expired`), `licenseStatus`, `daysRemaining`, `alertMessage`
+- Expose `activateLicense(code: string)` qui valide le code (32 chars alphanumeriques), met a jour `license_mode = active`, `license_key`, `license_activated_at`
+- Logique de calcul :
+  - **Trial** : `trial_start + trial_days > now()` sinon passe en `grace`
+  - **Active** : `expires_at > now()` sinon passe en `grace`
+  - **Grace** : `expires_at + grace_days > now()` sinon `expired`
+  - **Expired** : mode lecture seule
 
-Composant réutilisable `LinkedProjectBadge.tsx` qui prend `entityType` + `entityId` et affiche les liens trouvés.
+### 3. Blocage global en mode lecture seule
 
-## Intégration dans `ProjectActionsList.tsx`
+- Wrapper dans `AppLayout` : si `isReadOnly`, afficher un bandeau permanent en haut "Licence expiree — Mode consultation uniquement"
+- Intercepter `hasPermission` dans `AuthContext` : si licence expiree, `can_edit`, `can_delete` retournent toujours `false`, seul `can_read` et `can_read_detail` restent actifs
+- Bloquer les notifications (ne pas envoyer de nouvelles notifications)
 
-- Ajouter un bouton icone `Link` dans la barre d'outils de chaque action
-- Section collapsible dans la carte d'action montrant `<ProjectActionLinks actionId={action.id} canEdit={canEdit && action.statut !== "terminee"} />`
+### 4. Onglet "Licence" dans Super Admin
 
-## Fichiers créés/modifiés
+Nouvel onglet avec :
+- **Etat actuel** : badge colore (Essai/Active/Grace/Expiree) + jours restants
+- **Configuration essai** : duree en jours
+- **Configuration alertes** : jours avant expiration, intervalle des rappels
+- **Duree de grace** : configurable
+- **Date d'expiration** : date picker pour la licence active
+- **Activation** : champ input 32 caracteres + bouton "Activer". Validation : exactement 32 chars alphanumeriques. Succes = toast + statut passe a `active`
+- **Bandeau d'alerte** visible dans toute l'app quand on est dans la zone d'alerte ou en grace
+
+## Alertes et messages
+
+| Phase | Message |
+|---|---|
+| Essai, X jours restants | "Periode d'essai : X jours restants" (bandeau bleu) |
+| Active, dans zone alerte | "Votre licence expire dans X jours" (bandeau jaune) |
+| Grace | "Licence expiree ! Les services seront bloques dans X jours" (bandeau orange) |
+| Expiree | "Licence expiree — Mode consultation uniquement. Activez votre licence." (bandeau rouge fixe) |
+
+## Fichiers
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Table `project_action_links` |
-| `src/components/projects/ProjectActionLinks.tsx` | Nouveau — gestion des liens |
-| `src/components/projects/LinkedProjectBadge.tsx` | Nouveau — badge lecture seule |
-| `src/components/projects/ProjectActionsList.tsx` | Intégrer le composant liens |
-| `src/pages/Indicateurs.tsx` | Ajouter `LinkedProjectBadge` |
-| `src/pages/Risques.tsx` | Ajouter `LinkedProjectBadge` |
-| `src/pages/EnjeuContexte.tsx` / `ContextIssuesManager.tsx` | Ajouter `LinkedProjectBadge` |
-| `src/pages/NonConformites.tsx` | Ajouter `LinkedProjectBadge` |
+| Migration SQL | Insert cles licence dans `app_settings` |
+| `src/contexts/AppSettingsContext.tsx` | Ajouter les cles licence au type `AppSettings` |
+| `src/contexts/LicenseContext.tsx` | Nouveau — calcul statut, `isReadOnly`, activation |
+| `src/components/LicenseBanner.tsx` | Nouveau — bandeau d'alerte contextuel |
+| `src/components/AppLayout.tsx` | Integrer `LicenseBanner` |
+| `src/contexts/AuthContext.tsx` | Integrer `isReadOnly` pour bloquer edit/delete |
+| `src/pages/SuperAdmin.tsx` | Ajouter onglet "Licence" |
+| `src/App.tsx` | Wrapper `LicenseProvider` |
 
