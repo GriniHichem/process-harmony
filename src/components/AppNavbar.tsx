@@ -28,6 +28,34 @@ import {
 } from "lucide-react";
 import defaultLogo from "@/assets/logo.jpg";
 
+function LicenseAboutInfo() {
+  const { status, daysRemaining } = useLicense();
+  const statusLabels: Record<string, string> = {
+    trial: "Période d'essai",
+    active: "Licence active",
+    grace: "Période de grâce",
+    expired: "Licence expirée",
+  };
+  const statusColors: Record<string, string> = {
+    trial: "text-blue-500",
+    active: "text-green-500",
+    grace: "text-amber-500",
+    expired: "text-destructive",
+  };
+  return (
+    <div className="text-xs space-y-1">
+      <p className="text-muted-foreground">
+        Licence : <span className={`font-semibold ${statusColors[status]}`}>{statusLabels[status]}</span>
+      </p>
+      {status !== "expired" && (
+        <p className="text-muted-foreground">
+          {status === "active" ? "Expire dans" : "Reste"} : <span className="font-semibold text-foreground">{daysRemaining} jour{daysRemaining > 1 ? "s" : ""}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 type NavItem = { title: string; url: string; icon: any; module?: AppModule; description?: string };
 
 const moduleGroups: { label: string; icon: any; items: NavItem[] }[] = [
