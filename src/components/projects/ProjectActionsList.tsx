@@ -318,8 +318,6 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetai
                         <ElementNotes
                           elementType="project_action"
                           elementId={action.id}
-                          canEdit={canEdit}
-                          canDelete={canDelete}
                         />
                       </div>
                     )}
