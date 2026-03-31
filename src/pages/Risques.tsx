@@ -292,6 +292,7 @@ export default function Risques() {
                     <div>
                       <p className="font-medium">{r.description}</p>
                       <p className="text-xs text-muted-foreground">{scoreDisplay}</p>
+                      <LinkedProjectBadge entityType="risk" entityId={r.id} />
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

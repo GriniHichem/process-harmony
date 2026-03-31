@@ -247,6 +247,7 @@ export default function NonConformites() {
                     <p className="text-xs text-muted-foreground line-clamp-1">
                       {nc.nature_nc && `${nc.nature_nc} • `}{nc.description}
                     </p>
+                    <LinkedProjectBadge entityType="nonconformity" entityId={nc.id} />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

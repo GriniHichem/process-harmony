@@ -318,6 +318,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
                         <span className="font-medium text-sm">{issue.intitule}</span>
                         <Badge className={`text-xs ${impactColors[issue.impact]}`}>{issue.impact}</Badge>
                         {issue.climat_pertinent && <Badge variant="secondary" className="text-xs">🌍 Climat</Badge>}
+                        <LinkedProjectBadge entityType="context_issue" entityId={issue.id} />
                       </CollapsibleTrigger>
                       <div className="flex items-center gap-1">
                         {canEdit && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(issue)}><Pencil className="h-3.5 w-3.5" /></Button>}
