@@ -403,6 +403,50 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     return <p className="text-sm text-muted-foreground py-4">Vous n'avez pas la permission de consulter les actions.</p>;
   }
 
+  const isOverdue = (a: ProjectAction) => {
+    if (!a.echeance || a.statut === "terminee") return false;
+    return isBefore(parseISO(a.echeance), startOfDay(new Date()));
+  };
+
+  const isWithinDays = (dateStr: string | null, days: number) => {
+    if (!dateStr) return false;
+    const d = parseISO(dateStr);
+    const today = startOfDay(new Date());
+    return !isBefore(d, today) && isBefore(d, addDays(today, days + 1));
+  };
+
+  const getFilteredActions = () => {
+    return actions
+      .filter(a => {
+        if (hideTerminees && a.statut === "terminee") return false;
+        if (filterStatut !== "all" && filterStatut !== "en_retard" && a.statut !== filterStatut) return false;
+        if (filterStatut === "en_retard" && !isOverdue(a)) return false;
+        if (filterEcheance === "overdue" && !isOverdue(a)) return false;
+        if (filterEcheance === "this_week" && !isWithinDays(a.echeance, 7)) return false;
+        if (filterEcheance === "this_month" && !isWithinDays(a.echeance, 30)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        // Pinned first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // Then by sortBy
+        if (sortBy === "echeance") {
+          if (!a.echeance && !b.echeance) return 0;
+          if (!a.echeance) return 1;
+          if (!b.echeance) return -1;
+          return a.echeance.localeCompare(b.echeance);
+        }
+        if (sortBy === "created_at") return 0; // DB already ordered
+        return a.ordre - b.ordre;
+      });
+  };
+
+  const togglePin = async (action: ProjectAction) => {
+    await updateAction(action.id, { pinned: !action.pinned });
+    toast.success(action.pinned ? "Action désépinglée" : "Action épinglée comme prioritaire");
+  };
+
   const DateIndicator = ({ echeance, statut }: { echeance: string | null; statut: string }) => {
     const ds = getDateStatus(echeance, projectDeadline, statut);
     if (ds.status === "ok" || !echeance) return null;
