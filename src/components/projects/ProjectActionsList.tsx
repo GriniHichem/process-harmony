@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
 import { format, differenceInDays, parseISO, isAfter } from "date-fns";
@@ -114,11 +114,9 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const { acteurs, getActeurLabel } = useActeurs();
 
-  // Track which actions show extra responsables
   const [showResp2, setShowResp2] = useState<Set<string>>(new Set());
   const [showResp3, setShowResp3] = useState<Set<string>>(new Set());
 
-  // Deadline change dialog
   const [deadlineDialog, setDeadlineDialog] = useState<{
     open: boolean;
     entityType: "action" | "task";
@@ -129,12 +127,13 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   } | null>(null);
   const [deadlineReason, setDeadlineReason] = useState("");
 
-  // Deadline logs
   const [logsOpen, setLogsOpen] = useState(false);
   const [deadlineLogs, setDeadlineLogs] = useState<DeadlineLog[]>([]);
 
-  // Confirm disable multi_tasks
   const [disableMultiDialog, setDisableMultiDialog] = useState<string | null>(null);
+
+  // Confirm close action dialog
+  const [confirmCloseActionId, setConfirmCloseActionId] = useState<string | null>(null);
 
   const fetchActions = async () => {
     const { data, error } = await supabase
@@ -146,7 +145,6 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     const acts = (data ?? []).map((d: any) => ({ ...d, multi_tasks: d.multi_tasks ?? false, responsable_id_2: d.responsable_id_2 ?? null, responsable_id_3: d.responsable_id_3 ?? null })) as ProjectAction[];
     setActions(acts);
 
-    // Init showResp2/3 for actions that already have values
     const r2 = new Set<string>();
     const r3 = new Set<string>();
     acts.forEach(a => {
@@ -220,7 +218,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       ordre: existing.length,
       statut: "a_faire",
       avancement: 0,
-      echeance: action?.echeance ?? null, // inherit from action
+      echeance: action?.echeance ?? null,
     };
     const { error } = await supabase.from("project_tasks").insert(payload);
     if (error) {
@@ -287,10 +285,49 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     fetchActions();
   };
 
+  /** Handle status change with validation */
+  const handleStatusChange = (action: ProjectAction, newStatut: string) => {
+    // If trying to set "terminee", apply controls
+    if (newStatut === "terminee") {
+      // Multi-tasks: all tasks must be "termine"
+      if (action.multi_tasks) {
+        const tasks = tasksMap[action.id] ?? [];
+        const allDone = tasks.length > 0 && tasks.every(t => t.statut === "termine");
+        if (!allDone) {
+          toast.error("Toutes les tâches doivent être terminées avant de clôturer l'action.", { duration: 5000 });
+          return;
+        }
+      }
+      // Show confirmation dialog
+      setConfirmCloseActionId(action.id);
+      return;
+    }
+
+    // If trying to set "en_cours", warn if no date_debut
+    if (newStatut === "en_cours" && !action.date_debut) {
+      toast.warning("Pensez à définir une date de début pour cette action.", { duration: 4000 });
+    }
+
+    updateAction(action.id, { statut: newStatut });
+  };
+
+  /** Confirm closing an action */
+  const confirmCloseAction = async () => {
+    if (!confirmCloseActionId) return;
+    await updateAction(confirmCloseActionId, { statut: "terminee", avancement: 100 });
+    setConfirmCloseActionId(null);
+    toast.success("Action terminée et figée ✓", { duration: 4000 });
+  };
+
+  /** Reopen a closed action */
+  const reopenAction = async (actionId: string) => {
+    await updateAction(actionId, { statut: "en_cours" });
+    toast.info("Action rouverte");
+  };
+
   /** Toggle multi-tasks mode */
   const toggleMultiTasks = async (action: ProjectAction) => {
     if (action.multi_tasks) {
-      // Want to disable — check if tasks exist
       const tasks = tasksMap[action.id] ?? [];
       if (tasks.length > 0) {
         setDisableMultiDialog(action.id);
@@ -298,7 +335,6 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       }
       await updateAction(action.id, { multi_tasks: false });
     } else {
-      // Enable — create first task automatically
       await supabase.from("project_actions").update({ multi_tasks: true }).eq("id", action.id);
       await supabase.from("project_tasks").insert({
         action_id: action.id,
@@ -314,7 +350,6 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   };
 
   const confirmDisableMulti = async (actionId: string) => {
-    // Delete all tasks then disable
     await supabase.from("project_tasks").delete().eq("action_id", actionId);
     await updateAction(actionId, { multi_tasks: false, avancement: 0 });
     setDisableMultiDialog(null);
@@ -323,16 +358,37 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
   /** Update avancement for simple action (no multi-tasks) */
   const handleSimpleAvancement = async (actionId: string, value: number) => {
-    const statut = value === 100 ? "terminee" : value > 0 ? "en_cours" : "planifiee";
+    if (value === 100) {
+      // Instead of silently setting terminee, show confirmation
+      const action = actions.find(a => a.id === actionId);
+      if (action) {
+        // Temporarily save progress, then ask to confirm close
+        await supabase.from("project_actions").update({ avancement: value }).eq("id", actionId);
+        setConfirmCloseActionId(actionId);
+        fetchActions();
+        return;
+      }
+    }
+    const statut = value > 0 ? "en_cours" : "planifiee";
     await updateAction(actionId, { avancement: value, statut });
+    toast.success("Avancement enregistré", { duration: 2000 });
   };
 
-  /** Recalculate action avancement from tasks average */
+  /** Recalculate action avancement from tasks — fetches fresh data from DB */
   const recalcActionFromTasks = async (actionId: string) => {
-    const tasks = tasksMap[actionId] ?? [];
-    if (tasks.length === 0) return;
-    const avg = Math.round(tasks.reduce((s, t) => s + t.avancement, 0) / tasks.length);
+    const { data: freshTasks } = await supabase
+      .from("project_tasks")
+      .select("*")
+      .eq("action_id", actionId);
+    if (!freshTasks || freshTasks.length === 0) return;
+    const avg = Math.round(freshTasks.reduce((s: number, t: any) => s + t.avancement, 0) / freshTasks.length);
     const statut = avg === 100 ? "terminee" : avg > 0 ? "en_cours" : "planifiee";
+    // If all tasks done, don't auto-set terminee — user must confirm
+    if (statut === "terminee") {
+      await supabase.from("project_actions").update({ avancement: avg }).eq("id", actionId);
+      fetchActions();
+      return;
+    }
     await updateAction(actionId, { avancement: avg, statut });
   };
 
@@ -363,10 +419,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     );
   };
 
-  const ResponsableSelector = ({ actionId, field, value, label }: { actionId: string; field: string; value: string | null; label: string }) => (
+  const ResponsableSelector = ({ actionId, field, value, label, disabled }: { actionId: string; field: string; value: string | null; label: string; disabled?: boolean }) => (
     <div className="space-y-1">
       <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
-      <Select value={value ?? "none"} onValueChange={(v) => updateAction(actionId, { [field]: v === "none" ? null : v })}>
+      <Select value={value ?? "none"} onValueChange={(v) => updateAction(actionId, { [field]: v === "none" ? null : v })} disabled={disabled}>
         <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Assigner" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="none">Non assigné</SelectItem>
@@ -408,10 +464,12 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         const actionDateStatus = getDateStatus(action.echeance, projectDeadline, action.statut);
         const hasResp2 = showResp2.has(action.id) || !!action.responsable_id_2;
         const hasResp3 = showResp3.has(action.id) || !!action.responsable_id_3;
+        const isFrozen = action.statut === "terminee";
 
         return (
           <Collapsible key={action.id} open={isOpen} onOpenChange={() => setExpanded(isOpen ? null : action.id)}>
             <div className={`border rounded-xl overflow-hidden bg-card transition-colors ${
+              isFrozen ? "border-emerald-500/40 bg-emerald-50/5" :
               actionDateStatus.status === "overdue" ? "border-destructive/40" :
               actionDateStatus.status === "exceeds" ? "border-orange-400/40" :
               actionDateStatus.status === "urgent" ? "border-amber-400/40" :
@@ -422,10 +480,15 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                   {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                   <div className="flex-1 min-w-0 text-left">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm line-clamp-1">{action.title}</p>
+                      <p className={`font-medium text-sm line-clamp-1 ${isFrozen ? "text-emerald-700 dark:text-emerald-400" : ""}`}>{action.title}</p>
                       {action.multi_tasks && (
                         <Badge variant="outline" className="text-[9px] gap-1 h-4">
                           <ListTodo className="h-2.5 w-2.5" /> Multi-tâches
+                        </Badge>
+                      )}
+                      {isFrozen && (
+                        <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[9px] gap-1 h-4">
+                          <Lock className="h-2.5 w-2.5" /> Figée
                         </Badge>
                       )}
                     </div>
@@ -458,13 +521,35 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
               <CollapsibleContent>
                 <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/5">
-                  {/* Action inline edit */}
-                  {canEdit && (
+
+                  {/* Frozen banner */}
+                  {isFrozen && (
+                    <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5">
+                      <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span className="font-medium">Action terminée — figée</span>
+                      </div>
+                      {canEdit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+                          onClick={() => reopenAction(action.id)}
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          Rouvrir
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action inline edit — disabled if frozen */}
+                  {canEdit && !isFrozen && (
                     <div className="space-y-3">
                       <div className="flex flex-wrap gap-3 items-end">
                         <div className="space-y-1">
                           <label className="text-[10px] font-medium text-muted-foreground">Statut</label>
-                          <Select value={action.statut} onValueChange={(v) => updateAction(action.id, { statut: v })}>
+                          <Select value={action.statut} onValueChange={(v) => handleStatusChange(action, v)}>
                             <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {Object.entries(ACTION_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
@@ -604,33 +689,47 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                           const ts = TASK_STATUS[task.statut] ?? TASK_STATUS.a_faire;
                           const TaskIcon = ts.icon;
                           const taskDateStatus = getDateStatus(task.echeance, projectDeadline, task.statut);
+                          const taskFrozen = isFrozen || task.statut === "termine";
                           return (
                             <div key={task.id} className={`flex items-center gap-2 rounded-lg border bg-background px-3 py-2 group ${
+                              taskFrozen && task.statut === "termine" ? "border-emerald-500/20 bg-emerald-50/5" :
                               taskDateStatus.status === "overdue" ? "border-destructive/30" :
                               taskDateStatus.status === "exceeds" ? "border-orange-400/30" :
                               "border-border/30"
                             }`}>
-                              {canEdit ? (
-                                <button
-                                  className={`shrink-0 ${ts.class}`}
-                                  onClick={async () => {
-                                    const next = task.statut === "a_faire" ? "en_cours" : task.statut === "en_cours" ? "termine" : "a_faire";
-                                    const av = next === "termine" ? 100 : next === "en_cours" ? 50 : 0;
-                                    await updateTask(task.id, { statut: next, avancement: av });
-                                    // Recalc after state updates
-                                    setTimeout(() => recalcActionFromTasks(action.id), 300);
-                                  }}
-                                >
-                                  <TaskIcon className="h-4 w-4" />
-                                </button>
+                              {canEdit && !isFrozen ? (
+                                task.statut === "termine" ? (
+                                  // Terminated task — icon click reopens it
+                                  <button
+                                    className={`shrink-0 ${ts.class}`}
+                                    onClick={async () => {
+                                      await updateTask(task.id, { statut: "en_cours", avancement: 50 });
+                                      await recalcActionFromTasks(action.id);
+                                    }}
+                                  >
+                                    <TaskIcon className="h-4 w-4" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    className={`shrink-0 ${ts.class}`}
+                                    onClick={async () => {
+                                      const next = task.statut === "a_faire" ? "en_cours" : "termine";
+                                      const av = next === "termine" ? 100 : 50;
+                                      await updateTask(task.id, { statut: next, avancement: av });
+                                      await recalcActionFromTasks(action.id);
+                                    }}
+                                  >
+                                    <TaskIcon className="h-4 w-4" />
+                                  </button>
+                                )
                               ) : (
                                 <TaskIcon className={`h-4 w-4 shrink-0 ${ts.class}`} />
                               )}
                               <span className={`text-sm flex-1 ${task.statut === "termine" ? "line-through text-muted-foreground" : ""}`}>
                                 {task.title}
                               </span>
-                              {canEdit && (
-                              <Select value={task.responsable_id ?? "none"} onValueChange={(v) => updateTask(task.id, { responsable_id: v === "none" ? null : v })}>
+                              {canEdit && !isFrozen && task.statut !== "termine" && (
+                                <Select value={task.responsable_id ?? "none"} onValueChange={(v) => updateTask(task.id, { responsable_id: v === "none" ? null : v })}>
                                   <SelectTrigger className="h-6 w-32 text-[10px] border-dashed"><SelectValue placeholder="Resp." /></SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="none">Non assigné</SelectItem>
@@ -638,7 +737,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                                   </SelectContent>
                                 </Select>
                               )}
-                              {canEdit ? (
+                              {!canEdit || isFrozen || task.statut === "termine" ? (
+                                task.responsable_id && <span className="text-[10px] text-muted-foreground">{getActeurLabel(task.responsable_id)}</span>
+                              ) : null}
+                              {canEdit && !isFrozen && task.statut !== "termine" ? (
                                 <Input
                                   type="date"
                                   className={`h-6 w-28 text-[10px] border-dashed ${taskDateStatus.status !== "ok" ? "border-orange-400/60" : ""}`}
@@ -651,7 +753,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                               )}
                               <DateIndicator echeance={task.echeance} statut={task.statut} />
                               <span className="text-[10px] text-muted-foreground w-8 text-right">{task.avancement}%</span>
-                              {canDelete && (
+                              {canDelete && !isFrozen && task.statut !== "termine" && (
                                 <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive">
                                   <Trash2 className="h-3 w-3" />
                                 </button>
@@ -661,8 +763,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                         })}
                       </div>
 
-                      {/* Add task */}
-                      {canEdit && (
+                      {/* Add task — hidden if frozen */}
+                      {canEdit && !isFrozen && (
                         <div className="flex gap-2">
                           <Input
                             placeholder="Nouvelle tâche..."
@@ -715,6 +817,28 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
           </Button>
         </div>
       )}
+
+      {/* Confirm close action dialog */}
+      <AlertDialog open={!!confirmCloseActionId} onOpenChange={(o) => !o && setConfirmCloseActionId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              Confirmer la clôture de l'action
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Une fois terminée, l'action sera <span className="font-semibold">figée</span> : statut, responsables, échéances et tâches ne seront plus modifiables. Seul un utilisateur autorisé pourra la rouvrir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCloseAction} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+              Terminer et figer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Deadline change confirmation dialog */}
       <Dialog open={!!deadlineDialog?.open} onOpenChange={(o) => !o && setDeadlineDialog(null)}>
