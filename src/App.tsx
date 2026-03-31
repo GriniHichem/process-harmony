@@ -128,6 +128,7 @@ const App = () => (
               <Route path="/super-admin" element={<ProtectedPage><RoleGuard allowedRoles={["super_admin"]}><SuperAdmin /></RoleGuard></ProtectedPage>} />
               <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
             </Routes>
+            </LicenseProvider>
           </AppSettingsProvider>
         </AuthProvider>
       </BrowserRouter>
