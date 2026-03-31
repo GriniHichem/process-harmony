@@ -18,6 +18,7 @@ import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
+import { LinkedActionDetails } from "@/components/projects/LinkedActionDetails";
 
 type Risk = {
   id: string;
@@ -328,6 +329,9 @@ export default function Risques() {
                     <RiskMoyensActions riskId={r.id} canEdit={canEditActions} />
                     <div className="border-t pt-4">
                       <RiskIncidents riskId={r.id} canEdit={canEditActions} />
+                    </div>
+                    <div className="border-t pt-4">
+                      <LinkedActionDetails entityType="risk" entityId={r.id} />
                     </div>
                   </div>
                 )}

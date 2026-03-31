@@ -19,6 +19,7 @@ import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
+import { LinkedActionDetails } from "@/components/projects/LinkedActionDetails";
 
 type IndicatorType = "activite" | "resultat" | "perception" | "interne";
 type Indicator = { id: string; nom: string; formule: string | null; unite: string | null; cible: number | null; seuil_alerte: number | null; frequence: string; process_id: string; type_indicateur: IndicatorType; moyens?: string | null };
@@ -358,6 +359,9 @@ export default function Indicateurs() {
 
         {/* Moyens & Actions */}
         <IndicatorMoyensActions indicatorId={selectedIndicator.id} moyens={null} canEdit={canCreate} onMoyensUpdate={() => {}} />
+
+        {/* Linked project actions */}
+        <LinkedActionDetails entityType="indicator" entityId={selectedIndicator.id} />
 
         {/* Chart */}
         {!isOnlyActeur && (

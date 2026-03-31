@@ -17,6 +17,7 @@ import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
+import { LinkedActionDetails } from "@/components/projects/LinkedActionDetails";
 import { NcMoyensActions } from "@/components/NcMoyensActions";
 import { RootCauseAnalysis } from "@/components/RootCauseAnalysis";
 
@@ -356,6 +357,7 @@ export default function NonConformites() {
                       <p className="text-sm whitespace-pre-wrap">{detailNC.resultats_actions || "Non renseignés"}</p>
                     </div>
                   </div>
+                  <LinkedActionDetails entityType="nonconformity" entityId={detailNC.id} />
                 </TabsContent>
               </Tabs>
             </>

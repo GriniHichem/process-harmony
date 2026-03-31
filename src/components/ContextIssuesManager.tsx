@@ -16,6 +16,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useActeurs } from "@/hooks/useActeurs";
 import { ActeurUserSelect } from "@/components/ActeurUserSelect";
 import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
+import { LinkedActionDetails } from "@/components/projects/LinkedActionDetails";
 
 interface ContextIssue {
   id: string;
@@ -381,6 +382,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
                           </TableBody>
                         </Table>
                       )}
+                      <LinkedActionDetails entityType="context_issue" entityId={issue.id} />
                     </CardContent>
                   </CollapsibleContent>
                 </Collapsible>
