@@ -1,44 +1,116 @@
 
 
-# Déplacer Notifications & Documents config vers Administration
+# Refonte UI — Navigation par Navbar + Page Modules style Odoo
 
-## Ce qui change
+## Vue d'ensemble
 
-### 1. Sidebar — `AppSidebar.tsx`
-Ajouter 2 entrées dans `adminItems` (section Administration existante) :
+Supprimer la sidebar latérale, la remplacer par une navbar horizontale en haut, et créer une page "Modules" avec des blocs/cartes visuelles organisés par catégorie. Chaque page interne garde la navbar en haut sans sidebar.
+
+## Architecture de navigation
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  NAVBAR (sticky top)                                        │
+│  [Logo] [Accueil] [Modules ▼] [Notifications] [Paramètres] │
+│                                    [Search] [Profile ▼]     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│                    PAGE CONTENT                              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
-{ title: "Config. notifications", url: "/admin/notifications", icon: Bell, module: "notifications" }
-{ title: "Config. documents", url: "/admin/documents-config", icon: FolderOpen, module: "gestion_documentaire" }
+
+## Phase 1 — Navbar horizontale (`AppNavbar.tsx`)
+
+Nouveau composant remplaçant `AppSidebar` + `SidebarProvider` :
+
+- **Logo + App name** à gauche
+- **Liens principaux** : Accueil, Modules (lien vers `/modules`)
+- **Dropdown "Modules"** au hover/click : groupes (Processus, Manager, Pilotage SMQ, Audit, Administration) avec sous-liens filtrés par permissions
+- **Actions droite** : GlobalSearch, NotificationBell, HeaderHelpButton, DarkModeToggle, AccessibilityToggle, profil dropdown (nom, rôle, mot de passe, déconnexion)
+- **Mobile** : hamburger menu avec sheet/drawer
+- Style : `bg-card/95 backdrop-blur-lg border-b shadow-md`, hauteur ~56px
+
+## Phase 2 — Page Modules (`/modules`)
+
+Nouvelle page `src/pages/Modules.tsx` :
+
+- Grille de **blocs modules** groupés par catégorie
+- Chaque catégorie = titre section avec icône
+- Chaque bloc module :
+  - Icône (grande, colorée dans un cercle gradient)
+  - Nom du module
+  - Description courte (1 ligne)
+  - Hover : `scale(1.02)`, ombre portée, bordure primary subtile
+  - Click : `navigate(url)`
+- Filtré par `hasPermission(module, "can_read")`
+- Responsive : 4 colonnes desktop, 3 tablette, 2 mobile
+
+**Groupes de modules** (réutilisant les mêmes données que la sidebar actuelle) :
+- Principal : Dashboard, Acteurs, Évaluation processus
+- Processus : Processus, Cartographie, BPMN, Gestion documentaire
+- Manager processus : Dashboard Indicateurs, Indicateurs, Risques, Incidents, Enjeux
+- Pilotage SMQ : Politique qualité, Revue processus, Revue direction, Compétences, Satisfaction, Fournisseurs
+- Audit & Amélioration : Dashboard Audit, Audits, NC, Actions, Journal
+- Administration : Utilisateurs, Groupes, Permissions, Config notifications, Config documents
+
+## Phase 3 — Refactoring `AppLayout.tsx`
+
+- Retirer `SidebarProvider`, `AppSidebar`, `SidebarTrigger`
+- Remplacer par `<AppNavbar />` en haut
+- Layout simplifié : `<div className="min-h-screen flex flex-col"> <AppNavbar /> <main className="flex-1 p-6">{children}</main> </div>`
+
+## Phase 4 — Route `/modules`
+
+Dans `App.tsx` :
+- Ajouter route `/modules` → `<Modules />`
+- Le Dashboard (`/`) reste tel quel comme page d'accueil avec KPIs
+
+## Phase 5 — Nettoyage
+
+- Retirer `AppSidebar.tsx` (ou le garder inutilisé pour rollback)
+- Retirer les imports sidebar dans `AppLayout.tsx`
+- CSS : pas de changement majeur, les variables existantes et le design system sont conservés
+
+## Détails techniques
+
+### `AppNavbar.tsx` — Structure
+```typescript
+// Navbar items reprennent exactement les mêmes groupes que AppSidebar
+// Dropdown "Modules" via Popover ou NavigationMenu de shadcn
+// Profile dropdown via DropdownMenu
+// Mobile : Sheet avec menu accordéon
 ```
 
-### 2. Permissions — `defaultPermissions.ts`
-- Ajouter `"notifications"` et `"gestion_documentaire"` dans `AppModule`, `ALL_MODULES`, `MODULE_LABELS`
-- Définir dans `DEFAULT_PERMISSIONS` : rmq = ALL_TRUE, autres rôles = NONE
-- Cela les fait apparaître automatiquement dans la matrice AdminPermissions
+### Bloc module — Style
+```typescript
+<div className="group relative bg-card border border-border/50 rounded-xl p-6 
+  cursor-pointer transition-all duration-200 
+  hover:shadow-lg hover:border-primary/30 hover:scale-[1.02]">
+  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 
+    flex items-center justify-center mb-4 group-hover:from-primary/20 group-hover:to-accent/20">
+    <Icon className="h-6 w-6 text-primary" />
+  </div>
+  <h3 className="font-semibold text-foreground">{title}</h3>
+  <p className="text-sm text-muted-foreground mt-1">{description}</p>
+</div>
+```
 
-### 3. Nouvelles routes — `App.tsx`
-- `/admin/notifications` → page avec `NotificationConfigMatrix` (scope global) protégée par `RoleGuard requiredModule="notifications"`
-- `/admin/documents-config` → page avec DocumentConfigTab (types, tags, permissions acteurs) protégée par `RoleGuard requiredModule="gestion_documentaire"`
-
-### 4. Nouvelles pages
-- `src/pages/AdminNotificationsConfig.tsx` : encapsule `NotificationConfigMatrix` avec mode read-only si `!hasPermission("notifications", "can_edit")`
-- `src/pages/AdminDocumentsConfig.tsx` : encapsule le contenu DocumentConfigTab de SuperAdmin avec mode read-only si `!hasPermission("gestion_documentaire", "can_edit")`
-
-### 5. SuperAdmin — `SuperAdmin.tsx`
-Retirer les onglets "Notifications" et "Documents". Il ne reste que : Identité, Logos, Email/SMTP (3 onglets).
-
-### 6. Mode lecture seule pour Admin
-- Admin a `can_read` par défaut sur ces 2 modules mais pas `can_edit`
-- Les pages affichent les données mais tous les boutons d'action et inputs sont `disabled` sans `can_edit`
-
-## Fichiers modifiés
+## Fichiers
 
 | Fichier | Action |
 |---|---|
-| `src/lib/defaultPermissions.ts` | +2 modules |
-| `src/pages/AdminNotificationsConfig.tsx` | Nouveau |
-| `src/pages/AdminDocumentsConfig.tsx` | Nouveau |
-| `src/pages/SuperAdmin.tsx` | Retirer 2 onglets |
-| `src/components/AppSidebar.tsx` | +2 items dans adminItems |
-| `src/App.tsx` | +2 routes admin |
+| `src/components/AppNavbar.tsx` | **Nouveau** — navbar horizontale |
+| `src/pages/Modules.tsx` | **Nouveau** — page modules en blocs |
+| `src/components/AppLayout.tsx` | Refactoré — navbar au lieu de sidebar |
+| `src/App.tsx` | +1 route `/modules` |
+| `src/components/AppSidebar.tsx` | Plus utilisé (conservé pour rollback) |
+
+## Contraintes respectées
+
+- Pas de sidebar latérale
+- Design system existant conservé (CSS variables, glass-card, etc.)
+- Permissions respectées sur chaque bloc module
+- Responsive desktop + tablette
+- Navigation professionnelle ERP-style
 
