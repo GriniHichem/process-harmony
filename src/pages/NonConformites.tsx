@@ -264,7 +264,7 @@ export default function NonConformites() {
                   </DialogTitle>
                {canEdit && detailNC.statut !== "cloturee" && (
                     <div className="flex items-center gap-4 pr-8">
-                      <Button variant="outline" size="sm" onClick={() => { setEditNC({ ...detailNC }); setDetailNC(null); }}>
+                      <Button variant="outline" size="sm" onClick={() => { setOriginalStatut(detailNC.statut); setEditNC({ ...detailNC }); setDetailNC(null); }}>
                         <Pencil className="mr-2 h-4 w-4" /> Modifier
                       </Button>
                       {canDelete && (
