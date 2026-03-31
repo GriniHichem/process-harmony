@@ -24,6 +24,7 @@ const ENTITY_TYPES = [
   { value: "fournisseur", label: "Fournisseur", color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" },
   { value: "satisfaction", label: "Satisfaction client", color: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200" },
   { value: "competence", label: "Compétence", color: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200" },
+  { value: "projet", label: "Plan d'action", color: "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200" },
 ] as const;
 
 type EntityType = (typeof ENTITY_TYPES)[number]["value"];
@@ -98,6 +99,10 @@ function useEntityOptions(type: EntityType) {
         case "competence": {
           const { data } = await supabase.from("competences").select("id, competence").order("competence");
           return (data || []).map(r => ({ id: r.id, label: r.competence }));
+        }
+        case "projet": {
+          const { data } = await supabase.from("projects").select("id, title, statut").order("title");
+          return (data || []).map(r => ({ id: r.id, label: `${r.title} (${r.statut})` }));
         }
         default:
           return [];
