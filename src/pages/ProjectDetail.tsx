@@ -8,12 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target, History, CalendarClock } from "lucide-react";
 import { ProjectForm } from "@/components/projects/ProjectForm";
 import { ProjectActionsList } from "@/components/projects/ProjectActionsList";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
+import { format, parseISO, differenceInDays } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface Project {
   id: string;
