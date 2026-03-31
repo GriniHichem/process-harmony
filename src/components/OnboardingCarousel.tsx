@@ -116,8 +116,7 @@ export function OnboardingCarousel({ onComplete }: { onComplete: () => void }) {
       {/* Card */}
       <div
         key={current}
-        className={`relative w-[90vw] max-w-3xl rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br ${slide.gradient} animate-scale-in`}
-        style={{ animationDuration: "0.35s" }}
+        className={`relative w-[90vw] max-w-3xl rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br ${slide.gradient} transition-all duration-300`}
       >
         <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]" />
 
