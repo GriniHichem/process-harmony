@@ -14,10 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw, Pin, PinOff, EyeOff, Eye, Filter, ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
-import { format, differenceInDays, parseISO, isAfter } from "date-fns";
+import { format, differenceInDays, parseISO, isAfter, isBefore, addDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface ProjectAction {
@@ -34,6 +34,7 @@ interface ProjectAction {
   avancement: number;
   ordre: number;
   multi_tasks: boolean;
+  pinned: boolean;
 }
 
 interface ProjectTask {
@@ -135,6 +136,12 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   // Confirm close action dialog
   const [confirmCloseActionId, setConfirmCloseActionId] = useState<string | null>(null);
 
+  // Filters
+  const [filterStatut, setFilterStatut] = useState("all");
+  const [hideTerminees, setHideTerminees] = useState(false);
+  const [filterEcheance, setFilterEcheance] = useState("all");
+  const [sortBy, setSortBy] = useState("ordre");
+
   const fetchActions = async () => {
     const { data, error } = await supabase
       .from("project_actions")
@@ -142,7 +149,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       .eq("project_id", projectId)
       .order("ordre");
     if (error) { console.error("Fetch actions error:", error); toast.error("Erreur chargement actions: " + error.message); return; }
-    const acts = (data ?? []).map((d: any) => ({ ...d, multi_tasks: d.multi_tasks ?? false, responsable_id_2: d.responsable_id_2 ?? null, responsable_id_3: d.responsable_id_3 ?? null })) as ProjectAction[];
+    const acts = (data ?? []).map((d: any) => ({ ...d, multi_tasks: d.multi_tasks ?? false, pinned: d.pinned ?? false, responsable_id_2: d.responsable_id_2 ?? null, responsable_id_3: d.responsable_id_3 ?? null })) as ProjectAction[];
     setActions(acts);
 
     const r2 = new Set<string>();
@@ -396,6 +403,50 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     return <p className="text-sm text-muted-foreground py-4">Vous n'avez pas la permission de consulter les actions.</p>;
   }
 
+  const isOverdue = (a: ProjectAction) => {
+    if (!a.echeance || a.statut === "terminee") return false;
+    return isBefore(parseISO(a.echeance), startOfDay(new Date()));
+  };
+
+  const isWithinDays = (dateStr: string | null, days: number) => {
+    if (!dateStr) return false;
+    const d = parseISO(dateStr);
+    const today = startOfDay(new Date());
+    return !isBefore(d, today) && isBefore(d, addDays(today, days + 1));
+  };
+
+  const getFilteredActions = () => {
+    return actions
+      .filter(a => {
+        if (hideTerminees && a.statut === "terminee") return false;
+        if (filterStatut !== "all" && filterStatut !== "en_retard" && a.statut !== filterStatut) return false;
+        if (filterStatut === "en_retard" && !isOverdue(a)) return false;
+        if (filterEcheance === "overdue" && !isOverdue(a)) return false;
+        if (filterEcheance === "this_week" && !isWithinDays(a.echeance, 7)) return false;
+        if (filterEcheance === "this_month" && !isWithinDays(a.echeance, 30)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        // Pinned first
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // Then by sortBy
+        if (sortBy === "echeance") {
+          if (!a.echeance && !b.echeance) return 0;
+          if (!a.echeance) return 1;
+          if (!b.echeance) return -1;
+          return a.echeance.localeCompare(b.echeance);
+        }
+        if (sortBy === "created_at") return 0; // DB already ordered
+        return a.ordre - b.ordre;
+      });
+  };
+
+  const togglePin = async (action: ProjectAction) => {
+    await updateAction(action.id, { pinned: !action.pinned });
+    toast.success(action.pinned ? "Action désépinglée" : "Action épinglée comme prioritaire");
+  };
+
   const DateIndicator = ({ echeance, statut }: { echeance: string | null; statut: string }) => {
     const ds = getDateStatus(echeance, projectDeadline, statut);
     if (ds.status === "ok" || !echeance) return null;
@@ -457,7 +508,73 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         </div>
       )}
 
-      {actions.map((action) => {
+      {/* Filter bar */}
+      {actions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/30 bg-muted/10 px-3 py-2">
+          <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+
+          <Select value={filterStatut} onValueChange={setFilterStatut}>
+            <SelectTrigger className="h-7 w-[120px] text-[11px] border-border/40">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous statuts</SelectItem>
+              <SelectItem value="planifiee">📋 Planifiée</SelectItem>
+              <SelectItem value="en_cours">🔄 En cours</SelectItem>
+              <SelectItem value="terminee">✅ Terminée</SelectItem>
+              <SelectItem value="en_retard">⚠️ En retard</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterEcheance} onValueChange={setFilterEcheance}>
+            <SelectTrigger className="h-7 w-[130px] text-[11px] border-border/40">
+              <SelectValue placeholder="Échéance" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes dates</SelectItem>
+              <SelectItem value="overdue">🔴 En retard</SelectItem>
+              <SelectItem value="this_week">📅 Cette semaine</SelectItem>
+              <SelectItem value="this_month">📆 Ce mois</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-7 w-[120px] text-[11px] border-border/40">
+              <ArrowUpDown className="h-3 w-3 mr-1" />
+              <SelectValue placeholder="Tri" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ordre">Ordre manuel</SelectItem>
+              <SelectItem value="echeance">Échéance</SelectItem>
+              <SelectItem value="created_at">Date création</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant={hideTerminees ? "default" : "outline"}
+            size="sm"
+            className="h-7 text-[11px] gap-1 px-2.5"
+            onClick={() => setHideTerminees(!hideTerminees)}
+          >
+            {hideTerminees ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            {hideTerminees ? "Terminées masquées" : "Masquer terminées"}
+          </Button>
+
+          {/* Active filter count */}
+          {(() => {
+            const filteredActions = getFilteredActions();
+            const hasFilters = filterStatut !== "all" || filterEcheance !== "all" || hideTerminees;
+            if (!hasFilters) return null;
+            return (
+              <Badge variant="outline" className="text-[10px] h-5 ml-auto">
+                {filteredActions.length}/{actions.length} actions
+              </Badge>
+            );
+          })()}
+        </div>
+      )}
+
+      {getFilteredActions().map((action) => {
         const tasks = tasksMap[action.id] ?? [];
         const isOpen = expanded === action.id;
         const st = ACTION_STATUS[action.statut] ?? ACTION_STATUS.planifiee;
@@ -469,6 +586,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         return (
           <Collapsible key={action.id} open={isOpen} onOpenChange={() => setExpanded(isOpen ? null : action.id)}>
             <div className={`border rounded-xl overflow-hidden bg-card transition-colors ${
+              action.pinned ? "border-primary/40 border-l-4 border-l-primary" :
               isFrozen ? "border-emerald-500/40 bg-emerald-50/5" :
               actionDateStatus.status === "overdue" ? "border-destructive/40" :
               actionDateStatus.status === "exceeds" ? "border-orange-400/40" :
@@ -484,6 +602,11 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                       {action.multi_tasks && (
                         <Badge variant="outline" className="text-[9px] gap-1 h-4">
                           <ListTodo className="h-2.5 w-2.5" /> Multi-tâches
+                        </Badge>
+                      )}
+                      {action.pinned && (
+                        <Badge className="bg-primary/15 text-primary text-[9px] gap-1 h-4">
+                          <Pin className="h-2.5 w-2.5" /> Prioritaire
                         </Badge>
                       )}
                       {isFrozen && (
@@ -514,6 +637,14 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                       <Progress value={action.avancement} className="h-1.5" />
                       <span className="text-[10px] font-medium text-muted-foreground">{action.avancement}%</span>
                     </div>
+                    {canEdit && (
+                      <button
+                        className={`shrink-0 p-1 rounded transition-colors ${action.pinned ? "text-primary hover:text-primary/70" : "text-muted-foreground/40 hover:text-primary"}`}
+                        onClick={(e) => { e.stopPropagation(); togglePin(action); }}
+                      >
+                        {action.pinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
+                      </button>
+                    )}
                     <Badge className={`${st.class} text-[10px]`}>{st.label}</Badge>
                   </div>
                 </div>
