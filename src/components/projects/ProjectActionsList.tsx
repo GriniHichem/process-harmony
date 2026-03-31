@@ -136,6 +136,12 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   // Confirm close action dialog
   const [confirmCloseActionId, setConfirmCloseActionId] = useState<string | null>(null);
 
+  // Filters
+  const [filterStatut, setFilterStatut] = useState("all");
+  const [hideTerminees, setHideTerminees] = useState(false);
+  const [filterEcheance, setFilterEcheance] = useState("all");
+  const [sortBy, setSortBy] = useState("ordre");
+
   const fetchActions = async () => {
     const { data, error } = await supabase
       .from("project_actions")
