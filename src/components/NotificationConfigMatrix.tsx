@@ -15,6 +15,7 @@ const ENTITY_TYPES = [
   { key: "indicator_actions", label: "Actions indicateurs", category: "Indicateurs" },
   { key: "indicator_moyens", label: "Moyens indicateurs", category: "Indicateurs" },
   { key: "context_issue_actions", label: "Actions enjeux", category: "Contexte" },
+  { key: "nc_actions", label: "Actions NC", category: "Non-conformités" },
   { key: "process_tasks", label: "Tâches processus", category: "Processus" },
   { key: "processes", label: "Processus", category: "Processus" },
 ] as const;
