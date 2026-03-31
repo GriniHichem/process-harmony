@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw, Pin, PinOff, EyeOff, Eye, Filter, ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
+import { ProjectActionLinks } from "@/components/projects/ProjectActionLinks";
 import { format, differenceInDays, parseISO, isAfter, isBefore, addDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
