@@ -71,6 +71,8 @@ export default function NonConformites() {
   });
 
   const [deleteNC, setDeleteNC] = useState<NC | null>(null);
+  const [confirmClotureOpen, setConfirmClotureOpen] = useState(false);
+  const [originalStatut, setOriginalStatut] = useState<string>("");
 
   const canCreate = hasPermission("non_conformites", "can_edit");
   const canEdit = hasPermission("non_conformites", "can_edit");
