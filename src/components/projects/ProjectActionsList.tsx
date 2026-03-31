@@ -637,6 +637,14 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                       <Progress value={action.avancement} className="h-1.5" />
                       <span className="text-[10px] font-medium text-muted-foreground">{action.avancement}%</span>
                     </div>
+                    {canEdit && (
+                      <button
+                        className={`shrink-0 p-1 rounded transition-colors ${action.pinned ? "text-primary hover:text-primary/70" : "text-muted-foreground/40 hover:text-primary"}`}
+                        onClick={(e) => { e.stopPropagation(); togglePin(action); }}
+                      >
+                        {action.pinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
+                      </button>
+                    )}
                     <Badge className={`${st.class} text-[10px]`}>{st.label}</Badge>
                   </div>
                 </div>
