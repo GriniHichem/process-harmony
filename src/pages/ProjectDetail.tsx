@@ -340,6 +340,43 @@ export default function ProjectDetail() {
         onSaved={fetchProject}
         editProject={project}
       />
+
+      {/* Deadline logs history dialog */}
+      <Dialog open={logsOpen} onOpenChange={setLogsOpen}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Historique des modifications d'échéances
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {deadlineLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Aucune modification d'échéance enregistrée</p>
+            ) : (
+              deadlineLogs.map((log: any) => (
+                <div key={log.id} className="rounded-lg border border-border/30 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{log.entity_title}</span>
+                    <Badge variant="outline" className="text-[10px]">{log.entity_type === "action" ? "Action" : "Tâche"}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Badge variant="outline" className="text-destructive/80 border-destructive/20">{log.old_echeance ?? "—"}</Badge>
+                    <span className="text-muted-foreground">→</span>
+                    <Badge className="bg-primary/15 text-primary">{log.new_echeance ?? "—"}</Badge>
+                  </div>
+                  {log.reason && (
+                    <p className="text-xs text-muted-foreground italic">💬 {log.reason}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {format(parseISO(log.created_at), "dd MMM yyyy 'à' HH:mm", { locale: fr })}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
