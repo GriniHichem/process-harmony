@@ -118,7 +118,7 @@ export function OnboardingCarousel({ onComplete }: { onComplete: () => void }) {
         key={current}
         className={`relative w-[90vw] max-w-3xl rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br ${slide.gradient} transition-all duration-300`}
       >
-        <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-[2px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center px-8 py-14 md:py-20 min-h-[420px] justify-center gap-6">
           {/* Slide 1 — Welcome */}
