@@ -53,6 +53,8 @@ export default function ProjectDetail() {
   const [linkedProcesses, setLinkedProcesses] = useState<{ id: string; nom: string }[]>([]);
   const [linkedActors, setLinkedActors] = useState<{ id: string; fonction: string | null }[]>([]);
   const [ganttItems, setGanttItems] = useState<any[]>([]);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [deadlineLogs, setDeadlineLogs] = useState<any[]>([]);
 
   const canRead = hasPermission("actions", "can_read");
   const canReadDetail = hasPermission("actions", "can_read_detail");
