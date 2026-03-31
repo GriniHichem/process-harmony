@@ -134,6 +134,18 @@ export default function ProjectDetail() {
   useEffect(() => { fetchProject(); }, [projectId]);
   useEffect(() => { if (project) fetchGanttData(); }, [project, avancement]);
 
+  const fetchDeadlineLogs = async () => {
+    if (!projectId) return;
+    const { data } = await supabase
+      .from("project_deadline_logs")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setDeadlineLogs(data ?? []);
+    setLogsOpen(true);
+  };
+
   const handleDelete = async () => {
     if (!projectId) return;
     const { error } = await supabase.from("projects").delete().eq("id", projectId);
