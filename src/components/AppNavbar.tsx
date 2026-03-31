@@ -374,6 +374,8 @@ export function AppNavbar() {
             <p className="text-sm font-semibold text-foreground mt-1">{settings.app_version}</p>
             <p className="text-xs text-muted-foreground italic mt-3">{settings.app_description}</p>
             <div className="h-px bg-border/40 my-4" />
+            <LicenseAboutInfo />
+            <div className="h-px bg-border/40 my-4" />
             <p className="text-xs text-muted-foreground">{settings.info_copyright}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Développé par <span className="font-semibold text-foreground">{settings.info_credits}</span>
