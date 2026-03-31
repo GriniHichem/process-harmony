@@ -10,7 +10,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner";
 import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
-import { Select as ActeurSelect } from "@/components/ui/select";
 
 interface ProjectAction {
   id: string;
