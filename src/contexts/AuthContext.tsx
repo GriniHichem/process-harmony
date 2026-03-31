@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { isLicenseReadOnly } from "@/lib/licenseState";
 import {
   type AppModule,
   type PermissionLevel,
@@ -75,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasPermission = useCallback(
     (module: AppModule, level: PermissionLevel): boolean => {
       if (roles.length === 0 && customRoleIds.length === 0) return false;
+      // Block edit/delete when license expired
+      if (isLicenseReadOnly() && (level === "can_edit" || level === "can_delete")) return false;
       return getEffectivePermission(roles, module, level, permOverrides, customRoleIds, customRolePerms);
     },
     [roles, permOverrides, customRoleIds, customRolePerms]

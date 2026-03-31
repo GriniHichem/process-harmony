@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppSettingsProvider } from "@/contexts/AppSettingsContext";
+import { LicenseProvider } from "@/contexts/LicenseContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AppLayout } from "@/components/AppLayout";
@@ -79,6 +80,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <AppSettingsProvider>
+            <LicenseProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -126,6 +128,7 @@ const App = () => (
               <Route path="/super-admin" element={<ProtectedPage><RoleGuard allowedRoles={["super_admin"]}><SuperAdmin /></RoleGuard></ProtectedPage>} />
               <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
             </Routes>
+            </LicenseProvider>
           </AppSettingsProvider>
         </AuthProvider>
       </BrowserRouter>
