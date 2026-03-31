@@ -94,9 +94,11 @@ export default function AdminDocumentsConfig() {
   const upsertPerm = async (acteurId: string, field: string, value: any) => {
     const existing = getPermForActeur(acteurId);
     if (existing) {
-      await supabase.from("document_actor_permissions").update({ [field]: value } as any).eq("id", existing.id);
+      const { error } = await supabase.from("document_actor_permissions").update({ [field]: value } as any).eq("id", existing.id);
+      if (error) { toast.error("Erreur mise à jour : " + error.message); return; }
     } else {
-      await supabase.from("document_actor_permissions").insert({ acteur_id: acteurId, [field]: value } as any);
+      const { error } = await supabase.from("document_actor_permissions").insert({ acteur_id: acteurId, [field]: value } as any);
+      if (error) { toast.error("Erreur création : " + error.message); return; }
     }
     fetchAll();
   };
