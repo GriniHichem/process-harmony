@@ -2431,7 +2431,9 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          objectives: Json | null
           resources: string | null
+          resources_list: Json | null
           slogan: string | null
           statut: string
           title: string
@@ -2445,7 +2447,9 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          objectives?: Json | null
           resources?: string | null
+          resources_list?: Json | null
           slogan?: string | null
           statut?: string
           title: string
@@ -2459,7 +2463,9 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          objectives?: Json | null
           resources?: string | null
+          resources_list?: Json | null
           slogan?: string | null
           statut?: string
           title?: string

@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
+import { ElementNotes } from "@/components/ElementNotes";
 
 interface ProjectAction {
   id: string;
@@ -54,26 +55,28 @@ interface Props {
   projectId: string;
   canEdit: boolean;
   canDelete: boolean;
+  canReadDetail?: boolean;
   onProgressChange: (avancement: number) => void;
 }
 
-export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressChange }: Props) {
+export function ProjectActionsList({ projectId, canEdit, canDelete, canReadDetail = true, onProgressChange }: Props) {
   const [actions, setActions] = useState<ProjectAction[]>([]);
   const [tasksMap, setTasksMap] = useState<Record<string, ProjectTask[]>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState<string | null>(null);
   const [newActionTitle, setNewActionTitle] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState<Record<string, string>>({});
   const { acteurs, getActeurLabel } = useActeurs();
 
   const fetchActions = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("project_actions")
       .select("*")
       .eq("project_id", projectId)
       .order("ordre");
+    if (error) { console.error("Fetch actions error:", error); toast.error("Erreur chargement actions: " + error.message); return; }
     const acts = (data ?? []) as ProjectAction[];
     setActions(acts);
-    // Fetch all tasks for all actions
     if (acts.length > 0) {
       const { data: tasks } = await supabase
         .from("project_tasks")
@@ -86,11 +89,8 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressCh
         map[t.action_id].push(t as ProjectTask);
       });
       setTasksMap(map);
-      // Compute project avancement
-      if (acts.length > 0) {
-        const avg = Math.round(acts.reduce((s, a) => s + a.avancement, 0) / acts.length);
-        onProgressChange(avg);
-      }
+      const avg = Math.round(acts.reduce((s, a) => s + a.avancement, 0) / acts.length);
+      onProgressChange(avg);
     } else {
       setTasksMap({});
       onProgressChange(0);
@@ -102,14 +102,20 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressCh
   const addAction = async () => {
     if (!newActionTitle.trim()) return;
     const ordre = actions.length;
-    const { error } = await supabase.from("project_actions").insert({
+    const payload: any = {
       project_id: projectId,
       title: newActionTitle.trim(),
       ordre,
-    });
-    if (error) { toast.error(error.message); return; }
+      statut: "planifiee",
+      avancement: 0,
+    };
+    const { error } = await supabase.from("project_actions").insert(payload);
+    if (error) {
+      console.error("Insert action error:", error);
+      toast.error("Erreur création action: " + error.message);
+      return;
+    }
     setNewActionTitle("");
-    // Also add default task
     toast.success("Action ajoutée");
     fetchActions();
   };
@@ -118,12 +124,19 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressCh
     const title = newTaskTitle[actionId]?.trim();
     if (!title) return;
     const existing = tasksMap[actionId] ?? [];
-    const { error } = await supabase.from("project_tasks").insert({
+    const payload: any = {
       action_id: actionId,
       title,
       ordre: existing.length,
-    });
-    if (error) { toast.error(error.message); return; }
+      statut: "a_faire",
+      avancement: 0,
+    };
+    const { error } = await supabase.from("project_tasks").insert(payload);
+    if (error) {
+      console.error("Insert task error:", error);
+      toast.error("Erreur création tâche: " + error.message);
+      return;
+    }
     setNewTaskTitle((p) => ({ ...p, [actionId]: "" }));
     toast.success("Tâche ajoutée");
     fetchActions();
@@ -155,17 +168,9 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressCh
     fetchActions();
   };
 
-  // Recalculate action avancement from tasks
-  const recalcActionProgress = async (actionId: string) => {
-    const tasks = tasksMap[actionId] ?? [];
-    if (tasks.length === 0) return;
-    const avg = Math.round(tasks.reduce((s, t) => s + t.avancement, 0) / tasks.length);
-    await updateAction(actionId, { avancement: avg });
-  };
-
-  const handleTaskAvancementChange = async (task: ProjectTask, val: number) => {
-    await updateTask(task.id, { avancement: val, statut: val >= 100 ? "termine" : val > 0 ? "en_cours" : "a_faire" });
-  };
+  if (!canReadDetail) {
+    return <p className="text-sm text-muted-foreground py-4">Vous n'avez pas la permission de consulter les actions.</p>;
+  }
 
   return (
     <div className="space-y-4">
@@ -254,16 +259,20 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressCh
                       const TaskIcon = ts.icon;
                       return (
                         <div key={task.id} className="flex items-center gap-2 rounded-lg border border-border/30 bg-background px-3 py-2 group">
-                          <button
-                            className={`shrink-0 ${ts.class}`}
-                            onClick={() => {
-                              const next = task.statut === "a_faire" ? "en_cours" : task.statut === "en_cours" ? "termine" : "a_faire";
-                              const av = next === "termine" ? 100 : next === "en_cours" ? 50 : 0;
-                              updateTask(task.id, { statut: next, avancement: av });
-                            }}
-                          >
-                            <TaskIcon className="h-4 w-4" />
-                          </button>
+                          {canEdit ? (
+                            <button
+                              className={`shrink-0 ${ts.class}`}
+                              onClick={() => {
+                                const next = task.statut === "a_faire" ? "en_cours" : task.statut === "en_cours" ? "termine" : "a_faire";
+                                const av = next === "termine" ? 100 : next === "en_cours" ? 50 : 0;
+                                updateTask(task.id, { statut: next, avancement: av });
+                              }}
+                            >
+                              <TaskIcon className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <TaskIcon className={`h-4 w-4 shrink-0 ${ts.class}`} />
+                          )}
                           <span className={`text-sm flex-1 ${task.statut === "termine" ? "line-through text-muted-foreground" : ""}`}>
                             {task.title}
                           </span>
@@ -294,6 +303,25 @@ export function ProjectActionsList({ projectId, canEdit, canDelete, onProgressCh
                       </Button>
                     </div>
                   )}
+
+                  {/* Comments / Notes */}
+                  <div className="pt-2 border-t border-border/20">
+                    <button
+                      onClick={() => setNotesOpen(notesOpen === action.id ? null : action.id)}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Commentaires
+                    </button>
+                    {notesOpen === action.id && (
+                      <div className="mt-2">
+                        <ElementNotes
+                          elementType="project_action"
+                          elementId={action.id}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CollapsibleContent>
             </div>
