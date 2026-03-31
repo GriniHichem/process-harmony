@@ -220,6 +220,39 @@ export default function SuperAdmin() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Forcer la présentation d'onboarding */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Presentation className="h-4 w-4" />
+                  Présentation d'accueil
+                </CardTitle>
+                <CardDescription>Relancer la présentation interactive pour tous les utilisateurs ou pour vous-même</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("force-onboarding"));
+                    toast.success("Présentation relancée");
+                  }}
+                >
+                  <Presentation className="h-4 w-4 mr-2" />
+                  Afficher la présentation
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    const keys = Object.keys(localStorage).filter(k => k.startsWith("qprocess_onboarding_seen_"));
+                    keys.forEach(k => localStorage.removeItem(k));
+                    toast.success(`Présentation réinitialisée pour ${keys.length} utilisateur(s)`);
+                  }}
+                >
+                  Réinitialiser pour tous les utilisateurs
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

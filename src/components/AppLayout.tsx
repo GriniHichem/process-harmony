@@ -15,6 +15,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         setShowOnboarding(true);
       }
     });
+
+    const forceShow = () => setShowOnboarding(true);
+    window.addEventListener("force-onboarding", forceShow);
+    return () => window.removeEventListener("force-onboarding", forceShow);
   }, []);
 
   const handleOnboardingComplete = () => {
