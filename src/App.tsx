@@ -24,6 +24,7 @@ const Risques = lazy(() => import("./pages/Risques"));
 const Audits = lazy(() => import("./pages/Audits"));
 const NonConformites = lazy(() => import("./pages/NonConformites"));
 const Actions = lazy(() => import("./pages/Actions"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Utilisateurs = lazy(() => import("./pages/Utilisateurs"));
 const Acteurs = lazy(() => import("./pages/Acteurs"));
@@ -105,6 +106,7 @@ const App = () => (
               <Route path="/audits" element={<ProtectedPage><RoleGuard requiredModule="audits"><Audits /></RoleGuard></ProtectedPage>} />
               <Route path="/non-conformites" element={<ProtectedPage><RoleGuard requiredModule="non_conformites"><NonConformites /></RoleGuard></ProtectedPage>} />
               <Route path="/actions" element={<ProtectedPage><RoleGuard requiredModule="actions"><Actions /></RoleGuard></ProtectedPage>} />
+              <Route path="/actions/:projectId" element={<ProtectedPage><RoleGuard requiredModule="actions"><ProjectDetail /></RoleGuard></ProtectedPage>} />
               <Route path="/journal" element={<ProtectedPage><RoleGuard requiredModule="journal"><Journal /></RoleGuard></ProtectedPage>} />
               {/* Administration */}
               <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard requiredModule="utilisateurs"><Utilisateurs /></RoleGuard></ProtectedPage>} />
