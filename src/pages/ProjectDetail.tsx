@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target } from "lucide-react";
 import { ProjectForm } from "@/components/projects/ProjectForm";
 import { ProjectActionsList } from "@/components/projects/ProjectActionsList";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
@@ -26,6 +26,8 @@ interface Project {
   date_debut: string | null;
   date_fin: string | null;
   created_by: string | null;
+  objectives: string[];
+  resources_list: string[];
 }
 
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
@@ -49,6 +51,8 @@ export default function ProjectDetail() {
   const [linkedActors, setLinkedActors] = useState<{ id: string; fonction: string | null }[]>([]);
   const [ganttItems, setGanttItems] = useState<any[]>([]);
 
+  const canRead = hasPermission("actions", "can_read");
+  const canReadDetail = hasPermission("actions", "can_read_detail");
   const canEdit = hasPermission("actions", "can_edit");
   const canDelete = hasPermission("actions", "can_delete");
 
@@ -56,17 +60,19 @@ export default function ProjectDetail() {
     if (!projectId) return;
     const { data, error } = await supabase.from("projects").select("*").eq("id", projectId).single();
     if (error || !data) { toast.error("Projet introuvable"); navigate("/actions"); return; }
-    setProject(data as Project);
+    setProject({
+      ...data,
+      objectives: Array.isArray(data.objectives) ? data.objectives : [],
+      resources_list: Array.isArray(data.resources_list) ? data.resources_list : [],
+    } as Project);
     setLoading(false);
 
-    // Fetch linked processes
     const { data: pp } = await supabase.from("project_processes").select("process_id").eq("project_id", projectId);
     if (pp && pp.length > 0) {
       const { data: procs } = await supabase.from("processes").select("id, nom").in("id", pp.map(p => p.process_id));
       setLinkedProcesses(procs ?? []);
     }
 
-    // Fetch linked actors
     const { data: pa } = await supabase.from("project_actors").select("acteur_id").eq("project_id", projectId);
     if (pa && pa.length > 0) {
       const { data: acts } = await supabase.from("acteurs").select("id, fonction").in("id", pa.map(a => a.acteur_id));
@@ -140,7 +146,6 @@ export default function ProjectDetail() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 page-enter">
-      {/* Back button */}
       <Button variant="ghost" size="sm" onClick={() => navigate("/actions")} className="text-muted-foreground">
         <ArrowLeft className="h-4 w-4 mr-1" /> Retour aux projets
       </Button>
@@ -203,25 +208,51 @@ export default function ProjectDetail() {
       <Tabs defaultValue="actions" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-          <TabsTrigger value="actions">Actions & Tâches</TabsTrigger>
-          <TabsTrigger value="planning">Planning</TabsTrigger>
+          {canReadDetail && <TabsTrigger value="actions">Actions & Tâches</TabsTrigger>}
+          {canReadDetail && <TabsTrigger value="planning">Planning</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="overview">
           <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="p-5 space-y-3">
-                <h3 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Description</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.description || "Aucune description"}</p>
-                {project.resources && (
-                  <>
-                    <h4 className="font-medium text-sm mt-4">Ressources</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.resources}</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
             <div className="space-y-4">
+              <Card>
+                <CardContent className="p-5 space-y-3">
+                  <h3 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Description</h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{project.description || "Aucune description"}</p>
+                </CardContent>
+              </Card>
+
+              {/* Objectifs */}
+              {project.objectives.length > 0 && (
+                <Card>
+                  <CardContent className="p-5 space-y-2">
+                    <h3 className="font-semibold flex items-center gap-2"><Target className="h-4 w-4" /> Objectifs</h3>
+                    <ul className="space-y-1">
+                      {project.objectives.map((obj, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <span className="text-primary mt-1">•</span>
+                          <span>{obj}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {/* Ressources */}
+              {project.resources_list.length > 0 && (
+                <Card>
+                  <CardContent className="p-5 space-y-2">
+                    <h3 className="font-semibold flex items-center gap-2">📦 Ressources</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.resources_list.map((r, i) => <Badge key={i} variant="outline">{r}</Badge>)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardContent className="p-5 space-y-2">
                   <h3 className="font-semibold flex items-center gap-2"><Network className="h-4 w-4" /> Processus liés</h3>
@@ -250,18 +281,23 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
 
-        <TabsContent value="actions">
-          <ProjectActionsList
-            projectId={projectId!}
-            canEdit={canEdit}
-            canDelete={canDelete}
-            onProgressChange={setAvancement}
-          />
-        </TabsContent>
+        {canReadDetail && (
+          <TabsContent value="actions">
+            <ProjectActionsList
+              projectId={projectId!}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              canReadDetail={canReadDetail}
+              onProgressChange={setAvancement}
+            />
+          </TabsContent>
+        )}
 
-        <TabsContent value="planning">
-          <ProjectGanttChart items={ganttItems} />
-        </TabsContent>
+        {canReadDetail && (
+          <TabsContent value="planning">
+            <ProjectGanttChart items={ganttItems} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <ProjectForm
