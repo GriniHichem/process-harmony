@@ -1,67 +1,61 @@
 
 
-# Évolution des Actions — Mode simple / multi-tâches + Multi-responsables
+# Corrections du module Actions — Contrôles de statut, gel et cohérence
 
-## Ce qui change
+## Problèmes identifiés
 
-### 1. Multi-responsables sur l'action (jusqu'à 3)
+1. **Pas de confirmation pour "Terminée"** — Le statut peut être changé à "Terminée" sans message de confirmation, contrairement à la logique métier attendue.
 
-Ajouter 2 colonnes à `project_actions` :
-- `responsable_id_2` uuid nullable FK → acteurs
-- `responsable_id_3` uuid nullable FK → acteurs
+2. **Action terminée reste modifiable** — Une action marquée "Terminée" n'est pas gelée : on peut encore modifier ses champs, tâches, responsables, etc.
 
-L'UI affiche jusqu'à 3 sélecteurs de responsable côte à côte. Le premier est obligatoire quand on assigne, les 2 suivants optionnels.
+3. **Multi-tâches : action terminée sans toutes les tâches terminées** — On peut forcer le statut "Terminée" sur l'action même si des tâches sont encore en cours ou à faire.
 
-### 2. Mode action simple vs multi-tâches
+4. **recalcActionFromTasks utilise un setTimeout fragile** — Après mise à jour d'une tâche, le recalcul de l'action utilise `setTimeout(300ms)` avec des données potentiellement périmées (stale `tasksMap`).
 
-Ajouter une colonne `multi_tasks` boolean DEFAULT false à `project_actions`.
+5. **Slider avancement en mode simple : pas de sauvegarde explicite** — Les modifications sont envoyées immédiatement (ok), mais aucun feedback visuel de confirmation.
 
-**Mode simple (par défaut)** : l'action n'a pas de tâches visibles. L'avancement et le statut se gèrent directement sur l'action. La zone tâches est masquée, remplacée par un slider d'avancement simple.
+## Corrections prévues
 
-**Mode multi-tâches** : activé via un toggle/switch. Une fois activé, la zone tâches apparaît. L'avancement de l'action = moyenne des avancements des tâches. Les tâches héritent par défaut de l'échéance de l'action à la création. Chaque tâche a son propre responsable (un seul) et sa propre échéance.
+### 1. Confirmation pour terminer une action
+- Quand l'utilisateur sélectionne le statut "terminee" dans le Select, intercepter et afficher un `AlertDialog` de confirmation : "Confirmer la clôture de cette action ? Une fois terminée, l'action sera figée."
+- Si multi-tâches et que des tâches ne sont pas toutes "termine", bloquer avec un message d'erreur toast : "Toutes les tâches doivent être terminées avant de clôturer l'action."
 
-### 3. Comportement du toggle multi-tâches
+### 2. Gel de l'action terminée
+- Quand `action.statut === "terminee"` :
+  - Masquer le slider d'avancement
+  - Désactiver les sélecteurs de responsable, date, toggle multi-tâches
+  - Masquer les boutons d'ajout de tâche et de suppression
+  - Afficher un bandeau vert "Action terminée — figée" avec une icône CheckCircle2
+  - Seul un utilisateur avec `canEdit` peut "rouvrir" l'action (bouton pour remettre en "en_cours")
+- Les tâches terminées (`statut === "termine"`) sont aussi figées individuellement (pas de toggle de statut, pas de modification)
 
-- Quand on **active** le mode : une première tâche est créée automatiquement avec le titre de l'action et l'échéance de l'action.
-- Quand on **désactive** le mode : confirmation demandée si des tâches existent, elles seront supprimées.
-- Le toggle n'est visible que si `canEdit` est true.
+### 3. Contrôle multi-tâches avant clôture
+- Dans le handler de changement de statut, si `multi_tasks === true` et `statut cible === "terminee"` :
+  - Vérifier que toutes les tâches ont `statut === "termine"`
+  - Si non → `toast.error("Toutes les tâches doivent être terminées")` et annuler
+  - Si oui → afficher le dialog de confirmation
 
-## Migration SQL
+### 4. Fix recalcActionFromTasks
+- Au lieu du `setTimeout`, refetch les tâches depuis la DB puis recalculer :
+  ```typescript
+  const recalcActionFromTasks = async (actionId: string) => {
+    const { data: freshTasks } = await supabase
+      .from("project_tasks").select("*").eq("action_id", actionId);
+    if (!freshTasks || freshTasks.length === 0) return;
+    const avg = Math.round(freshTasks.reduce((s, t) => s + t.avancement, 0) / freshTasks.length);
+    const statut = avg === 100 ? "terminee" : avg > 0 ? "en_cours" : "planifiee";
+    await updateAction(actionId, { avancement: avg, statut });
+  };
+  ```
 
-```sql
-ALTER TABLE project_actions
-  ADD COLUMN IF NOT EXISTS multi_tasks boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS responsable_id_2 uuid REFERENCES acteurs(id),
-  ADD COLUMN IF NOT EXISTS responsable_id_3 uuid REFERENCES acteurs(id);
-```
+### 5. Contrôles supplémentaires
+- **Date de début obligatoire avant "en_cours"** — Si on passe en "en_cours" sans `date_debut`, toast d'avertissement
+- **Empêcher suppression d'action terminée** — Masquer le bouton supprimer si `statut === "terminee"`
+- **Avancement cohérent avec statut** — Si avancement slider atteint 100%, proposer la confirmation de clôture au lieu de juste changer silencieusement
 
-## Modifications UI — `ProjectActionsList.tsx`
+## Fichier modifié
 
-### Zone responsables (dans le bloc inline edit de l'action)
-- 3 sélecteurs côte à côte : "Responsable 1", "Responsable 2 (opt.)", "Responsable 3 (opt.)"
-- Compact : les 2 et 3 apparaissent avec un bouton "+" pour les révéler, et un "×" pour les vider
-
-### Toggle multi-tâches
-- Un `Switch` avec label "Multi-tâches" dans la barre d'édition de l'action
-- Quand off : afficher un slider `<input type="range">` pour l'avancement (0-100) directement sur l'action
-- Quand on : afficher la liste des tâches + ajout, l'avancement est calculé automatiquement (lecture seule)
-
-### Tâches
-- À la création d'une tâche, `echeance` = `action.echeance` par défaut
-- Chaque tâche garde son sélecteur responsable unique et sa date
-
-## Modifications — `ProjectDetail.tsx` et `ProjectGanttChart.tsx`
-
-- Afficher les responsables supplémentaires dans la vue d'ensemble (badges)
-- Le Gantt montre les tâches uniquement si `multi_tasks` est activé
-
-## Fichiers modifiés
-
-| Fichier | Action |
+| Fichier | Changements |
 |---|---|
-| Migration SQL | +3 colonnes sur `project_actions` |
-| `ProjectActionsList.tsx` | Toggle multi-tâches, slider avancement, 3 responsables |
-| `ProjectDetail.tsx` | Affichage multi-responsables |
-| `ProjectGanttChart.tsx` | Conditionner affichage tâches |
-| Interfaces `ProjectAction` | +3 champs |
+| `ProjectActionsList.tsx` | Dialog confirmation clôture, gel UI action/tâche terminée, contrôle multi-tâches, fix recalc, contrôles cohérence |
 
