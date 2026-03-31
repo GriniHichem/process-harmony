@@ -84,9 +84,9 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
     if (!imageFile) return imageUrl;
     const ext = imageFile.name.split(".").pop();
     const path = `project-images/${projectId}/${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("documents").upload(path, imageFile, { upsert: true });
+    const { error } = await supabase.storage.from("branding").upload(path, imageFile, { upsert: true });
     if (error) { toast.error("Erreur upload image: " + error.message); return imageUrl; }
-    const { data: urlData } = supabase.storage.from("documents").getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from("branding").getPublicUrl(path);
     return urlData?.publicUrl ?? null;
   };
 
