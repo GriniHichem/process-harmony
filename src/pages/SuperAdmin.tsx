@@ -465,3 +465,188 @@ export default function SuperAdmin() {
   );
 }
 
+function LicenseTab({ form, handleChange }: { form: any; handleChange: (key: string, value: string) => void }) {
+  const { status, daysRemaining, activateLicense } = useLicense();
+  const [licenseCode, setLicenseCode] = useState("");
+  const [licenseExpiry, setLicenseExpiry] = useState(form.license_expires_at || "");
+  const [activating, setActivating] = useState(false);
+
+  const statusConfig = {
+    trial: { label: "Période d'essai", variant: "secondary" as const, color: "bg-blue-500/10 text-blue-700 border-blue-500/30" },
+    active: { label: "Active", variant: "default" as const, color: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30" },
+    grace: { label: "Période de grâce", variant: "outline" as const, color: "bg-amber-500/10 text-amber-700 border-amber-500/30" },
+    expired: { label: "Expirée", variant: "destructive" as const, color: "bg-destructive/10 text-destructive border-destructive/30" },
+  };
+
+  const cfg = statusConfig[status];
+
+  const handleActivate = async () => {
+    if (!licenseCode || !licenseExpiry) {
+      toast.error("Veuillez saisir le code de licence et la date d'expiration");
+      return;
+    }
+    setActivating(true);
+    try {
+      await activateLicense(licenseCode, licenseExpiry);
+      toast.success("Licence activée avec succès !");
+      setLicenseCode("");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* État actuel */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            État de la licence
+          </CardTitle>
+          <CardDescription>Statut actuel et informations de la licence</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Statut :</span>
+            <Badge className={cfg.color}>{cfg.label}</Badge>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Jours restants :</span>
+            <span className="text-lg font-bold">{daysRemaining}</span>
+          </div>
+          {form.license_activated_at && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Activée le :</span>
+              <span className="text-sm text-muted-foreground">{form.license_activated_at}</span>
+            </div>
+          )}
+          {form.license_expires_at && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Expire le :</span>
+              <span className="text-sm text-muted-foreground">{form.license_expires_at}</span>
+            </div>
+          )}
+          {form.license_key && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Clé :</span>
+              <code className="text-xs bg-muted px-2 py-1 rounded">
+                {form.license_key.slice(0, 4)}****{form.license_key.slice(-4)}
+              </code>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Activation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Key className="h-4 w-4" />
+            Activer / Renouveler la licence
+          </CardTitle>
+          <CardDescription>Saisissez votre code de licence (32 caractères) pour activer</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Code de licence</Label>
+            <Input
+              value={licenseCode}
+              onChange={(e) => setLicenseCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 32))}
+              placeholder="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              maxLength={32}
+              className="font-mono tracking-wider"
+            />
+            <p className="text-xs text-muted-foreground">
+              {licenseCode.length}/32 caractères
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Date d'expiration</Label>
+            <Input
+              type="date"
+              value={licenseExpiry}
+              onChange={(e) => setLicenseExpiry(e.target.value)}
+              min={format(new Date(), "yyyy-MM-dd")}
+            />
+          </div>
+          <Button
+            onClick={handleActivate}
+            disabled={activating || licenseCode.length !== 32 || !licenseExpiry}
+            className="w-full"
+          >
+            <Key className="h-4 w-4 mr-2" />
+            {activating ? "Activation..." : "Activer la licence"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Configuration période d'essai */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Période d'essai</CardTitle>
+          <CardDescription>Configurer la durée de la période d'essai</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Durée (jours)</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.license_trial_days}
+              onChange={(e) => handleChange("license_trial_days", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Date de début</Label>
+            <Input type="date" value={form.license_trial_start} disabled className="bg-muted" />
+            <p className="text-xs text-muted-foreground">Date de début de la période d'essai (automatique)</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Configuration alertes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Alertes & Grâce</CardTitle>
+          <CardDescription>Configurer les notifications avant expiration</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Alerte X jours avant expiration</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.license_alert_days_before}
+              onChange={(e) => handleChange("license_alert_days_before", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Intervalle des rappels (jours)</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.license_alert_interval_days}
+              onChange={(e) => handleChange("license_alert_interval_days", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Période de grâce (jours)</Label>
+            <Input
+              type="number"
+              min={1}
+              value={form.license_grace_days}
+              onChange={(e) => handleChange("license_grace_days", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Après expiration, l'application reste modifiable pendant cette période avec un avertissement.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
