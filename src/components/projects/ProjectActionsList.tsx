@@ -604,6 +604,11 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                           <ListTodo className="h-2.5 w-2.5" /> Multi-tâches
                         </Badge>
                       )}
+                      {action.pinned && (
+                        <Badge className="bg-primary/15 text-primary text-[9px] gap-1 h-4">
+                          <Pin className="h-2.5 w-2.5" /> Prioritaire
+                        </Badge>
+                      )}
                       {isFrozen && (
                         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[9px] gap-1 h-4">
                           <Lock className="h-2.5 w-2.5" /> Figée
