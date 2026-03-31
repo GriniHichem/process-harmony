@@ -127,6 +127,11 @@ export default function NonConformites() {
 
   const handleUpdate = async () => {
     if (!editNC) return;
+    // If changing to cloturee, show confirmation first
+    if (editNC.statut === "cloturee" && originalStatut !== "cloturee" && !confirmClotureOpen) {
+      setConfirmClotureOpen(true);
+      return;
+    }
     const { error } = await supabase.from("nonconformities").update({
       reference: editNC.reference,
       description: editNC.description,
@@ -144,7 +149,12 @@ export default function NonConformites() {
       resultats_actions: editNC.resultats_actions,
     }).eq("id", editNC.id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Non-conformité mise à jour");
+    if (editNC.statut === "cloturee" && originalStatut !== "cloturee") {
+      toast.success("Non-conformité clôturée définitivement. Aucune modification ne sera possible.");
+    } else {
+      toast.success("Non-conformité mise à jour");
+    }
+    setConfirmClotureOpen(false);
     setEditNC(null);
     fetchNCs();
   };
