@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
+import { useLicense } from "@/contexts/LicenseContext";
 import { useHelpMode } from "@/contexts/HelpModeContext";
 import { ROLE_LABELS, type AppRole, type AppModule } from "@/lib/defaultPermissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
@@ -26,6 +27,34 @@ import {
   ChevronDown, Grid3X3, Home, FolderKanban,
 } from "lucide-react";
 import defaultLogo from "@/assets/logo.jpg";
+
+function LicenseAboutInfo() {
+  const { status, daysRemaining } = useLicense();
+  const statusLabels: Record<string, string> = {
+    trial: "Période d'essai",
+    active: "Licence active",
+    grace: "Période de grâce",
+    expired: "Licence expirée",
+  };
+  const statusColors: Record<string, string> = {
+    trial: "text-blue-500",
+    active: "text-green-500",
+    grace: "text-amber-500",
+    expired: "text-destructive",
+  };
+  return (
+    <div className="text-xs space-y-1">
+      <p className="text-muted-foreground">
+        Licence : <span className={`font-semibold ${statusColors[status]}`}>{statusLabels[status]}</span>
+      </p>
+      {status !== "expired" && (
+        <p className="text-muted-foreground">
+          {status === "active" ? "Expire dans" : "Reste"} : <span className="font-semibold text-foreground">{daysRemaining} jour{daysRemaining > 1 ? "s" : ""}</span>
+        </p>
+      )}
+    </div>
+  );
+}
 
 type NavItem = { title: string; url: string; icon: any; module?: AppModule; description?: string };
 
@@ -372,6 +401,8 @@ export function AppNavbar() {
             <p className="text-sm text-muted-foreground">{settings.company_name}</p>
             <p className="text-sm font-semibold text-foreground mt-1">{settings.app_version}</p>
             <p className="text-xs text-muted-foreground italic mt-3">{settings.app_description}</p>
+            <div className="h-px bg-border/40 my-4" />
+            <LicenseAboutInfo />
             <div className="h-px bg-border/40 my-4" />
             <p className="text-xs text-muted-foreground">{settings.info_copyright}</p>
             <p className="text-xs text-muted-foreground mt-1">
