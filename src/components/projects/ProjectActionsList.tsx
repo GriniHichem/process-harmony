@@ -328,8 +328,12 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
   /** Reopen a closed action */
   const reopenAction = async (actionId: string) => {
-    await updateAction(actionId, { statut: "en_cours" });
-    toast.info("Action rouverte");
+    const action = actions.find(a => a.id === actionId);
+    const newAvancement = action?.multi_tasks
+      ? Math.min(action.avancement, 99) // keep calculated but cap below 100
+      : 50; // reset simple action to 50%
+    await updateAction(actionId, { statut: "en_cours", avancement: newAvancement });
+    toast.info("Action rouverte — avancement réinitialisé");
   };
 
   /** Toggle multi-tasks mode */
