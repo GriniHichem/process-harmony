@@ -101,7 +101,7 @@ export default function SuperAdmin() {
       </div>
 
       <Tabs defaultValue="branding" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
           <TabsTrigger value="branding" className="gap-2">
             <Paintbrush className="h-4 w-4" />
             <span className="hidden sm:inline">Identité</span>
@@ -113,6 +113,10 @@ export default function SuperAdmin() {
           <TabsTrigger value="email" className="gap-2">
             <Mail className="h-4 w-4" />
             <span className="hidden sm:inline">Email / SMTP</span>
+          </TabsTrigger>
+          <TabsTrigger value="license" className="gap-2">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">Licence</span>
           </TabsTrigger>
         </TabsList>
 
