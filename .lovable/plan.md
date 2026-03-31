@@ -1,93 +1,68 @@
 
 
-# Systeme de Licence — Super Admin
+# Présentation d'accueil interactive — Onboarding Carousel
 
 ## Vue d'ensemble
 
-Implementer un systeme complet de gestion de licence dans le Super Admin, avec periode d'essai, activation par code 32 caracteres, alertes configurables, et blocage global en mode lecture seule a l'expiration.
+Créer un carousel/slideshow premium qui s'affiche en plein écran lors de la première connexion de chaque utilisateur. Il présente l'application Q-Process, ses modules et avantages en 6 slides animées. L'utilisateur peut naviguer avec des flèches ou des dots, et un bouton "Commencer" sur le dernier slide ferme définitivement la présentation.
 
-## Cycle de vie de la licence
+## Mécanisme "première visite"
+
+- Stocker un flag `has_seen_onboarding` dans la table `profiles` (ou `localStorage` si on veut éviter une migration)
+- Option retenue : **`localStorage`** avec clé `qprocess_onboarding_seen_{userId}` — simple, pas de migration, fonctionne par utilisateur
+- Le composant se monte dans `AppLayout` après login, vérifie le flag, et s'affiche uniquement si absent
+
+## Slides (6 slides)
 
 ```text
-┌─────────────┐    ┌──────────────┐    ┌──────────────────┐    ┌─────────────┐
-│  Essai       │───>│  Licence     │───>│  Grace (1 mois)  │───>│  Bloquee    │
-│  (N jours)   │    │  Active      │    │  Alertes visibles│    │  Lecture    │
-│              │    │              │    │                  │    │  seule      │
-└─────────────┘    └──────────────┘    └──────────────────┘    └─────────────┘
-       │                                                              │
-       └──────────────── Code 32 chars ──────────────────────────────>│
-                         = Reactivation                               │
+Slide 1 — Bienvenue
+  Grande headline animée "Bienvenue sur Q-Process"
+  Sous-titre : "Votre système intégré ISO 9001"
+  Logo de l'entreprise, fond dégradé premium
+
+Slide 2 — Gestion des Processus
+  Icônes : Processus, Cartographie, BPMN, Documents
+  "Modélisez, documentez et pilotez vos processus"
+
+Slide 3 — Pilotage & Indicateurs  
+  Icônes : Indicateurs, Risques, Enjeux, Incidents
+  "Suivez vos KPIs, analysez vos risques"
+
+Slide 4 — Qualité & Conformité
+  Icônes : Audits, Non-conformités, Plans d'action
+  "Auditez, corrigez, améliorez en continu"
+
+Slide 5 — Pilotage SMQ
+  Icônes : Revues, Compétences, Satisfaction, Fournisseurs
+  "Pilotez votre SMQ de bout en bout"
+
+Slide 6 — C'est parti !
+  Bouton CTA "Commencer" avec animation
+  "Votre espace est prêt. Explorez vos modules."
 ```
 
-## Parametres stockes dans `app_settings`
+## Design premium
 
-| Cle | Defaut | Description |
-|---|---|---|
-| `license_mode` | `trial` | `trial`, `active`, `grace`, `expired` |
-| `license_key` | `""` | Code 32 caracteres d'activation |
-| `license_trial_days` | `30` | Duree periode d'essai en jours |
-| `license_trial_start` | date installation | Date debut essai |
-| `license_activated_at` | `""` | Date d'activation de la licence |
-| `license_expires_at` | `""` | Date expiration licence |
-| `license_alert_days_before` | `90` | Jours avant expiration pour notifier (defaut 3 mois) |
-| `license_alert_interval_days` | `7` | Frequence des rappels d'alerte |
-| `license_grace_days` | `30` | Duree du mois de grace apres expiration |
-
-## Implementation — 4 parties
-
-### 1. Migration SQL : valeurs par defaut licence
-
-Inserer les cles de licence dans `app_settings` avec les valeurs par defaut (trial_start = now()).
-
-### 2. Contexte Licence (`LicenseContext.tsx`)
-
-Nouveau contexte qui :
-- Lit les parametres licence depuis `AppSettings`
-- Calcule l'etat courant (`trial`, `active`, `grace`, `expired`) et les jours restants
-- Expose `isReadOnly` (true si `expired`), `licenseStatus`, `daysRemaining`, `alertMessage`
-- Expose `activateLicense(code: string)` qui valide le code (32 chars alphanumeriques), met a jour `license_mode = active`, `license_key`, `license_activated_at`
-- Logique de calcul :
-  - **Trial** : `trial_start + trial_days > now()` sinon passe en `grace`
-  - **Active** : `expires_at > now()` sinon passe en `grace`
-  - **Grace** : `expires_at + grace_days > now()` sinon `expired`
-  - **Expired** : mode lecture seule
-
-### 3. Blocage global en mode lecture seule
-
-- Wrapper dans `AppLayout` : si `isReadOnly`, afficher un bandeau permanent en haut "Licence expiree — Mode consultation uniquement"
-- Intercepter `hasPermission` dans `AuthContext` : si licence expiree, `can_edit`, `can_delete` retournent toujours `false`, seul `can_read` et `can_read_detail` restent actifs
-- Bloquer les notifications (ne pas envoyer de nouvelles notifications)
-
-### 4. Onglet "Licence" dans Super Admin
-
-Nouvel onglet avec :
-- **Etat actuel** : badge colore (Essai/Active/Grace/Expiree) + jours restants
-- **Configuration essai** : duree en jours
-- **Configuration alertes** : jours avant expiration, intervalle des rappels
-- **Duree de grace** : configurable
-- **Date d'expiration** : date picker pour la licence active
-- **Activation** : champ input 32 caracteres + bouton "Activer". Validation : exactement 32 chars alphanumeriques. Succes = toast + statut passe a `active`
-- **Bandeau d'alerte** visible dans toute l'app quand on est dans la zone d'alerte ou en grace
-
-## Alertes et messages
-
-| Phase | Message |
-|---|---|
-| Essai, X jours restants | "Periode d'essai : X jours restants" (bandeau bleu) |
-| Active, dans zone alerte | "Votre licence expire dans X jours" (bandeau jaune) |
-| Grace | "Licence expiree ! Les services seront bloques dans X jours" (bandeau orange) |
-| Expiree | "Licence expiree — Mode consultation uniquement. Activez votre licence." (bandeau rouge fixe) |
+- Fond overlay sombre avec glassmorphism
+- Chaque slide a un dégradé de couleur distinct (bleu, violet, emerald, rose, amber, primary)
+- Animations d'entrée avec `animate-in fade-in slide-in`
+- Dots de navigation en bas + flèches latérales
+- Progression visuelle (barre ou dots actifs)
+- Responsive : adapté mobile et desktop
+- Bouton "Passer" discret en haut à droite sur chaque slide
 
 ## Fichiers
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Insert cles licence dans `app_settings` |
-| `src/contexts/AppSettingsContext.tsx` | Ajouter les cles licence au type `AppSettings` |
-| `src/contexts/LicenseContext.tsx` | Nouveau — calcul statut, `isReadOnly`, activation |
-| `src/components/LicenseBanner.tsx` | Nouveau — bandeau d'alerte contextuel |
-| `src/components/AppLayout.tsx` | Integrer `LicenseBanner` |
-| `src/contexts/AuthContext.tsx` | Integrer `isReadOnly` pour bloquer edit/delete |
-| `src/pages/SuperAdmin.tsx` | Ajouter onglet "Licence" |
-| `src/App.tsx` | Wrapper `LicenseProvider` |
+| `src/components/OnboardingCarousel.tsx` | Nouveau — composant carousel complet avec les 6 slides |
+| `src/components/AppLayout.tsx` | Intégrer le carousel conditionnel après login |
+
+## Détails techniques
+
+- Pas de migration SQL nécessaire — `localStorage` par userId
+- Utilisation des icônes Lucide déjà importées dans le projet
+- Animations CSS avec Tailwind `animate-in`, `fade-in`, transitions custom
+- Le carousel est un overlay `fixed inset-0 z-[100]` au-dessus de tout
+- Settings `app_name`, `company_name`, `logo_url` lus depuis `useAppSettings()`
 
