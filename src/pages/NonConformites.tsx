@@ -478,6 +478,22 @@ export default function NonConformites() {
         title="Supprimer la non-conformité"
         description={`Supprimer définitivement ${deleteNC?.reference ?? ""} ? Cette action est irréversible.`}
       />
+
+      <AlertDialog open={confirmClotureOpen} onOpenChange={setConfirmClotureOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la clôture définitive</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir clôturer <strong>{editNC?.reference}</strong> ?
+              Cette action est irréversible : la non-conformité sera figée et aucune modification ne sera possible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUpdate}>Clôturer définitivement</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
