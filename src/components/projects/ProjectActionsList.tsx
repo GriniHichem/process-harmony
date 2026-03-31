@@ -679,6 +679,9 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                     </div>
                   )}
 
+                  {/* Entity links */}
+                  <ProjectActionLinks actionId={action.id} canEdit={canEdit && !isFrozen} />
+
                   {/* Action inline edit — disabled if frozen */}
                   {canEdit && !isFrozen && (
                     <div className="space-y-3">
