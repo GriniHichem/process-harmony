@@ -15,6 +15,7 @@ import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, ListPlus } from "lucid
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ActeurUserSelect } from "@/components/ActeurUserSelect";
+import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
 
 interface ContextIssue {
   id: string;

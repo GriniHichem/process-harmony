@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { RiskMoyensActions } from "@/components/RiskMoyensActions";
 import { RiskIncidents } from "@/components/RiskIncidents";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { LinkedProjectBadge } from "@/components/projects/LinkedProjectBadge";
 
 type Risk = {
   id: string;

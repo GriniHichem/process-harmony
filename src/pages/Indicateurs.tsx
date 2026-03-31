@@ -577,7 +577,8 @@ export default function Indicateurs() {
                 <h3 className="font-semibold text-foreground text-sm leading-snug mb-2 line-clamp-2">{ind.nom}</h3>
 
                 {/* Process name */}
-                <p className="text-xs text-muted-foreground mb-3 truncate">{getProcessName(ind.process_id)}</p>
+                <p className="text-xs text-muted-foreground mb-1 truncate">{getProcessName(ind.process_id)}</p>
+                <LinkedProjectBadge entityType="indicator" entityId={ind.id} />
 
                 {/* Metrics row */}
                 <div className="flex items-center gap-3 pt-3 border-t border-border/50">
