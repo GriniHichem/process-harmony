@@ -8,12 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target, History, CalendarClock } from "lucide-react";
 import { ProjectForm } from "@/components/projects/ProjectForm";
 import { ProjectActionsList } from "@/components/projects/ProjectActionsList";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
+import { format, parseISO, differenceInDays } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface Project {
   id: string;
@@ -50,6 +53,8 @@ export default function ProjectDetail() {
   const [linkedProcesses, setLinkedProcesses] = useState<{ id: string; nom: string }[]>([]);
   const [linkedActors, setLinkedActors] = useState<{ id: string; fonction: string | null }[]>([]);
   const [ganttItems, setGanttItems] = useState<any[]>([]);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [deadlineLogs, setDeadlineLogs] = useState<any[]>([]);
 
   const canRead = hasPermission("actions", "can_read");
   const canReadDetail = hasPermission("actions", "can_read_detail");
@@ -129,6 +134,18 @@ export default function ProjectDetail() {
   useEffect(() => { fetchProject(); }, [projectId]);
   useEffect(() => { if (project) fetchGanttData(); }, [project, avancement]);
 
+  const fetchDeadlineLogs = async () => {
+    if (!projectId) return;
+    const { data } = await supabase
+      .from("project_deadline_logs")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setDeadlineLogs(data ?? []);
+    setLogsOpen(true);
+  };
+
   const handleDelete = async () => {
     if (!projectId) return;
     const { error } = await supabase.from("projects").delete().eq("id", projectId);
@@ -194,7 +211,23 @@ export default function ProjectDetail() {
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             {project.date_debut && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {project.date_debut}</span>}
-            {project.date_fin && <span>→ {project.date_fin}</span>}
+            {project.date_fin && (
+              <span className="flex items-center gap-1">
+                → {project.date_fin}
+                {(() => {
+                  const today = new Date(); today.setHours(0, 0, 0, 0);
+                  const dl = parseISO(project.date_fin);
+                  const daysLeft = differenceInDays(dl, today);
+                  if (daysLeft < 0) return <Badge className="bg-destructive/15 text-destructive text-[10px] ml-1">En retard de {Math.abs(daysLeft)}j</Badge>;
+                  if (daysLeft <= 7) return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
+                  return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
+                })()}
+              </span>
+            )}
+            <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground ml-auto" onClick={fetchDeadlineLogs}>
+              <History className="h-3.5 w-3.5" />
+              Historique échéances
+            </Button>
           </div>
 
           <div className="flex items-center gap-3 max-w-md">
@@ -307,6 +340,43 @@ export default function ProjectDetail() {
         onSaved={fetchProject}
         editProject={project}
       />
+
+      {/* Deadline logs history dialog */}
+      <Dialog open={logsOpen} onOpenChange={setLogsOpen}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Historique des modifications d'échéances
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {deadlineLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Aucune modification d'échéance enregistrée</p>
+            ) : (
+              deadlineLogs.map((log: any) => (
+                <div key={log.id} className="rounded-lg border border-border/30 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{log.entity_title}</span>
+                    <Badge variant="outline" className="text-[10px]">{log.entity_type === "action" ? "Action" : "Tâche"}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Badge variant="outline" className="text-destructive/80 border-destructive/20">{log.old_echeance ?? "—"}</Badge>
+                    <span className="text-muted-foreground">→</span>
+                    <Badge className="bg-primary/15 text-primary">{log.new_echeance ?? "—"}</Badge>
+                  </div>
+                  {log.reason && (
+                    <p className="text-xs text-muted-foreground italic">💬 {log.reason}</p>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    {format(parseISO(log.created_at), "dd MMM yyyy 'à' HH:mm", { locale: fr })}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
