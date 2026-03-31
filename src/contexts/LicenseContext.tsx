@@ -116,6 +116,7 @@ export function LicenseProvider({ children }: { children: ReactNode }) {
   );
 
   const isReadOnly = status === "expired";
+  setLicenseReadOnly(isReadOnly);
 
   const activateLicense = useCallback(
     async (code: string, expiresAt: string) => {
