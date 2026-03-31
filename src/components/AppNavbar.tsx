@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSettings } from "@/contexts/AppSettingsContext";
+import { useLicense } from "@/contexts/LicenseContext";
 import { useHelpMode } from "@/contexts/HelpModeContext";
 import { ROLE_LABELS, type AppRole, type AppModule } from "@/lib/defaultPermissions";
 import { GlobalSearch } from "@/components/GlobalSearch";
