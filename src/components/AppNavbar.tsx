@@ -23,7 +23,7 @@ import {
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon,
   FolderOpen, BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList,
   Lock, Crown, TrendingUp, Bell, Menu, HelpCircle, Eye, EyeOff, KeyRound, Info,
-  ChevronRight, Grid3X3, Home,
+  ChevronDown, Grid3X3, Home,
 } from "lucide-react";
 import defaultLogo from "@/assets/logo.jpg";
 
@@ -105,8 +105,8 @@ function HeaderHelpButton() {
       <TooltipTrigger asChild>
         <Button
           variant={helpMode ? "default" : "ghost"}
-          size="sm"
-          className={`h-8 gap-1.5 ${helpMode ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground"}`}
+          size="icon"
+          className={`h-9 w-9 rounded-xl ${helpMode ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
           onClick={toggleHelpMode}
         >
           <HelpCircle className="h-4 w-4" />
@@ -145,58 +145,59 @@ export function AppNavbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 h-14 border-b border-border/40 bg-card/95 backdrop-blur-lg" style={{ boxShadow: "0 1px 3px 0 hsl(var(--foreground) / 0.04)" }}>
-        <div className="flex h-full items-center justify-between px-4 max-w-[1600px] mx-auto">
+      <header className="sticky top-0 z-50 border-b border-border/30 bg-card/80 backdrop-blur-xl" style={{ boxShadow: "var(--shadow-sm)" }}>
+        <div className="flex h-14 items-center justify-between px-4 lg:px-6 max-w-[1600px] mx-auto">
           {/* Left: Logo + Nav */}
-          <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2.5 shrink-0">
-              <img src={logoSrc} alt={settings.company_name} className="h-7 object-contain" />
+          <div className="flex items-center gap-5">
+            <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
+              <img src={logoSrc} alt={settings.company_name} className="h-7 object-contain transition-transform duration-200 group-hover:scale-105" />
               {settings.brand_logo_url && (
                 <img src={settings.brand_logo_url} alt="Logo marque" className="h-6 object-contain" />
               )}
               <span className="text-sm font-bold tracking-tight text-foreground hidden sm:inline">
                 {settings.app_name}
               </span>
-              <span className="text-[9px] font-semibold text-primary-foreground bg-primary/90 px-1.5 py-0.5 rounded-full leading-none hidden sm:inline">
+              <span className="text-[9px] font-bold text-primary-foreground bg-primary px-1.5 py-0.5 rounded-md leading-none hidden sm:inline">
                 SMQ
               </span>
             </Link>
 
-            <div className="h-5 w-px bg-border/50 hidden md:block" />
+            <div className="h-6 w-px bg-border/40 hidden md:block" />
 
             {/* Desktop nav links */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-0.5">
               <Link
                 to="/"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive("/") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+                className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive("/") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/40"}`}
               >
                 Accueil
               </Link>
 
               <Link
                 to="/modules"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive("/modules") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+                className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${isActive("/modules") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/40"}`}
               >
+                <Grid3X3 className="h-3.5 w-3.5" />
                 Modules
               </Link>
 
-              {/* Modules dropdown */}
+              {/* Navigation dropdown */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1">
+                  <button className="px-3.5 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200 flex items-center gap-1">
                     Navigation
-                    <ChevronRight className="h-3 w-3 rotate-90" />
+                    <ChevronDown className="h-3.5 w-3.5" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[520px] p-0" align="start" sideOffset={8}>
+                <PopoverContent className="w-[560px] p-0 rounded-xl border-border/40" align="start" sideOffset={8} style={{ boxShadow: "var(--shadow-xl)" }}>
                   <div className="grid grid-cols-2 gap-0 max-h-[70vh] overflow-y-auto">
                     {moduleGroups.map((group) => {
                       if (group.label === "Administration" && !showAdmin) return null;
                       const visible = filterItems(group.items);
                       if (visible.length === 0) return null;
                       return (
-                        <div key={group.label} className="p-3 border-b border-r border-border/30 last:border-b-0">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <div key={group.label} className="p-3 border-b border-r border-border/20 last:border-b-0">
+                          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5">
                             <group.icon className="h-3.5 w-3.5" />
                             {group.label}
                           </p>
@@ -205,10 +206,10 @@ export function AppNavbar() {
                               <button
                                 key={item.url}
                                 onClick={() => navigate(item.url)}
-                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${isActive(item.url) ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/60 hover:text-foreground"}`}
+                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-150 ${isActive(item.url) ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/50 hover:text-foreground"}`}
                               >
-                                <item.icon className="h-4 w-4 shrink-0" />
-                                {item.title}
+                                <item.icon className="h-4 w-4 shrink-0 opacity-70" />
+                                <span>{item.title}</span>
                               </button>
                             ))}
                           </div>
@@ -216,16 +217,16 @@ export function AppNavbar() {
                       );
                     })}
                     {showSuperAdmin && (
-                      <div className="p-3 border-b border-r border-border/30">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <div className="p-3 border-b border-r border-border/20">
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5">
                           <Crown className="h-3.5 w-3.5" />
                           Super Admin
                         </p>
                         <button
                           onClick={() => navigate("/super-admin")}
-                          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${isActive("/super-admin") ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/60"}`}
+                          className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-150 ${isActive("/super-admin") ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/50"}`}
                         >
-                          <Crown className="h-4 w-4" />
+                          <Crown className="h-4 w-4 opacity-70" />
                           Configuration
                         </button>
                       </div>
@@ -237,12 +238,12 @@ export function AppNavbar() {
           </div>
 
           {/* Center: Search */}
-          <div className="hidden lg:flex flex-1 justify-center max-w-xs mx-4">
+          <div className="hidden lg:flex flex-1 justify-center max-w-xs mx-6">
             <GlobalSearch />
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <div className="lg:hidden">
               <GlobalSearch />
             </div>
@@ -252,18 +253,18 @@ export function AppNavbar() {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setInfoOpen(true)}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground" onClick={() => setInfoOpen(true)}>
                   <Info className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>À propos</TooltipContent>
             </Tooltip>
 
-            <div className="flex items-center gap-px border border-border/40 rounded-md p-px bg-muted/30">
+            <div className="flex items-center gap-0.5 border border-border/30 rounded-xl p-0.5 bg-muted/20">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant={accessible ? "default" : "ghost"} size="icon" className="h-6 w-6 rounded-[5px]" onClick={toggleAccessible}>
-                    {accessible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  <Button variant={accessible ? "default" : "ghost"} size="icon" className="h-7 w-7 rounded-lg" onClick={toggleAccessible}>
+                    {accessible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{accessible ? "Désactiver le confort visuel" : "Confort visuel"}</TooltipContent>
@@ -271,13 +272,13 @@ export function AppNavbar() {
               <DarkModeToggle />
             </div>
 
-            <div className="h-5 w-px bg-border/40 mx-0.5" />
+            <div className="h-6 w-px bg-border/30 mx-1 hidden sm:block" />
 
             {/* Profile dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-muted/50 transition-colors">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-[11px] font-bold shadow-sm ring-2 ring-background">
+                <button className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-muted/40 transition-all duration-200">
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-[11px] font-bold shadow-sm">
                     {profile?.prenom?.[0] ?? ""}{profile?.nom?.[0] ?? ""}
                   </div>
                   <div className="text-right hidden lg:block">
@@ -286,20 +287,21 @@ export function AppNavbar() {
                       {roles.map(r => ROLE_LABELS[r as AppRole] || r).join(", ").replace(/_/g, " ")}
                     </p>
                   </div>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden lg:block" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel className="font-normal">
-                  <p className="text-sm font-medium">{profile?.prenom} {profile?.nom}</p>
+              <DropdownMenuContent align="end" className="w-52 rounded-xl" style={{ boxShadow: "var(--shadow-lg)" }}>
+                <DropdownMenuLabel className="font-normal px-3 py-2.5">
+                  <p className="text-sm font-semibold">{profile?.prenom} {profile?.nom}</p>
                   <p className="text-xs text-muted-foreground">{profile?.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
+                <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="px-3 py-2 rounded-lg mx-1 cursor-pointer">
                   <KeyRound className="mr-2 h-4 w-4" />
                   Modifier mot de passe
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive px-3 py-2 rounded-lg mx-1 cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Déconnexion
                 </DropdownMenuItem>
@@ -309,12 +311,12 @@ export function AppNavbar() {
             {/* Mobile hamburger */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden text-muted-foreground">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl md:hidden text-muted-foreground">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
-                <div className="p-4 border-b border-border/40">
+                <div className="p-4 border-b border-border/30">
                   <p className="font-bold text-foreground">{settings.app_name}</p>
                   <p className="text-xs text-muted-foreground">SMQ</p>
                 </div>
@@ -325,16 +327,16 @@ export function AppNavbar() {
                     if (visible.length === 0) return null;
                     return (
                       <div key={group.label}>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-1.5">
                           {group.label}
                         </p>
                         {visible.map((item) => (
                           <button
                             key={item.url}
                             onClick={() => { navigate(item.url); setMobileOpen(false); }}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${isActive(item.url) ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/50"}`}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${isActive(item.url) ? "bg-primary/10 text-primary font-medium" : "text-foreground/80 hover:bg-muted/40"}`}
                           >
-                            <item.icon className="h-4 w-4 shrink-0" />
+                            <item.icon className="h-4 w-4 shrink-0 opacity-70" />
                             {item.title}
                           </button>
                         ))}
@@ -343,12 +345,12 @@ export function AppNavbar() {
                   })}
                   {showSuperAdmin && (
                     <div>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">Super Admin</p>
+                      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-1.5">Super Admin</p>
                       <button
                         onClick={() => { navigate("/super-admin"); setMobileOpen(false); }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground/80 hover:bg-muted/50"
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-foreground/80 hover:bg-muted/40"
                       >
-                        <Crown className="h-4 w-4" />
+                        <Crown className="h-4 w-4 opacity-70" />
                         Configuration
                       </button>
                     </div>
@@ -362,15 +364,15 @@ export function AppNavbar() {
 
       {/* About dialog */}
       {infoOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setInfoOpen(false)}>
-          <div className="bg-card rounded-xl shadow-xl border border-border/50 max-w-sm w-full mx-4 p-6 text-center" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setInfoOpen(false)}>
+          <div className="bg-card rounded-2xl border border-border/40 max-w-sm w-full mx-4 p-8 text-center" style={{ boxShadow: "var(--shadow-xl)" }} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-3">
               {settings.app_name}
             </h2>
             <p className="text-sm text-muted-foreground">{settings.company_name}</p>
-            <p className="text-sm font-medium text-foreground mt-1">{settings.app_version}</p>
-            <p className="text-xs text-muted-foreground italic mt-2">{settings.app_description}</p>
-            <div className="h-px bg-border my-3" />
+            <p className="text-sm font-semibold text-foreground mt-1">{settings.app_version}</p>
+            <p className="text-xs text-muted-foreground italic mt-3">{settings.app_description}</p>
+            <div className="h-px bg-border/40 my-4" />
             <p className="text-xs text-muted-foreground">{settings.info_copyright}</p>
             <p className="text-xs text-muted-foreground mt-1">
               Développé par <span className="font-semibold text-foreground">{settings.info_credits}</span>
@@ -380,7 +382,7 @@ export function AppNavbar() {
                 Aide contextuelle par <span className="font-semibold text-foreground">{settings.info_credits_help}</span>
               </p>
             )}
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => setInfoOpen(false)}>Fermer</Button>
+            <Button variant="outline" size="sm" className="mt-5" onClick={() => setInfoOpen(false)}>Fermer</Button>
           </div>
         </div>
       )}
