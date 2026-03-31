@@ -78,6 +78,7 @@ const App = () => (
               <Route path="/survey/:token" element={<Suspense fallback={<PageLoader />}><SurveyPublicPage /></Suspense>} />
               {/* Principal */}
               <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
+              <Route path="/modules" element={<ProtectedPage><Modules /></ProtectedPage>} />
               <Route path="/acteurs" element={<ProtectedPage><RoleGuard requiredModule="acteurs"><Acteurs /></RoleGuard></ProtectedPage>} />
               {/* Processus */}
               <Route path="/processus" element={<ProtectedPage><RoleGuard requiredModule="processus"><Processus /></RoleGuard></ProtectedPage>} />
