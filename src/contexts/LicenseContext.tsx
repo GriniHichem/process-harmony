@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useCallback, ReactNode } from "react";
 import { useAppSettings, type AppSettings } from "@/contexts/AppSettingsContext";
+import { setLicenseReadOnly } from "@/lib/licenseState";
 import { differenceInDays, addDays, parseISO, isValid } from "date-fns";
 
 export type LicenseStatus = "trial" | "active" | "grace" | "expired";
