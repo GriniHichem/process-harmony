@@ -100,6 +100,10 @@ function useEntityOptions(type: EntityType) {
           const { data } = await supabase.from("competences").select("id, competence").order("competence");
           return (data || []).map(r => ({ id: r.id, label: r.competence }));
         }
+        case "projet": {
+          const { data } = await supabase.from("projects").select("id, title, statut").order("title");
+          return (data || []).map(r => ({ id: r.id, label: `${r.title} (${r.statut})` }));
+        }
         default:
           return [];
       }
