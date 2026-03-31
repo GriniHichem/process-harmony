@@ -229,56 +229,56 @@ export default function AdminDocumentsConfig() {
                         <Checkbox checked={perm?.can_delete ?? false} onCheckedChange={v => upsertPerm(act.id, "can_delete", !!v)} disabled={!canEdit} />
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value="__show__"
-                          disabled={!canEdit}
-                          onValueChange={v => {
-                            if (v === "__show__") return;
-                            const current = perm?.allowed_type_ids ?? [];
-                            const updated = current.includes(v) ? current.filter(x => x !== v) : [...current, v];
-                            upsertPerm(act.id, "allowed_type_ids", updated);
-                          }}
-                        >
-                          <SelectTrigger className="h-8 text-xs w-[140px]">
-                            <SelectValue>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 text-xs w-[140px] justify-between" disabled={!canEdit}>
                               {(perm?.allowed_type_ids?.length ?? 0) === 0 ? "Tous" : `${perm!.allowed_type_ids.length} type(s)`}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__show__" disabled>Sélectionner...</SelectItem>
+                              <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-2 space-y-1" align="start">
                             {types.filter(t => t.actif).map(t => (
-                              <SelectItem key={t.id} value={t.id}>
-                                {(perm?.allowed_type_ids ?? []).includes(t.id) ? "✓ " : ""}{t.label}
-                              </SelectItem>
+                              <label key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                                <Checkbox
+                                  checked={(perm?.allowed_type_ids ?? []).includes(t.id)}
+                                  onCheckedChange={() => {
+                                    const current = perm?.allowed_type_ids ?? [];
+                                    const updated = current.includes(t.id) ? current.filter(x => x !== t.id) : [...current, t.id];
+                                    upsertPerm(act.id, "allowed_type_ids", updated);
+                                  }}
+                                />
+                                {t.label}
+                              </label>
                             ))}
-                          </SelectContent>
-                        </Select>
+                            {types.filter(t => t.actif).length === 0 && <p className="text-xs text-muted-foreground p-2">Aucun type actif</p>}
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell>
-                        <Select
-                          value="__show__"
-                          disabled={!canEdit}
-                          onValueChange={v => {
-                            if (v === "__show__") return;
-                            const current = perm?.allowed_tag_ids ?? [];
-                            const updated = current.includes(v) ? current.filter(x => x !== v) : [...current, v];
-                            upsertPerm(act.id, "allowed_tag_ids", updated);
-                          }}
-                        >
-                          <SelectTrigger className="h-8 text-xs w-[140px]">
-                            <SelectValue>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 text-xs w-[140px] justify-between" disabled={!canEdit}>
                               {(perm?.allowed_tag_ids?.length ?? 0) === 0 ? "Tous" : `${perm!.allowed_tag_ids.length} tag(s)`}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__show__" disabled>Sélectionner...</SelectItem>
+                              <ChevronDown className="h-3 w-3 ml-1 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[200px] p-2 space-y-1" align="start">
                             {tags.map(t => (
-                              <SelectItem key={t.id} value={t.id}>
-                                {(perm?.allowed_tag_ids ?? []).includes(t.id) ? "✓ " : ""}{t.label}
-                              </SelectItem>
+                              <label key={t.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm">
+                                <Checkbox
+                                  checked={(perm?.allowed_tag_ids ?? []).includes(t.id)}
+                                  onCheckedChange={() => {
+                                    const current = perm?.allowed_tag_ids ?? [];
+                                    const updated = current.includes(t.id) ? current.filter(x => x !== t.id) : [...current, t.id];
+                                    upsertPerm(act.id, "allowed_tag_ids", updated);
+                                  }}
+                                />
+                                {t.label}
+                              </label>
                             ))}
-                          </SelectContent>
-                        </Select>
+                            {tags.length === 0 && <p className="text-xs text-muted-foreground p-2">Aucun tag</p>}
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                     </TableRow>
                   );
