@@ -382,6 +382,7 @@ export function ContextIssuesManager({ processId, canEdit, canDelete, userId, is
                           </TableBody>
                         </Table>
                       )}
+                      <LinkedActionDetails entityType="context_issue" entityId={issue.id} />
                     </CardContent>
                   </CollapsibleContent>
                 </Collapsible>
