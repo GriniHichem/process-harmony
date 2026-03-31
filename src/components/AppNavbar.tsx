@@ -79,7 +79,7 @@ const moduleGroups: { label: string; icon: any; items: NavItem[] }[] = [
       { title: "Tableau Audit/NC", url: "/dashboard-audit", icon: BarChart3, module: "audits", description: "Synthèse Audit & NC" },
       { title: "Audits", url: "/audits", icon: ClipboardCheck, module: "audits", description: "Planification et suivi" },
       { title: "Non-conformités", url: "/non-conformites", icon: XCircle, module: "non_conformites", description: "Traitement des NC" },
-      { title: "Actions", url: "/actions", icon: Zap, module: "actions", description: "Actions correctives" },
+      { title: "Plans d'action", url: "/actions", icon: FolderKanban, module: "actions", description: "Projets et plans d'action" },
       { title: "Journal d'activité", url: "/journal", icon: ScrollText, module: "journal", description: "Historique système" },
     ],
   },
