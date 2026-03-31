@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Settings, Upload, Eye, Save, Mail, Server, EyeOff, SendHorizonal, Paintbrush, Image, Shield, Key } from "lucide-react";
+import { Settings, Upload, Eye, Save, Mail, Server, EyeOff, SendHorizonal, Paintbrush, Image, Shield, Key, Presentation } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 import { format } from "date-fns";
 
