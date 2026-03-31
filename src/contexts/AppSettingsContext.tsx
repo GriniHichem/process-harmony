@@ -44,6 +44,15 @@ const DEFAULT_SETTINGS: AppSettings = {
   smtp_user: "",
   notif_email_enabled: "true",
   notif_rappel_jours_defaut: "3",
+  license_mode: "trial",
+  license_key: "",
+  license_trial_days: "30",
+  license_trial_start: new Date().toISOString().split("T")[0],
+  license_activated_at: "",
+  license_expires_at: "",
+  license_alert_days_before: "90",
+  license_alert_interval_days: "7",
+  license_grace_days: "30",
 };
 
 interface AppSettingsContextType {
