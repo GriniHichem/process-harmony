@@ -366,10 +366,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const ResponsableSelector = ({ actionId, field, value, label }: { actionId: string; field: string; value: string | null; label: string }) => (
     <div className="space-y-1">
       <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
-      <Select value={value ?? ""} onValueChange={(v) => updateAction(actionId, { [field]: v || null })}>
+      <Select value={value ?? "none"} onValueChange={(v) => updateAction(actionId, { [field]: v === "none" ? null : v })}>
         <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Assigner" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Non assigné</SelectItem>
+          <SelectItem value="none">Non assigné</SelectItem>
           {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -630,10 +630,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                                 {task.title}
                               </span>
                               {canEdit && (
-                                <Select value={task.responsable_id ?? ""} onValueChange={(v) => updateTask(task.id, { responsable_id: v || null })}>
+                              <Select value={task.responsable_id ?? "none"} onValueChange={(v) => updateTask(task.id, { responsable_id: v === "none" ? null : v })}>
                                   <SelectTrigger className="h-6 w-32 text-[10px] border-dashed"><SelectValue placeholder="Resp." /></SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">Non assigné</SelectItem>
+                                    <SelectItem value="none">Non assigné</SelectItem>
                                     {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
                                   </SelectContent>
                                 </Select>
