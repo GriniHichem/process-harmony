@@ -24,6 +24,7 @@ const Risques = lazy(() => import("./pages/Risques"));
 const Audits = lazy(() => import("./pages/Audits"));
 const NonConformites = lazy(() => import("./pages/NonConformites"));
 const Actions = lazy(() => import("./pages/Actions"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Utilisateurs = lazy(() => import("./pages/Utilisateurs"));
 const Acteurs = lazy(() => import("./pages/Acteurs"));

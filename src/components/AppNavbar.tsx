@@ -23,7 +23,7 @@ import {
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon,
   FolderOpen, BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList,
   Lock, Crown, TrendingUp, Bell, Menu, HelpCircle, Eye, EyeOff, KeyRound, Info,
-  ChevronDown, Grid3X3, Home,
+  ChevronDown, Grid3X3, Home, FolderKanban,
 } from "lucide-react";
 import defaultLogo from "@/assets/logo.jpg";
 

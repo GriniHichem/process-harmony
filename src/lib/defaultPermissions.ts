@@ -78,7 +78,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   fournisseurs: "Fournisseurs",
   audits: "Audits",
   non_conformites: "Non-conformités",
-  actions: "Actions",
+  actions: "Plans d'action",
   acteurs: "Acteurs",
   utilisateurs: "Utilisateurs",
   groupes_acteurs: "Groupes d'acteurs",
