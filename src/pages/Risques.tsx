@@ -328,10 +328,10 @@ export default function Risques() {
                   <div className="mt-4 border-t pt-4 space-y-6">
                     <RiskMoyensActions riskId={r.id} canEdit={canEditActions} />
                     <div className="border-t pt-4">
-                      <RiskIncidents riskId={r.id} canEdit={canEditActions} />
+                      <LinkedActionDetails entityType="risk" entityId={r.id} />
                     </div>
                     <div className="border-t pt-4">
-                      <LinkedActionDetails entityType="risk" entityId={r.id} />
+                      <RiskIncidents riskId={r.id} canEdit={canEditActions} />
                     </div>
                   </div>
                 )}
