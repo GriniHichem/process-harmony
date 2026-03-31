@@ -2237,6 +2237,7 @@ export type Database = {
           id: string
           multi_tasks: boolean
           ordre: number
+          pinned: boolean
           project_id: string
           responsable_id: string | null
           responsable_id_2: string | null
@@ -2255,6 +2256,7 @@ export type Database = {
           id?: string
           multi_tasks?: boolean
           ordre?: number
+          pinned?: boolean
           project_id: string
           responsable_id?: string | null
           responsable_id_2?: string | null
@@ -2273,6 +2275,7 @@ export type Database = {
           id?: string
           multi_tasks?: boolean
           ordre?: number
+          pinned?: boolean
           project_id?: string
           responsable_id?: string | null
           responsable_id_2?: string | null
