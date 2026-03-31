@@ -14,10 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw, Pin, PinOff, EyeOff, Eye, Filter, ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
-import { format, differenceInDays, parseISO, isAfter } from "date-fns";
+import { format, differenceInDays, parseISO, isAfter, isBefore, addDays, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface ProjectAction {
@@ -34,6 +34,7 @@ interface ProjectAction {
   avancement: number;
   ordre: number;
   multi_tasks: boolean;
+  pinned: boolean;
 }
 
 interface ProjectTask {
