@@ -464,7 +464,73 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         </div>
       )}
 
-      {actions.map((action) => {
+      {/* Filter bar */}
+      {actions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/30 bg-muted/10 px-3 py-2">
+          <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+
+          <Select value={filterStatut} onValueChange={setFilterStatut}>
+            <SelectTrigger className="h-7 w-[120px] text-[11px] border-border/40">
+              <SelectValue placeholder="Statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous statuts</SelectItem>
+              <SelectItem value="planifiee">📋 Planifiée</SelectItem>
+              <SelectItem value="en_cours">🔄 En cours</SelectItem>
+              <SelectItem value="terminee">✅ Terminée</SelectItem>
+              <SelectItem value="en_retard">⚠️ En retard</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterEcheance} onValueChange={setFilterEcheance}>
+            <SelectTrigger className="h-7 w-[130px] text-[11px] border-border/40">
+              <SelectValue placeholder="Échéance" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes dates</SelectItem>
+              <SelectItem value="overdue">🔴 En retard</SelectItem>
+              <SelectItem value="this_week">📅 Cette semaine</SelectItem>
+              <SelectItem value="this_month">📆 Ce mois</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-7 w-[120px] text-[11px] border-border/40">
+              <ArrowUpDown className="h-3 w-3 mr-1" />
+              <SelectValue placeholder="Tri" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ordre">Ordre manuel</SelectItem>
+              <SelectItem value="echeance">Échéance</SelectItem>
+              <SelectItem value="created_at">Date création</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant={hideTerminees ? "default" : "outline"}
+            size="sm"
+            className="h-7 text-[11px] gap-1 px-2.5"
+            onClick={() => setHideTerminees(!hideTerminees)}
+          >
+            {hideTerminees ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            {hideTerminees ? "Terminées masquées" : "Masquer terminées"}
+          </Button>
+
+          {/* Active filter count */}
+          {(() => {
+            const filteredActions = getFilteredActions();
+            const hasFilters = filterStatut !== "all" || filterEcheance !== "all" || hideTerminees;
+            if (!hasFilters) return null;
+            return (
+              <Badge variant="outline" className="text-[10px] h-5 ml-auto">
+                {filteredActions.length}/{actions.length} actions
+              </Badge>
+            );
+          })()}
+        </div>
+      )}
+
+      {getFilteredActions().map((action) => {
         const tasks = tasksMap[action.id] ?? [];
         const isOpen = expanded === action.id;
         const st = ACTION_STATUS[action.statut] ?? ACTION_STATUS.planifiee;
