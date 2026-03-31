@@ -460,7 +460,11 @@ export default function NonConformites() {
                   </>);
                 })()}
               </Tabs>
-              {editNC.statut !== "cloturee" && <Button onClick={handleUpdate} className="w-full mt-4">Enregistrer</Button>}
+              {originalStatut !== "cloturee" && (
+                <Button onClick={handleUpdate} className="w-full mt-4">
+                  {editNC.statut === "cloturee" ? "Clôturer définitivement" : "Enregistrer"}
+                </Button>
+              )}
             </>
           )}
         </DialogContent>
