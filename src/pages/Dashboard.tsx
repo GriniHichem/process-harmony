@@ -47,7 +47,7 @@ export default function Dashboard() {
   ];
 
   // --- Section 2: Project data ---
-  const projectStatusData = Object.entries(stats.projectsByStatus)
+  const projectStatusData = Object.entries(stats.projectsByStatus ?? {})
     .filter(([, v]) => v > 0)
     .map(([key, value]) => ({
       name: key === "en_cours" ? "En cours" : key === "termine" ? "Terminé" : key === "suspendu" ? "Suspendu" : "Planifié",
