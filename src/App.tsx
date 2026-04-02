@@ -41,6 +41,7 @@ const SatisfactionClient = lazy(() => import("./pages/SatisfactionClient"));
 const Fournisseurs = lazy(() => import("./pages/Fournisseurs"));
 const EvaluationProcessus = lazy(() => import("./pages/EvaluationProcessus"));
 const AdminPermissions = lazy(() => import("./pages/AdminPermissions"));
+const AdminProcessPermissions = lazy(() => import("./pages/AdminProcessPermissions"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const SurveyPublicPage = lazy(() => import("./pages/SurveyPublicPage"));
 const DashboardIndicateurs = lazy(() => import("./pages/DashboardIndicateurs"));
