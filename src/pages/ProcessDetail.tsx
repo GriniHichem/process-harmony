@@ -493,6 +493,11 @@ export default function ProcessDetail() {
         )}
       </Tabs>
 
+      {/* Process Comments */}
+      {canDetail && (
+        <ProcessComments processId={id!} canComment={canComment} canRead={canDetail} />
+      )}
+
       <PdfViewerDialog
         open={!!pdfViewerUrl}
         onOpenChange={(open) => {
