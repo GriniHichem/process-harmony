@@ -108,7 +108,8 @@ export default function ProcessDetail() {
     if (id) { fetch(); fetchElements(); fetchDocuments(); fetchUsers(); }
   }, [id, fetchElements, fetchDocuments]);
 
-  const canEdit = hasPermission("processus", "can_edit") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
+  const globalCanEdit = hasPermission("processus", "can_edit");
+  const canEdit = checkProcessPermission(id!, "can_edit", globalCanEdit) || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
   const isArchived = process?.statut === "archive";
   const isLockedStatus = process?.statut === "valide" || process?.statut === "en_validation";
   const canDelete = !isArchived && hasPermission("processus", "can_delete") && !isLockedStatus;
@@ -118,7 +119,9 @@ export default function ProcessDetail() {
   const effectiveCanEdit = canEdit && !isArchived && !isLockedForNonAdmin;
   const isRmqOnly = hasRole("rmq") && !hasRole("admin");
   const canChangeStatusEffective = canChangeStatus && !(isRmqOnly && (process?.statut === "valide"));
-  const canCreateNewVersion = hasRole("rmq") && process?.statut === "valide";
+  const canCreateNewVersion = checkProcessPermission(id!, "can_version", hasRole("rmq")) && process?.statut === "valide";
+  const canDetail = checkProcessPermission(id!, "can_detail", hasPermission("processus", "can_read_detail"));
+  const canComment = checkProcessPermission(id!, "can_comment", false);
 
   const [creatingVersion, setCreatingVersion] = useState(false);
   const [activityViewMode, setActivityViewMode] = useState<"list" | "flowchart">("list");
