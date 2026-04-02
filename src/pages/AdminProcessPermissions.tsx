@@ -258,7 +258,7 @@ export default function AdminProcessPermissions() {
         if (user) {
           await supabase.from("permission_audit_log").insert({
             changed_by: user.id,
-            target_role: p.role,
+            target_role: p.role as any,
             target_custom_role_id: p.custom_role_id,
             process_id: p.process_id,
             new_perms: {
@@ -268,7 +268,7 @@ export default function AdminProcessPermissions() {
               can_edit: p.can_edit,
               can_version: p.can_version,
             },
-          });
+          } as any);
         }
       }
 
