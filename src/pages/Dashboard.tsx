@@ -152,7 +152,7 @@ export default function Dashboard() {
                     <TableRow
                       key={proj.id}
                       className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/projects/${proj.id}`)}
+                      onClick={() => navigate(`/actions/${proj.id}`)}
                     >
                       <TableCell className="font-medium">{proj.title}</TableCell>
                       <TableCell className="text-center">{proj.actionCount}</TableCell>
