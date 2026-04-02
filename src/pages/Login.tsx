@@ -34,7 +34,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-3">
-          <img src={logoSrc} alt={settings.company_name} className="mx-auto h-14 object-contain" />
+          <img src={logoSrc} alt={settings.company_name} className="mx-auto h-14 object-contain" width={186} height={56} fetchPriority="high" />
           <CardTitle className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             {settings.app_name}
           </CardTitle>
