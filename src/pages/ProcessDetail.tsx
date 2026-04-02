@@ -16,6 +16,8 @@ import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 import { exportProcessPdf } from "@/lib/exportProcessPdf";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProcessPermissions } from "@/hooks/useProcessPermissions";
+import { ProcessComments } from "@/components/ProcessComments";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
