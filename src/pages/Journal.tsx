@@ -501,5 +501,3 @@ export default function Journal() {
   );
 }
 
-// Fragment import
-import { Fragment } from "react";
