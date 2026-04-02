@@ -69,6 +69,7 @@ export default function ProcessDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { hasRole, hasPermission, user } = useAuth();
+  const { checkProcessPermission } = useProcessPermissions();
   const [process, setProcess] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
