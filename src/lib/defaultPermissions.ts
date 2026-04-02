@@ -7,6 +7,8 @@
 
 export type PermissionLevel = "can_read" | "can_read_detail" | "can_edit" | "can_delete";
 
+export type ProcessPermissionLevel = "can_read" | "can_detail" | "can_comment" | "can_edit" | "can_version";
+
 export type AppModule =
   | "processus"
   | "cartographie"
