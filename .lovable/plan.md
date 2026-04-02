@@ -1,57 +1,119 @@
 
 
-# Dashboard Principal Avancé — KPIs Complets
+# Permissions Avancées par Processus
 
 ## Vue d'ensemble
 
-Transformer le dashboard actuel (7 KPI cards + 2 charts) en un tableau de bord complet couvrant tous les modules de l'application, avec les projets/plans d'action en vedette.
+Ajouter un système de permissions granulaires **par processus** en complément du système existant par rôle/module. Chaque rôle (standard ou personnalisé) pourra avoir des droits différents selon le processus, avec 5 niveaux : Lecture, Détail, Commenter, Modifier, Générer version.
 
-## Nouveaux KPIs à ajouter
+## Architecture
 
-### Projets / Plans d'action (nouveau)
-- **Projets actifs** : count `projects` avec statut `en_cours`
-- **Actions de projet en retard** : `project_actions` avec `echeance < now()` et statut != `terminee`
-- **Avancement moyen** : moyenne `avancement` des `project_actions` en cours
-- **Tâches de projet en retard** : `project_tasks` avec `echeance < now()` et statut != `terminee`
+```text
+Système actuel (conservé) :
+  role → module → can_read / can_read_detail / can_edit / can_delete
 
-### Modules existants non encore affichés
-- **Documents** : total `documents` (non archivés)
-- **Fournisseurs** : total `suppliers`
-- **Objectifs qualité** : total `quality_objectives`
-- **Enjeux contexte** : total `context_issues`
-- **Formations** : total `formations`
-- **Compétences évaluées** : total `competences`
-- **Satisfaction client** : total `client_surveys` publiées
-- **Revues de direction** : total `management_reviews`
+Nouveau système (ajouté) :
+  role → processus → can_read / can_detail / can_comment / can_edit / can_version
 
-## Nouvelle structure du Dashboard
+Logique de résolution :
+  1. Vérifier permissions processus-spécifiques (table process_role_permissions)
+  2. Si aucune → hériter des permissions globales du module "processus"
+  3. Admin/Super Admin → toujours tout
+```
 
-### Section 1 — KPI Cards (grille 4 colonnes)
-Toutes les cards existantes + nouvelles cards projets et modules. Chaque card reste cliquable vers son module.
+## Étapes d'implémentation
 
-### Section 2 — Projets / Plans d'action (nouveau bloc)
-- **Card large** avec mini-tableau des projets en cours : titre, nb actions, avancement (Progress bar), nb actions en retard
-- **Donut chart** : répartition des statuts de projet (en_cours, termine, suspendu)
+### Phase 1 — Base de données
 
-### Section 3 — Charts existants (améliorés)
-- Pie chart processus (inchangé)
-- Bar chart synthèse qualité (ajout projets en retard, documents)
+**Nouvelle table `process_role_permissions`** :
+- `id` UUID PK
+- `role` app_role (nullable — pour rôles standards)
+- `custom_role_id` UUID FK → custom_roles (nullable — pour rôles personnalisés)
+- `process_id` UUID FK → processes NOT NULL
+- `can_read` boolean default false
+- `can_detail` boolean default false
+- `can_comment` boolean default false
+- `can_edit` boolean default false
+- `can_version` boolean default false
+- `created_at`, `updated_at`
+- Contrainte UNIQUE sur (role, custom_role_id, process_id)
+- RLS : admin/super_admin/rmq full access, authenticated read
 
-### Section 4 — Vue rapide complémentaire (nouveau)
-- Mini-cards ou tableau compact pour : Documents, Fournisseurs, Objectifs, Formations, Satisfaction, Revues
+**Nouvelle table `process_comments`** (pour le niveau "commenter") :
+- `id` UUID PK
+- `process_id` UUID FK → processes
+- `user_id` UUID FK → profiles
+- `content` text NOT NULL
+- `created_at`
+- RLS : authenticated insert si can_comment, select si can_read
 
-## Fichiers modifiés
+**Table `permission_audit_log`** (historique des changements de droits) :
+- `id`, `changed_by` UUID, `target_role`, `target_custom_role_id`, `process_id`, `old_perms` JSONB, `new_perms` JSONB, `changed_at`
+
+### Phase 2 — Logique métier
+
+**Nouveau hook `useProcessPermissions.ts`** :
+- Charge les permissions processus-spécifiques pour l'utilisateur courant
+- Fonction `hasProcessPermission(processId, level)` qui résout : override processus → fallback global
+- Cache les résultats pour éviter des requêtes répétées
+
+**Mise à jour `AuthContext.tsx`** :
+- Exposer `hasProcessPermission(processId, level)` dans le contexte
+- Charger les process_role_permissions au login (batch)
+
+**Mise à jour `ProcessDetail.tsx`** :
+- Utiliser `hasProcessPermission` pour conditionner :
+  - Onglets visibles (Général = can_read, Indicateurs/Risques/Actions = can_detail)
+  - Bouton "Enregistrer" = can_edit
+  - Bouton "Nouvelle version" = can_version
+  - Section commentaires = can_comment
+  - Masquer/désactiver selon le niveau
+
+**Mise à jour `Processus.tsx`** :
+- Filtrer la liste selon can_read par processus
+
+### Phase 3 — Interface d'administration
+
+**Nouvelle page `AdminProcessPermissions.tsx`** :
+- Matrice : lignes = rôles (standards + personnalisés), colonnes = processus
+- Pour chaque cellule : 5 checkboxes (read/detail/comment/edit/version)
+- Filtres : par rôle, par type de processus, par statut
+- Actions :
+  - "Copier les droits" d'un rôle vers un autre
+  - "Appliquer un modèle" (lecture seule, accès complet, etc.)
+  - "Réinitialiser" (supprimer les overrides → retour à l'héritage global)
+- Badge visuel quand un processus a des permissions spécifiques vs héritage
+- Bouton "Prévisualiser" → simule la vue d'un rôle donné
+
+**Intégration dans la navigation** :
+- Nouveau lien dans la section Admin : "Permissions processus"
+- Ajout du module `"permissions_processus"` dans la matrice de modules
+
+### Phase 4 — Fonctionnalités avancées
+
+- **Historique des permissions** : table `permission_audit_log` consultable depuis l'interface admin
+- **Verrouillage versions publiées** : processus validé/archivé → can_edit automatiquement bloqué sauf can_version pour rôles autorisés
+- **Commentaires processus** : nouvelle section dans ProcessDetail, visible si can_detail, éditable si can_comment
+
+## Fichiers impactés
 
 | Fichier | Action |
 |---|---|
-| `src/hooks/useDashboardStats.ts` | Ajouter toutes les nouvelles requêtes Supabase (projects, project_actions, project_tasks, documents, suppliers, quality_objectives, context_issues, formations, competences, client_surveys, management_reviews) |
-| `src/pages/Dashboard.tsx` | Restructurer avec sections KPI, projets, charts, modules complémentaires. Ajouter RadialBarChart ou donut pour statuts projets |
+| Migration SQL | Créer `process_role_permissions`, `process_comments`, `permission_audit_log` + RLS |
+| `src/hooks/useProcessPermissions.ts` | **Nouveau** — logique de résolution des permissions processus |
+| `src/contexts/AuthContext.tsx` | Exposer `hasProcessPermission` |
+| `src/pages/AdminProcessPermissions.tsx` | **Nouveau** — interface matrice admin |
+| `src/pages/ProcessDetail.tsx` | Conditionner onglets/boutons par permission processus |
+| `src/pages/Processus.tsx` | Filtrer liste par can_read processus |
+| `src/lib/defaultPermissions.ts` | Ajouter type `ProcessPermissionLevel` |
+| `src/components/AppSidebar.tsx` | Ajouter lien "Permissions processus" |
+| `src/App.tsx` | Ajouter route `/admin/permissions-processus` |
+| `src/components/ProcessComments.tsx` | **Nouveau** — section commentaires processus |
 
-## Détails techniques
+## Règles de sécurité
 
-- Toutes les requêtes additionnelles dans le `Promise.all` existant du hook
-- Interface `DashboardStats` étendue avec ~15 nouveaux champs
-- Recharts : ajout `RadialBarChart` pour avancement projets, `PieChart` pour statuts projets
-- Cards projets avec `Progress` component pour avancement visuel
-- Responsive : sections en grille adaptative
+- RLS sur `process_role_permissions` : seuls admin/super_admin/rmq peuvent modifier
+- RLS sur `process_comments` : insert conditionné par permission can_comment (via security definer function)
+- Les permissions processus sont vérifiées côté serveur (RLS) ET côté client (hook)
+- Admin/Super Admin bypasse toujours toutes les restrictions
 
