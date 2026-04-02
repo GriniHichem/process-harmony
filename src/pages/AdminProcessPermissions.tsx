@@ -238,7 +238,7 @@ export default function AdminProcessPermissions() {
           const { data } = await supabase
             .from("process_role_permissions")
             .insert({
-              role: p.role,
+              role: p.role as any,
               custom_role_id: p.custom_role_id,
               process_id: p.process_id,
               can_read: p.can_read,
@@ -246,7 +246,7 @@ export default function AdminProcessPermissions() {
               can_comment: p.can_comment,
               can_edit: p.can_edit,
               can_version: p.can_version,
-            })
+            } as any)
             .select()
             .single();
           if (data) {
