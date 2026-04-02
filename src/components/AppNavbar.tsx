@@ -119,6 +119,7 @@ const moduleGroups: { label: string; icon: any; items: NavItem[] }[] = [
       { title: "Utilisateurs", url: "/utilisateurs", icon: Users, module: "utilisateurs", description: "Gestion des comptes" },
       { title: "Groupes d'acteurs", url: "/groupes-acteurs", icon: FolderOpen, module: "groupes_acteurs", description: "Organisation des groupes" },
       { title: "Permissions", url: "/admin/permissions", icon: Lock, description: "Matrice des droits" },
+      { title: "Permissions processus", url: "/admin/permissions-processus", icon: Shield, description: "Droits par processus" },
       { title: "Config. notifications", url: "/admin/notifications", icon: Bell, module: "notifications", description: "Règles de notification" },
       { title: "Config. documents", url: "/admin/documents-config", icon: FolderOpen, module: "gestion_documentaire", description: "Types et tags documents" },
     ],
