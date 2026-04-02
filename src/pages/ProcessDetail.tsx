@@ -16,6 +16,8 @@ import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 import { exportProcessPdf } from "@/lib/exportProcessPdf";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProcessPermissions } from "@/hooks/useProcessPermissions";
+import { ProcessComments } from "@/components/ProcessComments";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
@@ -67,6 +69,7 @@ export default function ProcessDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { hasRole, hasPermission, user } = useAuth();
+  const { checkProcessPermission } = useProcessPermissions();
   const [process, setProcess] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,7 +108,8 @@ export default function ProcessDetail() {
     if (id) { fetch(); fetchElements(); fetchDocuments(); fetchUsers(); }
   }, [id, fetchElements, fetchDocuments]);
 
-  const canEdit = hasPermission("processus", "can_edit") || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
+  const globalCanEdit = hasPermission("processus", "can_edit");
+  const canEdit = checkProcessPermission(id!, "can_edit", globalCanEdit) || (hasRole("responsable_processus") && process?.responsable_id === user?.id);
   const isArchived = process?.statut === "archive";
   const isLockedStatus = process?.statut === "valide" || process?.statut === "en_validation";
   const canDelete = !isArchived && hasPermission("processus", "can_delete") && !isLockedStatus;
@@ -115,7 +119,9 @@ export default function ProcessDetail() {
   const effectiveCanEdit = canEdit && !isArchived && !isLockedForNonAdmin;
   const isRmqOnly = hasRole("rmq") && !hasRole("admin");
   const canChangeStatusEffective = canChangeStatus && !(isRmqOnly && (process?.statut === "valide"));
-  const canCreateNewVersion = hasRole("rmq") && process?.statut === "valide";
+  const canCreateNewVersion = checkProcessPermission(id!, "can_version", hasRole("rmq")) && process?.statut === "valide";
+  const canDetail = checkProcessPermission(id!, "can_detail", hasPermission("processus", "can_read_detail"));
+  const canComment = checkProcessPermission(id!, "can_comment", false);
 
   const [creatingVersion, setCreatingVersion] = useState(false);
   const [activityViewMode, setActivityViewMode] = useState<"list" | "flowchart">("list");
@@ -486,6 +492,11 @@ export default function ProcessDetail() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Process Comments */}
+      {canDetail && (
+        <ProcessComments processId={id!} canComment={canComment} canRead={canDetail} />
+      )}
 
       <PdfViewerDialog
         open={!!pdfViewerUrl}

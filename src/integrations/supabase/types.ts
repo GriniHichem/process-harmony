@@ -1858,6 +1858,100 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_audit_log: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_perms: Json | null
+          old_perms: Json | null
+          process_id: string | null
+          target_custom_role_id: string | null
+          target_role: Database["public"]["Enums"]["app_role"] | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_perms?: Json | null
+          old_perms?: Json | null
+          process_id?: string | null
+          target_custom_role_id?: string | null
+          target_role?: Database["public"]["Enums"]["app_role"] | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_perms?: Json | null
+          old_perms?: Json | null
+          process_id?: string | null
+          target_custom_role_id?: string | null
+          target_role?: Database["public"]["Enums"]["app_role"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_audit_log_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permission_audit_log_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permission_audit_log_target_custom_role_id_fkey"
+            columns: ["target_custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          process_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          process_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          process_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_comments_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_elements: {
         Row: {
           code: string
@@ -2001,6 +2095,63 @@ export type Database = {
           {
             foreignKeyName: "process_interactions_target_process_id_fkey"
             columns: ["target_process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_role_permissions: {
+        Row: {
+          can_comment: boolean
+          can_detail: boolean
+          can_edit: boolean
+          can_read: boolean
+          can_version: boolean
+          created_at: string
+          custom_role_id: string | null
+          id: string
+          process_id: string
+          role: Database["public"]["Enums"]["app_role"] | null
+          updated_at: string
+        }
+        Insert: {
+          can_comment?: boolean
+          can_detail?: boolean
+          can_edit?: boolean
+          can_read?: boolean
+          can_version?: boolean
+          created_at?: string
+          custom_role_id?: string | null
+          id?: string
+          process_id: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+        }
+        Update: {
+          can_comment?: boolean
+          can_detail?: boolean
+          can_edit?: boolean
+          can_read?: boolean
+          can_version?: boolean
+          created_at?: string
+          custom_role_id?: string | null
+          id?: string
+          process_id?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_role_permissions_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_role_permissions_process_id_fkey"
+            columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
