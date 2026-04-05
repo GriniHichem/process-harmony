@@ -671,6 +671,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         const hasResp2 = showResp2.has(action.id) || !!action.responsable_id_2;
         const hasResp3 = showResp3.has(action.id) || !!action.responsable_id_3;
         const isFrozen = action.statut === "terminee";
+        const isBlocked = action.statut === "bloquee" || isBlockedByDeps(action.id);
+        const isCancelled = action.statut === "annulee";
 
         return (
           <Collapsible key={action.id} open={isOpen} onOpenChange={() => setExpanded(isOpen ? null : action.id)}>
