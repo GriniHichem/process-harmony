@@ -123,7 +123,7 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
     try {
       if (editProject) {
         const uploadedUrl = await uploadImage(editProject.id);
-        const payload = {
+        const payload: any = {
           title: form.title.trim(),
           slogan: form.slogan || null,
           description: form.description || null,
@@ -133,6 +133,8 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
           image_url: uploadedUrl,
           objectives: objectives,
           resources_list: resourcesList,
+          responsable_user_id: responsableUserId || null,
+          visibility,
         };
         const { error } = await supabase.from("projects").update(payload).eq("id", editProject.id);
         if (error) { toast.error(error.message); setSaving(false); return; }
