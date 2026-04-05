@@ -84,8 +84,14 @@ export default function ProjectDetail() {
       ...data,
       objectives: Array.isArray(data.objectives) ? data.objectives : [],
       resources_list: Array.isArray(data.resources_list) ? data.resources_list : [],
+      responsable_user_id: (data as any).responsable_user_id ?? null,
+      visibility: (data as any).visibility ?? "public",
     } as Project);
     setLoading(false);
+
+    // Fetch collaborators
+    const { data: collabs } = await supabase.from("project_collaborators").select("user_id, access_level").eq("project_id", projectId);
+    setCollaborators((collabs ?? []) as { user_id: string; access_level: string }[]);
 
     const { data: pp } = await supabase.from("project_processes").select("process_id").eq("project_id", projectId);
     if (pp && pp.length > 0) {
