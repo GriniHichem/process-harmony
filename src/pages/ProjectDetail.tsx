@@ -32,6 +32,8 @@ interface Project {
   created_by: string | null;
   objectives: string[];
   resources_list: string[];
+  responsable_user_id: string | null;
+  visibility: string;
 }
 
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
