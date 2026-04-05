@@ -91,10 +91,10 @@ export default function Actions() {
     });
 
     // Fetch action counts and avancements
-    const projectIds = data.map((p: any) => p.id);
+    const filteredIds = filtered.map((p: any) => p.id);
     let actionCounts: Record<string, { count: number; avg: number }> = {};
-    if (projectIds.length > 0) {
-      const { data: actions } = await supabase.from("project_actions").select("project_id, avancement").in("project_id", projectIds);
+    if (filteredIds.length > 0) {
+      const { data: actions } = await supabase.from("project_actions").select("project_id, avancement").in("project_id", filteredIds);
       (actions ?? []).forEach((a: any) => {
         if (!actionCounts[a.project_id]) actionCounts[a.project_id] = { count: 0, avg: 0 };
         actionCounts[a.project_id].count++;
