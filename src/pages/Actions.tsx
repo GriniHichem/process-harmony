@@ -105,7 +105,7 @@ export default function Actions() {
       });
     }
 
-    const summaries: ProjectSummary[] = data.map((p: any) => ({
+    const summaries: ProjectSummary[] = filtered.map((p: any) => ({
       id: p.id,
       title: p.title,
       slogan: p.slogan,
