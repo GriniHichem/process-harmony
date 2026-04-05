@@ -1,0 +1,1 @@
+ALTER TABLE public.project_actions ADD COLUMN poids integer DEFAULT NULL;

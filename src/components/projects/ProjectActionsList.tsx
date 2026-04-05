@@ -37,6 +37,7 @@ interface ProjectAction {
   ordre: number;
   multi_tasks: boolean;
   pinned: boolean;
+  poids: number | null;
 }
 
 interface ProjectTask {
@@ -154,7 +155,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       .eq("project_id", projectId)
       .order("ordre");
     if (error) { console.error("Fetch actions error:", error); toast.error("Erreur chargement actions: " + error.message); return; }
-    const acts = (data ?? []).map((d: any) => ({ ...d, multi_tasks: d.multi_tasks ?? false, pinned: d.pinned ?? false, responsable_id_2: d.responsable_id_2 ?? null, responsable_id_3: d.responsable_id_3 ?? null })) as ProjectAction[];
+    const acts = (data ?? []).map((d: any) => ({ ...d, multi_tasks: d.multi_tasks ?? false, pinned: d.pinned ?? false, responsable_id_2: d.responsable_id_2 ?? null, responsable_id_3: d.responsable_id_3 ?? null, poids: d.poids ?? null })) as ProjectAction[];
     setActions(acts);
 
     const r2 = new Set<string>();
@@ -179,7 +180,15 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       });
       setTasksMap(map);
       setTasksMap(map);
-      const avg = Math.round(acts.reduce((s, a) => s + a.avancement, 0) / acts.length);
+      // Weighted progress calculation
+      const totalFixedWeight = acts.reduce((s, a) => s + (a.poids ?? 0), 0);
+      const remainingWeight = Math.max(0, 100 - totalFixedWeight);
+      const autoCount = acts.filter(a => a.poids == null).length;
+      const autoWeight = autoCount > 0 ? remainingWeight / autoCount : 0;
+      const avg = Math.round(acts.reduce((s, a) => {
+        const w = a.poids ?? autoWeight;
+        return s + (a.avancement * w / 100);
+      }, 0));
       onProgressChange(avg);
     } else {
       setTasksMap({});
@@ -299,9 +308,12 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   };
 
   const deleteTask = async (id: string) => {
+    // Find the action_id before deleting
+    const actionId = Object.entries(tasksMap).find(([, tasks]) => tasks.some(t => t.id === id))?.[0];
     const { error } = await supabase.from("project_tasks").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Tâche supprimée");
+    if (actionId) await recalcActionFromTasks(actionId);
     fetchActions();
   };
 
@@ -902,6 +914,40 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                             <UserPlus className="h-3 w-3" /> +Resp. 3
                           </Button>
                         ))}
+                      </div>
+
+                      {/* Weight (poids) input */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-muted-foreground">Poids dans le projet (%)</label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            className="h-8 w-24 text-xs"
+                            placeholder="Auto"
+                            value={action.poids ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value === "" ? null : Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                              if (val !== null) {
+                                const otherFixed = actions.filter(a => a.id !== action.id && a.poids != null).reduce((s, a) => s + (a.poids ?? 0), 0);
+                                if (otherFixed + val > 100) {
+                                  toast.error(`La somme des poids ne peut pas dépasser 100% (déjà ${otherFixed}% attribués)`);
+                                  return;
+                                }
+                              }
+                              updateAction(action.id, { poids: val });
+                            }}
+                          />
+                          <span className="text-[10px] text-muted-foreground">
+                            {action.poids != null ? `${action.poids}% (fixe)` : (() => {
+                              const totalFixed = actions.reduce((s, a) => s + (a.poids ?? 0), 0);
+                              const autoCount = actions.filter(a => a.poids == null).length;
+                              const autoW = autoCount > 0 ? Math.round((100 - totalFixed) / autoCount * 10) / 10 : 0;
+                              return `≈ ${autoW}% (auto)`;
+                            })()}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Simple mode: avancement slider */}
