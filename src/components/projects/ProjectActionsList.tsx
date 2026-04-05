@@ -679,6 +679,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
             <div className={`border rounded-xl overflow-hidden bg-card transition-colors ${
               action.pinned ? "border-primary/40 border-l-4 border-l-primary" :
               isFrozen ? "border-emerald-500/40 bg-emerald-50/5" :
+              isBlocked ? "border-slate-400/40 bg-slate-50/5 dark:bg-slate-900/10" :
+              isCancelled ? "border-muted/40 bg-muted/10 opacity-60" :
               actionDateStatus.status === "overdue" ? "border-destructive/40" :
               actionDateStatus.status === "exceeds" ? "border-orange-400/40" :
               actionDateStatus.status === "urgent" ? "border-amber-400/40" :
