@@ -111,9 +111,7 @@ export function ProjectCollaborators({ projectId, responsableUserId, visibility,
     return `${p.prenom?.[0] ?? ""}${p.nom?.[0] ?? ""}`.toUpperCase() || "?";
   };
 
-  const getAvatarUrl = (userId: string) => {
-    return profiles.find(pr => pr.id === userId)?.avatar_url ?? null;
-  };
+  const getAvatarUrl = (_userId: string) => null;
 
   if (loading) return <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />;
 
