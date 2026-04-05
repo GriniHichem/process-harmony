@@ -178,12 +178,20 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         map[t.action_id].push(t as ProjectTask);
       });
       setTasksMap(map);
+      setTasksMap(map);
       const avg = Math.round(acts.reduce((s, a) => s + a.avancement, 0) / acts.length);
       onProgressChange(avg);
     } else {
       setTasksMap({});
       onProgressChange(0);
     }
+
+    // Fetch dependencies
+    const { data: deps } = await supabase
+      .from("project_action_dependencies")
+      .select("*")
+      .eq("project_id", projectId);
+    setDependencies((deps ?? []) as Dependency[]);
   };
 
   const fetchDeadlineLogs = async () => {
