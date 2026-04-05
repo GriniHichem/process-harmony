@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Upload, Image as ImageIcon, Globe, Lock } from "lucide-react";
 
 interface ProjectFormProps {
   open: boolean;
