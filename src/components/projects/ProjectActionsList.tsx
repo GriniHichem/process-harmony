@@ -68,6 +68,8 @@ const ACTION_STATUS: Record<string, { label: string; class: string }> = {
   en_cours: { label: "En cours", class: "bg-primary/15 text-primary" },
   terminee: { label: "Terminée", class: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" },
   en_retard: { label: "En retard", class: "bg-destructive/15 text-destructive" },
+  bloquee: { label: "Bloquée", class: "bg-slate-500/15 text-slate-600 dark:text-slate-400" },
+  annulee: { label: "Annulée", class: "bg-muted/50 text-muted-foreground line-through" },
 };
 
 const TASK_STATUS: Record<string, { label: string; icon: any; class: string }> = {
