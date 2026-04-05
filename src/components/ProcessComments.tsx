@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -14,7 +15,7 @@ interface Comment {
   content: string;
   created_at: string;
   user_id: string;
-  profiles?: { nom: string; prenom: string } | null;
+  profiles?: { nom: string; prenom: string; photo_url: string | null } | null;
 }
 
 interface ProcessCommentsProps {
@@ -32,7 +33,7 @@ export function ProcessComments({ processId, canComment, canRead }: ProcessComme
   const fetchComments = async () => {
     const { data } = await supabase
       .from("process_comments")
-      .select("*, profiles(nom, prenom)")
+      .select("*, profiles(nom, prenom, photo_url)")
       .eq("process_id", processId)
       .order("created_at", { ascending: false });
     setComments((data ?? []) as Comment[]);
@@ -99,10 +100,18 @@ export function ProcessComments({ processId, canComment, canRead }: ProcessComme
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
             {comments.map((c) => (
               <div key={c.id} className="border rounded-lg p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {c.profiles ? `${c.profiles.prenom} ${c.profiles.nom}` : "Utilisateur"}
-                  </span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={c.profiles?.photo_url || undefined} />
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                        {c.profiles?.prenom?.[0]}{c.profiles?.nom?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium">
+                      {c.profiles ? `${c.profiles.prenom} ${c.profiles.nom}` : "Utilisateur"}
+                    </span>
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(c.created_at), "dd MMM yyyy HH:mm", { locale: fr })}
                   </span>

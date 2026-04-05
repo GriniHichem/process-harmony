@@ -9,6 +9,7 @@ import { GlobalSearch } from "@/components/GlobalSearch";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -19,11 +20,12 @@ import {
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon,
   FolderOpen, BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList,
-  Lock, Crown, TrendingUp, Bell, Menu, HelpCircle, Eye, EyeOff, KeyRound, Info,
+  Lock, Crown, TrendingUp, Bell, Menu, HelpCircle, Eye, EyeOff, KeyRound, Info, UserCircle,
   ChevronDown, Grid3X3, Home, FolderKanban,
 } from "lucide-react";
 import defaultLogo from "@/assets/logo.jpg";
@@ -153,6 +155,7 @@ export function AppNavbar() {
   const { profile, roles, hasRole, hasPermission, signOut } = useAuth();
   const { settings } = useAppSettings();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accessible, setAccessible] = useState(() => localStorage.getItem("qprocess-accessible") === "true");
@@ -308,9 +311,12 @@ export function AppNavbar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-muted/40 transition-all duration-200">
-                  <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground text-[11px] font-bold shadow-sm">
-                    {profile?.prenom?.[0] ?? ""}{profile?.nom?.[0] ?? ""}
-                  </div>
+                  <Avatar className="h-8 w-8 rounded-xl">
+                    <AvatarImage src={profile?.photo_url || undefined} alt={`${profile?.prenom} ${profile?.nom}`} className="object-cover" />
+                    <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground text-[11px] font-bold">
+                      {profile?.prenom?.[0] ?? ""}{profile?.nom?.[0] ?? ""}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="text-right hidden lg:block">
                     <p className="text-xs font-semibold text-foreground leading-tight">{profile?.prenom} {profile?.nom}</p>
                     <p className="text-[10px] text-muted-foreground capitalize leading-tight">
@@ -326,6 +332,10 @@ export function AppNavbar() {
                   <p className="text-xs text-muted-foreground">{profile?.email}</p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="px-3 py-2 rounded-lg mx-1 cursor-pointer">
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  Mon profil
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="px-3 py-2 rounded-lg mx-1 cursor-pointer">
                   <KeyRound className="mr-2 h-4 w-4" />
                   Modifier mot de passe
@@ -420,6 +430,7 @@ export function AppNavbar() {
       )}
 
       <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
+      <UserProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </>
   );
 }

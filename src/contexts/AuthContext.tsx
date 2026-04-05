@@ -19,6 +19,7 @@ interface Profile {
   fonction: string;
   actif: boolean;
   acteur_id: string | null;
+  photo_url: string | null;
 }
 
 export interface CustomRole {
