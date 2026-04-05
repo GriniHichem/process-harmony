@@ -180,7 +180,15 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       });
       setTasksMap(map);
       setTasksMap(map);
-      const avg = Math.round(acts.reduce((s, a) => s + a.avancement, 0) / acts.length);
+      // Weighted progress calculation
+      const totalFixedWeight = acts.reduce((s, a) => s + (a.poids ?? 0), 0);
+      const remainingWeight = Math.max(0, 100 - totalFixedWeight);
+      const autoCount = acts.filter(a => a.poids == null).length;
+      const autoWeight = autoCount > 0 ? remainingWeight / autoCount : 0;
+      const avg = Math.round(acts.reduce((s, a) => {
+        const w = a.poids ?? autoWeight;
+        return s + (a.avancement * w / 100);
+      }, 0));
       onProgressChange(avg);
     } else {
       setTasksMap({});
