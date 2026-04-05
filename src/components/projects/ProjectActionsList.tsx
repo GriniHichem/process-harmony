@@ -179,7 +179,6 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         map[t.action_id].push(t as ProjectTask);
       });
       setTasksMap(map);
-      setTasksMap(map);
       // Weighted progress calculation
       const totalFixedWeight = acts.reduce((s, a) => s + (a.poids ?? 0), 0);
       const remainingWeight = Math.max(0, 100 - totalFixedWeight);
