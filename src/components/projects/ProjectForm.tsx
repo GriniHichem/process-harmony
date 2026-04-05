@@ -273,6 +273,31 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
             </div>
           </div>
 
+          {/* Responsable */}
+          <div className="space-y-1.5">
+            <Label>Responsable du projet</Label>
+            <Select value={responsableUserId} onValueChange={setResponsableUserId}>
+              <SelectTrigger><SelectValue placeholder="Aucun responsable" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Aucun</SelectItem>
+                {profiles.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {`${p.prenom} ${p.nom}`.trim() || p.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Visibility */}
+          <div className="flex items-center justify-between rounded-lg border border-border/30 p-3">
+            <div className="flex items-center gap-2">
+              {visibility === "public" ? <Globe className="h-4 w-4 text-emerald-600" /> : <Lock className="h-4 w-4 text-amber-600" />}
+              <span className="text-sm">{visibility === "public" ? "Public" : "Privé"}</span>
+            </div>
+            <Switch checked={visibility === "private"} onCheckedChange={(checked) => setVisibility(checked ? "private" : "public")} />
+          </div>
+
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label>Statut</Label>
