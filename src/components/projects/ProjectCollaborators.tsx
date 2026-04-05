@@ -156,7 +156,7 @@ export function ProjectCollaborators({ projectId, responsableUserId, visibility,
           ) : responsableProfile ? (
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
-                <AvatarImage src={responsableProfile.avatar_url ?? undefined} />
+                <AvatarImage src={undefined} />
                 <AvatarFallback className="text-[10px]">{getInitials(responsableProfile.id)}</AvatarFallback>
               </Avatar>
               <span className="text-sm">{getProfileName(responsableProfile.id)}</span>
