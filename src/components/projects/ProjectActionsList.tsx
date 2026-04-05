@@ -305,11 +305,32 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     fetchActions();
   };
 
+  /** Check if action is blocked by unfinished predecessors */
+  const isBlockedByDeps = (actionId: string): boolean => {
+    // Find deps where this action is the target and type is "before"
+    const blocking = dependencies.filter(d => d.target_action_id === actionId && d.dependency_type === "before");
+    // Find deps where this action is the source and type is "after"
+    const afterBlocking = dependencies.filter(d => d.source_action_id === actionId && d.dependency_type === "after");
+    const allBlockers = [
+      ...blocking.map(d => d.source_action_id),
+      ...afterBlocking.map(d => d.target_action_id),
+    ];
+    return allBlockers.some(bid => {
+      const blocker = actions.find(a => a.id === bid);
+      return blocker && blocker.statut !== "terminee";
+    });
+  };
+
   /** Handle status change with validation */
   const handleStatusChange = (action: ProjectAction, newStatut: string) => {
+    // Blocked actions can't move to en_cours
+    if (newStatut === "en_cours" && isBlockedByDeps(action.id)) {
+      toast.error("Cette action est bloquée par une dépendance non terminée.", { duration: 5000 });
+      return;
+    }
+
     // If trying to set "terminee", apply controls
     if (newStatut === "terminee") {
-      // Multi-tasks: all tasks must be "termine"
       if (action.multi_tasks) {
         const tasks = tasksMap[action.id] ?? [];
         const allDone = tasks.length > 0 && tasks.every(t => t.statut === "termine");
@@ -318,12 +339,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
           return;
         }
       }
-      // Show confirmation dialog
       setConfirmCloseActionId(action.id);
       return;
     }
 
-    // If trying to set "en_cours", warn if no date_debut
     if (newStatut === "en_cours" && !action.date_debut) {
       toast.warning("Pensez à définir une date de début pour cette action.", { duration: 4000 });
     }
@@ -331,12 +350,65 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     updateAction(action.id, { statut: newStatut });
   };
 
+  /** Apply dependency automations when an action is completed */
+  const applyDependencyAutomation = async (completedActionId: string) => {
+    // 1. Unblock successors (before deps where this is source)
+    const successors = dependencies.filter(d => d.source_action_id === completedActionId && d.dependency_type === "before");
+    for (const dep of successors) {
+      const target = actions.find(a => a.id === dep.target_action_id);
+      if (target && (target.statut === "bloquee" || target.statut === "planifiee")) {
+        // Check if ALL predecessors are done
+        const allPredDeps = dependencies.filter(d => d.target_action_id === dep.target_action_id && d.dependency_type === "before");
+        const allDone = allPredDeps.every(d => {
+          const src = actions.find(a => a.id === d.source_action_id);
+          return src?.id === completedActionId || src?.statut === "terminee";
+        });
+        if (allDone) {
+          await supabase.from("project_actions").update({ statut: "planifiee" }).eq("id", dep.target_action_id);
+          toast.info(`Action "${target.title}" débloquée automatiquement`);
+        }
+      }
+    }
+
+    // 2. Unblock "after" deps where this is target
+    const afterDeps = dependencies.filter(d => d.target_action_id === completedActionId && d.dependency_type === "after");
+    for (const dep of afterDeps) {
+      const src = actions.find(a => a.id === dep.source_action_id);
+      if (src && (src.statut === "bloquee" || src.statut === "planifiee")) {
+        const allAfterDeps = dependencies.filter(d => d.source_action_id === dep.source_action_id && d.dependency_type === "after");
+        const allDone = allAfterDeps.every(d => {
+          const tgt = actions.find(a => a.id === d.target_action_id);
+          return tgt?.id === completedActionId || tgt?.statut === "terminee";
+        });
+        if (allDone) {
+          await supabase.from("project_actions").update({ statut: "planifiee" }).eq("id", dep.source_action_id);
+          toast.info(`Action "${src.title}" débloquée automatiquement`);
+        }
+      }
+    }
+
+    // 3. Exclusive: cancel the other action
+    const exclusiveDeps = dependencies.filter(d =>
+      (d.source_action_id === completedActionId || d.target_action_id === completedActionId) && d.dependency_type === "exclusive"
+    );
+    for (const dep of exclusiveDeps) {
+      const otherId = dep.source_action_id === completedActionId ? dep.target_action_id : dep.source_action_id;
+      const other = actions.find(a => a.id === otherId);
+      if (other && other.statut !== "terminee" && other.statut !== "annulee") {
+        await supabase.from("project_actions").update({ statut: "annulee", avancement: 0 }).eq("id", otherId);
+        toast.info(`Action "${other.title}" annulée (exclusive)`);
+      }
+    }
+  };
+
   /** Confirm closing an action */
   const confirmCloseAction = async () => {
     if (!confirmCloseActionId) return;
     await updateAction(confirmCloseActionId, { statut: "terminee", avancement: 100 });
+    await applyDependencyAutomation(confirmCloseActionId);
     setConfirmCloseActionId(null);
     toast.success("Action terminée et figée ✓", { duration: 4000 });
+    fetchActions();
   };
 
   /** Reopen a closed action */
