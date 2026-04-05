@@ -45,7 +45,7 @@ export function ProjectCollaborators({ projectId, responsableUserId, visibility,
 
   const fetchData = async () => {
     const [{ data: profs }, { data: collabs }] = await Promise.all([
-      supabase.from("profiles").select("id, nom, prenom, email, avatar_url, actif").eq("actif", true).order("nom"),
+      supabase.from("profiles").select("id, nom, prenom, email, actif").eq("actif", true).order("nom"),
       supabase.from("project_collaborators").select("*").eq("project_id", projectId),
     ]);
     setProfiles(profs ?? []);
