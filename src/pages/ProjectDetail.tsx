@@ -68,7 +68,7 @@ export default function ProjectDetail() {
   // Compute effective permissions based on project visibility/collaborators
   const isResponsable = project?.responsable_user_id === user?.id;
   const myCollab = collaborators.find(c => c.user_id === user?.id);
-  const isAdmin = hasPermission("admin", "can_read"); // admin/super_admin always has access
+  const isAdmin = role === "admin" || role === "rmq";
   const isPrivate = project?.visibility === "private";
   
   const canRead = isAdmin || isResponsable || !isPrivate || !!myCollab || baseCanRead;
