@@ -2470,6 +2470,7 @@ export type Database = {
           multi_tasks: boolean
           ordre: number
           pinned: boolean
+          poids: number | null
           project_id: string
           responsable_id: string | null
           responsable_id_2: string | null
@@ -2489,6 +2490,7 @@ export type Database = {
           multi_tasks?: boolean
           ordre?: number
           pinned?: boolean
+          poids?: number | null
           project_id: string
           responsable_id?: string | null
           responsable_id_2?: string | null
@@ -2508,6 +2510,7 @@ export type Database = {
           multi_tasks?: boolean
           ordre?: number
           pinned?: boolean
+          poids?: number | null
           project_id?: string
           responsable_id?: string | null
           responsable_id_2?: string | null
