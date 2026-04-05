@@ -1,68 +1,54 @@
 
 
-# Gestion d'accès par projet — Responsable, collaborateurs et visibilité
+# Correction calcul multi-tâches + Poids des actions
 
-## Vue d'ensemble
+## Problèmes identifiés
 
-Ajouter un **responsable de projet** et un système de **collaborateurs** avec niveaux d'accès (lecture / écriture), plus un toggle **public/privé** par projet. En mode privé, seuls le responsable et les collaborateurs ajoutés peuvent voir le projet.
+### Bug 1 : Calcul multi-tâches incorrect après suppression
+Dans `recalcActionFromTasks`, le calcul re-fetch les tâches depuis la DB (`freshTasks`), donc il devrait être correct. **Mais** `deleteTask` appelle `fetchActions()` qui recharge les actions depuis la DB -- or `fetchActions` ne rappelle PAS `recalcActionFromTasks`. Après suppression d'une tâche, l'avancement stocké en DB pour l'action n'est jamais recalculé. Les 2 tâches restantes sont à 100% mais l'action garde l'ancien avancement calculé quand il y avait 3 tâches (2×100 + 1×0 = 200/3 ≈ 67%, ou pire si le calcul local est désynchronisé).
 
-## Architecture
+**Fix** : `deleteTask` doit appeler `recalcActionFromTasks(actionId)` après la suppression, avant `fetchActions()`.
 
-```text
-projects
-  ├── responsable_user_id (uuid)  ← nouveau champ
-  ├── visibility (text: 'public' | 'private')  ← nouveau champ
-  └── project_collaborators (nouvelle table)
-        ├── user_id (uuid)
-        ├── access_level ('read' | 'write')
-        └── project_id (uuid)
-```
+### Feature 2 : Poids par action pour le calcul d'avancement projet
+Actuellement : `avg = sum(avancement) / count(actions)` — toutes les actions pèsent pareil.
 
-**Règles d'accès :**
-- **Public** : tous les utilisateurs (selon permissions module "actions") voient le projet
-- **Privé** : seuls le responsable + collaborateurs voient le projet ; les collaborateurs "write" peuvent modifier, "read" seulement consulter
-- **Admin/Super Admin** : accès total toujours
+Ajouter un champ `poids` (integer, default null) sur `project_actions`. Logique :
+- Actions avec poids explicite : leur poids est utilisé tel quel
+- Actions sans poids : se partagent équitablement le reste (100 - somme des poids explicites)
+- Exemple : 5 actions, une à 40% de poids → les 4 autres = 60/4 = 15% chacune
+- L'avancement projet = somme pondérée des avancements
 
 ## Changements techniques
 
 ### 1. Migration SQL
+- `ALTER TABLE project_actions ADD COLUMN poids integer DEFAULT NULL`
 
-- Ajouter `responsable_user_id uuid REFERENCES profiles(id)` et `visibility text DEFAULT 'public'` à la table `projects`
-- Créer table `project_collaborators` (project_id, user_id, access_level, created_at) avec UNIQUE(project_id, user_id)
-- RLS sur `project_collaborators` : authenticated full access
-- Mettre à jour RLS sur `projects` : SELECT filtré par visibilité (public = tous authenticated, privé = responsable + collaborateurs + admin)
+### 2. `ProjectActionsList.tsx`
 
-### 2. Composant `ProjectCollaborators.tsx` (nouveau)
+**Bug fix** :
+- `deleteTask(id)` → trouver le `action_id` de la tâche, supprimer, puis `recalcActionFromTasks(actionId)` puis `fetchActions()`
 
-Dans la page ProjectDetail, onglet ou section dans "Vue d'ensemble" :
-- Afficher le responsable du projet (sélecteur profil)
-- Toggle Public/Privé
-- Liste des collaborateurs avec leur niveau d'accès (read/write)
-- Ajout de collaborateurs via sélecteur de profils actifs
-- Suppression d'un collaborateur
+**Poids** :
+- Ajouter `poids` à l'interface `ProjectAction`
+- Nouveau calcul d'avancement projet dans `fetchActions` :
+```
+const totalFixedWeight = actions avec poids → sum(poids)
+const remainingWeight = 100 - totalFixedWeight
+const autoCount = actions sans poids
+const autoWeight = autoCount > 0 ? remainingWeight / autoCount : 0
+avg = sum(action.avancement * (action.poids ?? autoWeight)) / 100
+```
+- UI : champ "Poids (%)" éditable sur chaque action (petit input numérique), avec affichage du poids effectif calculé pour les actions sans poids explicite
+- Validation : empêcher que la somme des poids explicites dépasse 100%
 
-### 3. Modifications ProjectForm.tsx
-
-- Ajouter champ "Responsable du projet" (select profils) et toggle "Visibilité" (public/privé) dans le formulaire de création/édition
-
-### 4. Modifications ProjectDetail.tsx
-
-- Fetch du responsable et des collaborateurs
-- Afficher le responsable dans l'en-tête
-- Nouvelle carte "Accès & Collaborateurs" dans l'onglet Vue d'ensemble
-- Adapter `canEdit`/`canRead` : si privé, vérifier si l'utilisateur courant est responsable ou collaborateur write/read
-
-### 5. Modifications Actions.tsx (liste des projets)
-
-- Filtrer les projets privés côté client : ne montrer que ceux où l'utilisateur est responsable ou collaborateur (en complément du RLS serveur)
+### 3. `ProjectGanttChart.tsx`
+- Afficher le poids à côté du titre de chaque action si défini
 
 ## Fichiers impactés
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Ajouter colonnes `projects` + créer `project_collaborators` + RLS |
-| `src/components/projects/ProjectCollaborators.tsx` | **Nouveau** — UI gestion accès |
-| `src/components/projects/ProjectForm.tsx` | Ajouter responsable + visibilité |
-| `src/pages/ProjectDetail.tsx` | Intégrer collaborateurs, adapter permissions |
-| `src/pages/Actions.tsx` | Filtrer projets privés |
+| Migration SQL | Ajouter colonne `poids` à `project_actions` |
+| `src/components/projects/ProjectActionsList.tsx` | Fix deleteTask + calcul pondéré + UI poids |
+| `src/components/projects/ProjectGanttChart.tsx` | Affichage poids |
 
