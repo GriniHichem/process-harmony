@@ -47,6 +47,9 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [responsableUserId, setResponsableUserId] = useState<string>("");
+  const [visibility, setVisibility] = useState("public");
+  const [profiles, setProfiles] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
 
   useEffect(() => {
     if (editProject) {
