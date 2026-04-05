@@ -116,6 +116,9 @@ export function ProjectGanttChart({ items }: Props) {
               {item.statut === "bloquee" && <Lock className="h-3 w-3 inline mr-1 text-slate-500" />}
               {item.statut === "annulee" && <Ban className="h-3 w-3 inline mr-1 text-muted-foreground" />}
               {item.title}
+              {item.level === "action" && item.poids != null && (
+                <span className="ml-1 text-[9px] text-primary font-normal">({item.poids}%)</span>
+              )}
             </span>
           </div>
 
