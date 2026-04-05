@@ -308,9 +308,12 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   };
 
   const deleteTask = async (id: string) => {
+    // Find the action_id before deleting
+    const actionId = Object.entries(tasksMap).find(([, tasks]) => tasks.some(t => t.id === id))?.[0];
     const { error } = await supabase.from("project_tasks").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Tâche supprimée");
+    if (actionId) await recalcActionFromTasks(actionId);
     fetchActions();
   };
 
