@@ -28,6 +28,8 @@ const STATUS_COLORS: Record<string, string> = {
   a_faire: "bg-muted-foreground/30",
   en_retard: "bg-destructive",
   archive: "bg-secondary",
+  bloquee: "bg-slate-400",
+  annulee: "bg-muted-foreground/20",
 };
 
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }

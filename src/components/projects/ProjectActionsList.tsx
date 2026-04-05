@@ -612,6 +612,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
               <SelectItem value="en_cours">🔄 En cours</SelectItem>
               <SelectItem value="terminee">✅ Terminée</SelectItem>
               <SelectItem value="en_retard">⚠️ En retard</SelectItem>
+              <SelectItem value="bloquee">🔒 Bloquée</SelectItem>
+              <SelectItem value="annulee">🚫 Annulée</SelectItem>
             </SelectContent>
           </Select>
 
