@@ -2378,6 +2378,55 @@ export type Database = {
           },
         ]
       }
+      project_action_dependencies: {
+        Row: {
+          created_at: string | null
+          dependency_type: string
+          id: string
+          project_id: string
+          source_action_id: string
+          target_action_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dependency_type?: string
+          id?: string
+          project_id: string
+          source_action_id: string
+          target_action_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dependency_type?: string
+          id?: string
+          project_id?: string
+          source_action_id?: string
+          target_action_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_action_dependencies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_action_dependencies_source_action_id_fkey"
+            columns: ["source_action_id"]
+            isOneToOne: false
+            referencedRelation: "project_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_action_dependencies_target_action_id_fkey"
+            columns: ["target_action_id"]
+            isOneToOne: false
+            referencedRelation: "project_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_action_links: {
         Row: {
           action_id: string
