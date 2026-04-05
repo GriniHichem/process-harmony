@@ -279,7 +279,7 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
             <Select value={responsableUserId} onValueChange={setResponsableUserId}>
               <SelectTrigger><SelectValue placeholder="Aucun responsable" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucun</SelectItem>
+                <SelectItem value="none">Aucun</SelectItem>
                 {profiles.map(p => (
                   <SelectItem key={p.id} value={p.id}>
                     {`${p.prenom} ${p.nom}`.trim() || p.email}
