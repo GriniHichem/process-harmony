@@ -179,7 +179,6 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         map[t.action_id].push(t as ProjectTask);
       });
       setTasksMap(map);
-      setTasksMap(map);
       // Weighted progress calculation
       const totalFixedWeight = acts.reduce((s, a) => s + (a.poids ?? 0), 0);
       const remainingWeight = Math.max(0, 100 - totalFixedWeight);
@@ -488,7 +487,11 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       .from("project_tasks")
       .select("*")
       .eq("action_id", actionId);
-    if (!freshTasks || freshTasks.length === 0) return;
+    if (!freshTasks || freshTasks.length === 0) {
+      await supabase.from("project_actions").update({ avancement: 0, statut: "planifiee" }).eq("id", actionId);
+      fetchActions();
+      return;
+    }
     const avg = Math.round(freshTasks.reduce((s: number, t: any) => s + t.avancement, 0) / freshTasks.length);
     const statut = avg === 100 ? "terminee" : avg > 0 ? "en_cours" : "planifiee";
     // If all tasks done, don't auto-set terminee — user must confirm
