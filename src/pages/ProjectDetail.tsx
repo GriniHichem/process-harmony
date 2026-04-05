@@ -58,11 +58,23 @@ export default function ProjectDetail() {
   const [ganttItems, setGanttItems] = useState<any[]>([]);
   const [logsOpen, setLogsOpen] = useState(false);
   const [deadlineLogs, setDeadlineLogs] = useState<any[]>([]);
+  const [collaborators, setCollaborators] = useState<{ user_id: string; access_level: string }[]>([]);
 
-  const canRead = hasPermission("actions", "can_read");
-  const canReadDetail = hasPermission("actions", "can_read_detail");
-  const canEdit = hasPermission("actions", "can_edit");
-  const canDelete = hasPermission("actions", "can_delete");
+  const baseCanRead = hasPermission("actions", "can_read");
+  const baseCanReadDetail = hasPermission("actions", "can_read_detail");
+  const baseCanEdit = hasPermission("actions", "can_edit");
+  const baseCanDelete = hasPermission("actions", "can_delete");
+
+  // Compute effective permissions based on project visibility/collaborators
+  const isResponsable = project?.responsable_user_id === user?.id;
+  const myCollab = collaborators.find(c => c.user_id === user?.id);
+  const isAdmin = hasPermission("admin", "can_read"); // admin/super_admin always has access
+  const isPrivate = project?.visibility === "private";
+  
+  const canRead = isAdmin || isResponsable || !isPrivate || !!myCollab || baseCanRead;
+  const canReadDetail = isAdmin || isResponsable || (myCollab ? true : (!isPrivate && baseCanReadDetail));
+  const canEdit = isAdmin || isResponsable || (myCollab?.access_level === "write") || (!isPrivate && baseCanEdit);
+  const canDelete = isAdmin || isResponsable || (!isPrivate && baseCanDelete);
 
   const fetchProject = async () => {
     if (!projectId) return;
