@@ -1,72 +1,68 @@
 
 
-# Dépendances entre actions de projet
+# Gestion d'accès par projet — Responsable, collaborateurs et visibilité
 
 ## Vue d'ensemble
 
-Ajouter un système de **liaisons entre actions** au sein d'un projet, avec 4 types de relations :
+Ajouter un **responsable de projet** et un système de **collaborateurs** avec niveaux d'accès (lecture / écriture), plus un toggle **public/privé** par projet. En mode privé, seuls le responsable et les collaborateurs ajoutés peuvent voir le projet.
 
-| Mode | Signification | Icône | Règle d'avancement |
-|------|--------------|-------|---------------------|
-| **Avant** (prédécesseur) | L'action A doit être terminée avant de commencer B | ⬆️ | B reste bloquée (statut "bloquée") tant que A n'est pas terminée |
-| **Après** (successeur) | L'action A ne commence qu'après B | ⬇️ | A reste bloquée tant que B n'est pas terminée |
-| **Parallèle** | A et B s'exécutent en même temps | ⏸ | L'avancement parent = moyenne des deux |
-| **Exclusive (XOR)** | A ou B — une seule suffit | ⚡ | Dès qu'une est terminée, l'autre est marquée "annulée", avancement parent = 100% |
+## Architecture
+
+```text
+projects
+  ├── responsable_user_id (uuid)  ← nouveau champ
+  ├── visibility (text: 'public' | 'private')  ← nouveau champ
+  └── project_collaborators (nouvelle table)
+        ├── user_id (uuid)
+        ├── access_level ('read' | 'write')
+        └── project_id (uuid)
+```
+
+**Règles d'accès :**
+- **Public** : tous les utilisateurs (selon permissions module "actions") voient le projet
+- **Privé** : seuls le responsable + collaborateurs voient le projet ; les collaborateurs "write" peuvent modifier, "read" seulement consulter
+- **Admin/Super Admin** : accès total toujours
 
 ## Changements techniques
 
-### 1. Nouvelle table `project_action_dependencies`
+### 1. Migration SQL
 
-```sql
-CREATE TABLE project_action_dependencies (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id uuid REFERENCES projects(id) ON DELETE CASCADE NOT NULL,
-  source_action_id uuid REFERENCES project_actions(id) ON DELETE CASCADE NOT NULL,
-  target_action_id uuid REFERENCES project_actions(id) ON DELETE CASCADE NOT NULL,
-  dependency_type text NOT NULL DEFAULT 'before',  -- before, after, parallel, exclusive
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(source_action_id, target_action_id)
-);
-```
+- Ajouter `responsable_user_id uuid REFERENCES profiles(id)` et `visibility text DEFAULT 'public'` à la table `projects`
+- Créer table `project_collaborators` (project_id, user_id, access_level, created_at) avec UNIQUE(project_id, user_id)
+- RLS sur `project_collaborators` : authenticated full access
+- Mettre à jour RLS sur `projects` : SELECT filtré par visibilité (public = tous authenticated, privé = responsable + collaborateurs + admin)
 
-- RLS : authenticated users can CRUD
-- Ajout colonne `statut` valeur "bloquee" dans `project_actions` (via ALTER)
+### 2. Composant `ProjectCollaborators.tsx` (nouveau)
 
-### 2. Composant `ProjectActionDependencies.tsx` (nouveau)
+Dans la page ProjectDetail, onglet ou section dans "Vue d'ensemble" :
+- Afficher le responsable du projet (sélecteur profil)
+- Toggle Public/Privé
+- Liste des collaborateurs avec leur niveau d'accès (read/write)
+- Ajout de collaborateurs via sélecteur de profils actifs
+- Suppression d'un collaborateur
 
-- Bouton "Lier" sur chaque action → Dialog avec :
-  - Liste des autres actions du même projet
-  - Sélection du type de dépendance (4 modes avec icônes et descriptions)
-- Affichage des liaisons existantes en badges colorés sur chaque action
-- Suppression d'une liaison via bouton X
+### 3. Modifications ProjectForm.tsx
 
-### 3. Logique d'automatisation dans `ProjectActionsList.tsx`
+- Ajouter champ "Responsable du projet" (select profils) et toggle "Visibilité" (public/privé) dans le formulaire de création/édition
 
-- **Chargement** : fetch des dépendances avec les actions
-- **Blocage** : quand on change le statut d'une action, vérifier si ses prédécesseurs sont terminés ; sinon, afficher un toast d'avertissement et empêcher le passage en "en_cours"
-- **Déblocage auto** : quand une action passe à "terminée", débloquer automatiquement les actions successeurs (changer de "bloquee" → "planifiee")
-- **Exclusive** : quand une action d'une paire exclusive est terminée, marquer l'autre comme "annulee" (avancement = 0, statut spécial)
-- **Parallèle** : indicateur visuel uniquement (pas de blocage)
+### 4. Modifications ProjectDetail.tsx
 
-### 4. Visualisation Gantt
+- Fetch du responsable et des collaborateurs
+- Afficher le responsable dans l'en-tête
+- Nouvelle carte "Accès & Collaborateurs" dans l'onglet Vue d'ensemble
+- Adapter `canEdit`/`canRead` : si privé, vérifier si l'utilisateur courant est responsable ou collaborateur write/read
 
-- Afficher les flèches de dépendance dans `ProjectGanttChart.tsx` (trait SVG entre barres liées)
-- Actions bloquées affichées en gris avec icône cadenas
+### 5. Modifications Actions.tsx (liste des projets)
 
-### 5. Nouveau statut "bloquee" et "annulee"
-
-Ajout dans `ACTION_STATUS` :
-```typescript
-bloquee: { label: "Bloquée", class: "bg-slate-500/15 text-slate-600" },
-annulee: { label: "Annulée", class: "bg-gray-300/15 text-gray-500 line-through" },
-```
+- Filtrer les projets privés côté client : ne montrer que ceux où l'utilisateur est responsable ou collaborateur (en complément du RLS serveur)
 
 ## Fichiers impactés
 
 | Fichier | Action |
 |---|---|
-| Migration SQL | Créer table `project_action_dependencies` + ajouter statuts |
-| `src/components/projects/ProjectActionDependencies.tsx` | **Nouveau** — UI de gestion des liaisons |
-| `src/components/projects/ProjectActionsList.tsx` | Intégrer dépendances, logique blocage/déblocage/exclusion |
-| `src/components/projects/ProjectGanttChart.tsx` | Flèches de dépendance + style bloqué |
+| Migration SQL | Ajouter colonnes `projects` + créer `project_collaborators` + RLS |
+| `src/components/projects/ProjectCollaborators.tsx` | **Nouveau** — UI gestion accès |
+| `src/components/projects/ProjectForm.tsx` | Ajouter responsable + visibilité |
+| `src/pages/ProjectDetail.tsx` | Intégrer collaborateurs, adapter permissions |
+| `src/pages/Actions.tsx` | Filtrer projets privés |
 
