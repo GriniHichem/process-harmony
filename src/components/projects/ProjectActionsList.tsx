@@ -707,6 +707,16 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                           <Lock className="h-2.5 w-2.5" /> Figée
                         </Badge>
                       )}
+                      {isBlocked && (
+                        <Badge className="bg-slate-500/15 text-slate-600 dark:text-slate-400 text-[9px] gap-1 h-4">
+                          <Ban className="h-2.5 w-2.5" /> Bloquée
+                        </Badge>
+                      )}
+                      {isCancelled && (
+                        <Badge className="bg-muted text-muted-foreground text-[9px] gap-1 h-4 line-through">
+                          Annulée
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                       {action.multi_tasks ? (
