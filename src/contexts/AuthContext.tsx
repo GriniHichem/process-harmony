@@ -67,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [permOverrides, setPermOverrides] = useState<Record<string, ModulePermissions>>({});
   const [customRolePerms, setCustomRolePerms] = useState<CustomRolePermissions>({});
+  const fetchGenRef = useRef(0);
+  const lastFetchedUserId = useRef<string | null>(null);
 
   const hasRole = useCallback((role: AppRole) => {
     if (role === "admin" && roles.includes("super_admin")) return true;
@@ -83,7 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [roles, permOverrides, customRoleIds, customRolePerms]
   );
 
-  const fetchUserData = async (userId: string) => {
+  const fetchUserData = async (userId: string, force = false) => {
+    // Skip duplicate fetches for the same user unless forced
+    if (!force && lastFetchedUserId.current === userId && dataLoaded) return;
+    const gen = ++fetchGenRef.current;
+    lastFetchedUserId.current = userId;
     try {
       setDataLoaded(false);
       const [profileRes, rolesRes, permRes, userCustomRolesRes] = await Promise.all([
@@ -92,6 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabase.from("role_permissions").select("*"),
         supabase.from("user_custom_roles").select("custom_role_id, custom_roles(id, nom, description)").eq("user_id", userId),
       ]);
+
+      // Stale response — a newer fetch was started
+      if (gen !== fetchGenRef.current) return;
 
       if (profileRes.data) setProfile(profileRes.data as Profile);
       if (rolesRes.data) {
@@ -148,17 +157,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Error fetching user data:", err);
     } finally {
-      setDataLoaded(true);
+      if (gen === fetchGenRef.current) {
+        setDataLoaded(true);
+      }
     }
   };
 
   useEffect(() => {
+    let initialSessionHandled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchUserData(session.user.id), 0);
+          // On initial load, getSession handles the fetch — skip here
+          if (initialSessionHandled) {
+            setTimeout(() => fetchUserData(session.user.id, true), 0);
+          }
         } else {
           setProfile(null);
           setRoles([]);
@@ -166,12 +182,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCustomRoleIds([]);
           setPermOverrides({});
           setCustomRolePerms({});
+          lastFetchedUserId.current = null;
+          setDataLoaded(false);
         }
         setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      initialSessionHandled = true;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -193,6 +212,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCustomRoleIds([]);
     setPermOverrides({});
     setCustomRolePerms({});
+    lastFetchedUserId.current = null;
+    fetchGenRef.current++;
   };
 
   // Backward compat: role = first role (priority: admin > rmq > others)
