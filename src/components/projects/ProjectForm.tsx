@@ -141,7 +141,7 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
         toast.success("Projet modifié");
       } else {
         // Create project first to get ID for image upload
-        const payload = {
+        const payload: any = {
           title: form.title.trim(),
           slogan: form.slogan || null,
           description: form.description || null,
@@ -151,6 +151,8 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
           created_by: user?.id ?? null,
           objectives: objectives,
           resources_list: resourcesList,
+          responsable_user_id: responsableUserId || null,
+          visibility,
         };
         const { data, error } = await supabase.from("projects").insert(payload).select("id").single();
         if (error || !data) { toast.error(error?.message ?? "Erreur"); setSaving(false); return; }
