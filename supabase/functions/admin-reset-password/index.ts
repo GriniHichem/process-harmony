@@ -5,6 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const defaultUserManagementEditRights: Record<string, boolean> = {
+  rmq: true,
+  responsable_processus: false,
+  consultant: false,
+  auditeur: false,
+  acteur: false,
+};
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -12,47 +20,94 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
+function getBearerToken(authHeader: string | null) {
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  return authHeader.slice('Bearer '.length).trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing env: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
-      return jsonResponse({ error: 'Configuration serveur manquante (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY). Vérifiez vos variables d\'environnement.' }, 500);
+    if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
+      console.error('Missing env: SUPABASE_URL, SUPABASE_ANON_KEY/PUBLISHABLE_KEY or SUPABASE_SERVICE_ROLE_KEY');
+      return jsonResponse({ error: 'Configuration serveur manquante (URL, clé publique ou service role). Vérifiez vos variables d\'environnement.' }, 500);
     }
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    const token = getBearerToken(authHeader);
+    if (!authHeader || !token) {
       return jsonResponse({ error: 'En-tête Authorization manquant. Veuillez vous reconnecter.' }, 401);
     }
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userErr } = await supabaseAdmin.auth.getUser(token);
-    if (userErr || !user) {
-      console.error('Auth error:', userErr?.message || 'No user found for token');
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    const callerUserId = claimsData?.claims?.sub;
+
+    if (claimsErr || !callerUserId) {
+      console.error('Auth error:', claimsErr?.message || 'No claims found for token');
       return jsonResponse({ error: 'Session invalide ou expirée. Veuillez vous reconnecter.' }, 401);
     }
 
-    const { data: isAdmin, error: adminCheckErr } = await supabaseAdmin.rpc('has_role', { _user_id: user.id, _role: 'admin' });
-    const { data: isSuperAdmin, error: superCheckErr } = await supabaseAdmin.rpc('has_role', { _user_id: user.id, _role: 'super_admin' });
+    const [rolesRes, rolePermsRes, customRolesRes] = await Promise.all([
+      supabaseAdmin.from('user_roles').select('role').eq('user_id', callerUserId),
+      supabaseAdmin.from('role_permissions').select('role, can_edit').eq('module', 'utilisateurs'),
+      supabaseAdmin.from('user_custom_roles').select('custom_role_id').eq('user_id', callerUserId),
+    ]);
 
-    if (adminCheckErr || superCheckErr) {
-      console.error('Role check error:', adminCheckErr?.message || superCheckErr?.message);
+    if (rolesRes.error || rolePermsRes.error || customRolesRes.error) {
+      console.error('Permission loading error:', rolesRes.error?.message || rolePermsRes.error?.message || customRolesRes.error?.message);
       return jsonResponse({
-        error: 'Erreur lors de la vérification des permissions. La fonction has_role() ou la table user_roles est peut-être manquante. Exécutez les migrations.',
-        detail: adminCheckErr?.message || superCheckErr?.message,
+        error: 'Impossible de charger les permissions utilisateur.',
+        detail: rolesRes.error?.message || rolePermsRes.error?.message || customRolesRes.error?.message,
       }, 500);
     }
 
-    if (!isAdmin && !isSuperAdmin) {
-      return jsonResponse({ error: 'Rôle admin ou super_admin requis.' }, 403);
+    const callerRoles = (rolesRes.data ?? []).map((row) => row.role as string);
+    const roleEditOverrides = new Map((rolePermsRes.data ?? []).map((row) => [row.role as string, !!row.can_edit]));
+
+    let canManageUsers = callerRoles.includes('admin') || callerRoles.includes('super_admin');
+
+    if (!canManageUsers) {
+      canManageUsers = callerRoles.some((role) => roleEditOverrides.get(role) ?? defaultUserManagementEditRights[role] ?? false);
+    }
+
+    if (!canManageUsers) {
+      const customRoleIds = (customRolesRes.data ?? []).map((row) => row.custom_role_id);
+
+      if (customRoleIds.length > 0) {
+        const { data: customRolePerms, error: customRolePermsErr } = await supabaseAdmin
+          .from('custom_role_permissions')
+          .select('custom_role_id, can_edit')
+          .eq('module', 'utilisateurs')
+          .in('custom_role_id', customRoleIds);
+
+        if (customRolePermsErr) {
+          console.error('Custom role permission error:', customRolePermsErr.message);
+          return jsonResponse({
+            error: 'Impossible de vérifier les permissions des rôles personnalisés.',
+            detail: customRolePermsErr.message,
+          }, 500);
+        }
+
+        canManageUsers = (customRolePerms ?? []).some((row) => !!row.can_edit);
+      }
+    }
+
+    if (!canManageUsers) {
+      return jsonResponse({ error: 'Droit de modification du module Utilisateurs requis.' }, 403);
     }
 
     let body: Record<string, string>;
@@ -65,6 +120,14 @@ Deno.serve(async (req) => {
     const { user_id, new_password } = body;
     if (!user_id || !new_password) {
       return jsonResponse({ error: 'user_id et new_password sont requis.' }, 400);
+    }
+
+    if (typeof user_id !== 'string' || typeof new_password !== 'string') {
+      return jsonResponse({ error: 'user_id et new_password doivent être des chaînes de caractères.' }, 400);
+    }
+
+    if (new_password.trim().length < 8) {
+      return jsonResponse({ error: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
     }
 
     const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, { password: new_password });
