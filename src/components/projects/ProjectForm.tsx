@@ -276,7 +276,7 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
           {/* Responsable */}
           <div className="space-y-1.5">
             <Label>Responsable du projet</Label>
-            <Select value={responsableUserId} onValueChange={setResponsableUserId}>
+            <Select value={responsableUserId || "none"} onValueChange={(v) => setResponsableUserId(v === "none" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Aucun responsable" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Aucun</SelectItem>
