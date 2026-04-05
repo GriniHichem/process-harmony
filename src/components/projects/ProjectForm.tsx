@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, Upload, Image as ImageIcon, Globe, Lock } from "lucide-react";
 
 interface ProjectFormProps {
   open: boolean;
@@ -26,6 +27,8 @@ interface ProjectFormProps {
     image_url: string | null;
     objectives?: any;
     resources_list?: any;
+    responsable_user_id?: string | null;
+    visibility?: string;
   } | null;
 }
 
@@ -44,6 +47,13 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [responsableUserId, setResponsableUserId] = useState<string>("");
+  const [visibility, setVisibility] = useState("public");
+  const [profiles, setProfiles] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
+
+  useEffect(() => {
+    supabase.from("profiles").select("id, nom, prenom, email").eq("actif", true).order("nom").then(({ data }) => setProfiles(data ?? []));
+  }, []);
 
   useEffect(() => {
     if (editProject) {
@@ -59,12 +69,16 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
       setImagePreview(editProject.image_url ?? null);
       setObjectives(Array.isArray(editProject.objectives) ? editProject.objectives : []);
       setResourcesList(Array.isArray(editProject.resources_list) ? editProject.resources_list : []);
+      setResponsableUserId(editProject.responsable_user_id ?? "");
+      setVisibility(editProject.visibility ?? "public");
     } else {
       setForm({ title: "", slogan: "", description: "", statut: "en_cours", date_debut: "", date_fin: "" });
       setObjectives([]);
       setResourcesList([]);
       setImageUrl(null);
       setImagePreview(null);
+      setResponsableUserId("");
+      setVisibility("public");
     }
     setImageFile(null);
     setNewObjective("");
@@ -109,7 +123,7 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
     try {
       if (editProject) {
         const uploadedUrl = await uploadImage(editProject.id);
-        const payload = {
+        const payload: any = {
           title: form.title.trim(),
           slogan: form.slogan || null,
           description: form.description || null,
@@ -119,13 +133,15 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
           image_url: uploadedUrl,
           objectives: objectives,
           resources_list: resourcesList,
+          responsable_user_id: responsableUserId || null,
+          visibility,
         };
         const { error } = await supabase.from("projects").update(payload).eq("id", editProject.id);
         if (error) { toast.error(error.message); setSaving(false); return; }
         toast.success("Projet modifié");
       } else {
         // Create project first to get ID for image upload
-        const payload = {
+        const payload: any = {
           title: form.title.trim(),
           slogan: form.slogan || null,
           description: form.description || null,
@@ -135,6 +151,8 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
           created_by: user?.id ?? null,
           objectives: objectives,
           resources_list: resourcesList,
+          responsable_user_id: responsableUserId || null,
+          visibility,
         };
         const { data, error } = await supabase.from("projects").insert(payload).select("id").single();
         if (error || !data) { toast.error(error?.message ?? "Erreur"); setSaving(false); return; }
@@ -253,6 +271,31 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             </div>
+          </div>
+
+          {/* Responsable */}
+          <div className="space-y-1.5">
+            <Label>Responsable du projet</Label>
+            <Select value={responsableUserId} onValueChange={setResponsableUserId}>
+              <SelectTrigger><SelectValue placeholder="Aucun responsable" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Aucun</SelectItem>
+                {profiles.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {`${p.prenom} ${p.nom}`.trim() || p.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Visibility */}
+          <div className="flex items-center justify-between rounded-lg border border-border/30 p-3">
+            <div className="flex items-center gap-2">
+              {visibility === "public" ? <Globe className="h-4 w-4 text-emerald-600" /> : <Lock className="h-4 w-4 text-amber-600" />}
+              <span className="text-sm">{visibility === "public" ? "Public" : "Privé"}</span>
+            </div>
+            <Switch checked={visibility === "private"} onCheckedChange={(checked) => setVisibility(checked ? "private" : "public")} />
           </div>
 
           <div className="grid grid-cols-3 gap-3">

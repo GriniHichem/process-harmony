@@ -2584,6 +2584,45 @@ export type Database = {
           },
         ]
       }
+      project_collaborators: {
+        Row: {
+          access_level: string
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          access_level?: string
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_collaborators_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_collaborators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_deadline_logs: {
         Row: {
           changed_by: string | null
@@ -2739,10 +2778,12 @@ export type Database = {
           objectives: Json | null
           resources: string | null
           resources_list: Json | null
+          responsable_user_id: string | null
           slogan: string | null
           statut: string
           title: string
           updated_at: string
+          visibility: string
         }
         Insert: {
           created_at?: string
@@ -2755,10 +2796,12 @@ export type Database = {
           objectives?: Json | null
           resources?: string | null
           resources_list?: Json | null
+          responsable_user_id?: string | null
           slogan?: string | null
           statut?: string
           title: string
           updated_at?: string
+          visibility?: string
         }
         Update: {
           created_at?: string
@@ -2771,12 +2814,22 @@ export type Database = {
           objectives?: Json | null
           resources?: string | null
           resources_list?: Json | null
+          responsable_user_id?: string | null
           slogan?: string | null
           statut?: string
           title?: string
           updated_at?: string
+          visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_responsable_user_id_fkey"
+            columns: ["responsable_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quality_objectives: {
         Row: {

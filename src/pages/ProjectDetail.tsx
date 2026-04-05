@@ -11,7 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target, History, CalendarClock } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target, History, CalendarClock, Crown, Globe, Lock } from "lucide-react";
+import { ProjectCollaborators } from "@/components/projects/ProjectCollaborators";
 import { ProjectForm } from "@/components/projects/ProjectForm";
 import { ProjectActionsList } from "@/components/projects/ProjectActionsList";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
@@ -31,6 +32,8 @@ interface Project {
   created_by: string | null;
   objectives: string[];
   resources_list: string[];
+  responsable_user_id: string | null;
+  visibility: string;
 }
 
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
@@ -43,7 +46,7 @@ const STATUS_MAP: Record<string, { label: string; class: string }> = {
 export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user, role } = useAuth();
   const { acteurs, getActeurLabel } = useActeurs();
 
   const [project, setProject] = useState<Project | null>(null);
@@ -55,11 +58,23 @@ export default function ProjectDetail() {
   const [ganttItems, setGanttItems] = useState<any[]>([]);
   const [logsOpen, setLogsOpen] = useState(false);
   const [deadlineLogs, setDeadlineLogs] = useState<any[]>([]);
+  const [collaborators, setCollaborators] = useState<{ user_id: string; access_level: string }[]>([]);
 
-  const canRead = hasPermission("actions", "can_read");
-  const canReadDetail = hasPermission("actions", "can_read_detail");
-  const canEdit = hasPermission("actions", "can_edit");
-  const canDelete = hasPermission("actions", "can_delete");
+  const baseCanRead = hasPermission("actions", "can_read");
+  const baseCanReadDetail = hasPermission("actions", "can_read_detail");
+  const baseCanEdit = hasPermission("actions", "can_edit");
+  const baseCanDelete = hasPermission("actions", "can_delete");
+
+  // Compute effective permissions based on project visibility/collaborators
+  const isResponsable = project?.responsable_user_id === user?.id;
+  const myCollab = collaborators.find(c => c.user_id === user?.id);
+  const isAdmin = role === "admin" || role === "rmq";
+  const isPrivate = project?.visibility === "private";
+  
+  const canRead = isAdmin || isResponsable || !isPrivate || !!myCollab || baseCanRead;
+  const canReadDetail = isAdmin || isResponsable || (myCollab ? true : (!isPrivate && baseCanReadDetail));
+  const canEdit = isAdmin || isResponsable || (myCollab?.access_level === "write") || (!isPrivate && baseCanEdit);
+  const canDelete = isAdmin || isResponsable || (!isPrivate && baseCanDelete);
 
   const fetchProject = async () => {
     if (!projectId) return;
@@ -69,8 +84,14 @@ export default function ProjectDetail() {
       ...data,
       objectives: Array.isArray(data.objectives) ? data.objectives : [],
       resources_list: Array.isArray(data.resources_list) ? data.resources_list : [],
+      responsable_user_id: (data as any).responsable_user_id ?? null,
+      visibility: (data as any).visibility ?? "public",
     } as Project);
     setLoading(false);
+
+    // Fetch collaborators
+    const { data: collabs } = await supabase.from("project_collaborators").select("user_id, access_level").eq("project_id", projectId);
+    setCollaborators((collabs ?? []) as { user_id: string; access_level: string }[]);
 
     const { data: pp } = await supabase.from("project_processes").select("process_id").eq("project_id", projectId);
     if (pp && pp.length > 0) {
@@ -181,6 +202,7 @@ export default function ProjectDetail() {
               {project.slogan && <p className="text-muted-foreground italic mt-0.5">{project.slogan}</p>}
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {project.visibility === "private" && <Badge variant="outline" className="text-[10px] gap-1"><Lock className="h-3 w-3" /> Privé</Badge>}
               <Badge className={`${st.class}`}>{st.label}</Badge>
               {canEdit && (
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -310,6 +332,14 @@ export default function ProjectDetail() {
                   )}
                 </CardContent>
               </Card>
+              {/* Accès & Collaborateurs */}
+              <ProjectCollaborators
+                projectId={projectId!}
+                responsableUserId={project.responsable_user_id}
+                visibility={project.visibility}
+                canEdit={canEdit}
+                onUpdate={fetchProject}
+              />
             </div>
           </div>
         </TabsContent>

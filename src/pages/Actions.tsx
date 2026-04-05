@@ -70,11 +70,31 @@ export default function Actions() {
     const { data } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
     if (!data) { setLoadingProjects(false); return; }
 
-    // Fetch action counts and avancements
+    // Fetch collaborators for private project filtering
     const projectIds = data.map((p: any) => p.id);
-    let actionCounts: Record<string, { count: number; avg: number }> = {};
+    let collabMap: Record<string, string[]> = {};
     if (projectIds.length > 0) {
-      const { data: actions } = await supabase.from("project_actions").select("project_id, avancement").in("project_id", projectIds);
+      const { data: collabs } = await supabase.from("project_collaborators").select("project_id, user_id").in("project_id", projectIds);
+      (collabs ?? []).forEach((c: any) => {
+        if (!collabMap[c.project_id]) collabMap[c.project_id] = [];
+        collabMap[c.project_id].push(c.user_id);
+      });
+    }
+
+    // Filter private projects: only show if user is responsable, collaborator, or admin
+    const filtered = data.filter((p: any) => {
+      if ((p as any).visibility !== "private") return true;
+      if ((p as any).responsable_user_id === user?.id) return true;
+      if (collabMap[p.id]?.includes(user?.id ?? "")) return true;
+      // Admin check via role
+      return false; // RLS should also filter, but double-check client-side
+    });
+
+    // Fetch action counts and avancements
+    const filteredIds = filtered.map((p: any) => p.id);
+    let actionCounts: Record<string, { count: number; avg: number }> = {};
+    if (filteredIds.length > 0) {
+      const { data: actions } = await supabase.from("project_actions").select("project_id, avancement").in("project_id", filteredIds);
       (actions ?? []).forEach((a: any) => {
         if (!actionCounts[a.project_id]) actionCounts[a.project_id] = { count: 0, avg: 0 };
         actionCounts[a.project_id].count++;
@@ -85,7 +105,7 @@ export default function Actions() {
       });
     }
 
-    const summaries: ProjectSummary[] = data.map((p: any) => ({
+    const summaries: ProjectSummary[] = filtered.map((p: any) => ({
       id: p.id,
       title: p.title,
       slogan: p.slogan,
