@@ -60,7 +60,7 @@ export function ProjectCollaborators({ projectId, responsableUserId, visibility,
   const availableProfiles = profiles.filter(p => p.id !== responsableUserId && !collabUserIds.has(p.id));
 
   const handleChangeResponsable = async (userId: string) => {
-    const { error } = await supabase.from("projects").update({ responsable_user_id: userId || null }).eq("id", projectId);
+    const { error } = await supabase.from("projects").update({ responsable_user_id: userId === "none" ? null : userId }).eq("id", projectId);
     if (error) { toast.error(error.message); return; }
     toast.success("Responsable mis à jour");
     onUpdate();
@@ -142,10 +142,10 @@ export function ProjectCollaborators({ projectId, responsableUserId, visibility,
         <div className="space-y-2">
           <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Responsable du projet</Label>
           {canEdit ? (
-            <Select value={responsableUserId ?? ""} onValueChange={handleChangeResponsable}>
+            <Select value={responsableUserId || "none"} onValueChange={handleChangeResponsable}>
               <SelectTrigger><SelectValue placeholder="Aucun responsable" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucun</SelectItem>
+                <SelectItem value="none">Aucun</SelectItem>
                 {profiles.map(p => (
                   <SelectItem key={p.id} value={p.id}>
                     {`${p.prenom} ${p.nom}`.trim() || p.email}
