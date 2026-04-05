@@ -37,6 +37,7 @@ interface ProjectAction {
   ordre: number;
   multi_tasks: boolean;
   pinned: boolean;
+  poids: number | null;
 }
 
 interface ProjectTask {
