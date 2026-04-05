@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { MessageSquare, ChevronDown, ChevronRight, Send, Reply, Trash2 } from "lucide-react";
@@ -27,6 +28,7 @@ interface Profile {
   id: string;
   nom: string;
   prenom: string;
+  photo_url?: string | null;
 }
 
 interface ElementNotesProps {
@@ -76,7 +78,7 @@ export function ElementNotes({ elementType, elementId, responsableActeurId }: El
     if (userIds.length > 0) {
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("id, nom, prenom")
+        .select("id, nom, prenom, photo_url")
         .in("id", userIds);
       if (profilesData) {
         const map: Record<string, Profile> = {};
