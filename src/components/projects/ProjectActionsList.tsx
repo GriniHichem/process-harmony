@@ -780,6 +780,17 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                   {/* Entity links */}
                   <ProjectActionLinks actionId={action.id} canEdit={canEdit && !isFrozen} />
 
+                  {/* Dependencies */}
+                  <ProjectActionDependencies
+                    projectId={projectId}
+                    actionId={action.id}
+                    actionTitle={action.title}
+                    allActions={actions.map(a => ({ id: a.id, title: a.title, statut: a.statut }))}
+                    dependencies={dependencies}
+                    onChanged={fetchActions}
+                    canEdit={canEdit && !isFrozen && !isCancelled}
+                  />
+
                   {/* Action inline edit — disabled if frozen */}
                   {canEdit && !isFrozen && (
                     <div className="space-y-3">
