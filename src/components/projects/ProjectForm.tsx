@@ -52,6 +52,10 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
   const [profiles, setProfiles] = useState<{ id: string; nom: string; prenom: string; email: string }[]>([]);
 
   useEffect(() => {
+    supabase.from("profiles").select("id, nom, prenom, email").eq("actif", true).order("nom").then(({ data }) => setProfiles(data ?? []));
+  }, []);
+
+  useEffect(() => {
     if (editProject) {
       setForm({
         title: editProject.title,
@@ -65,12 +69,16 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
       setImagePreview(editProject.image_url ?? null);
       setObjectives(Array.isArray(editProject.objectives) ? editProject.objectives : []);
       setResourcesList(Array.isArray(editProject.resources_list) ? editProject.resources_list : []);
+      setResponsableUserId(editProject.responsable_user_id ?? "");
+      setVisibility(editProject.visibility ?? "public");
     } else {
       setForm({ title: "", slogan: "", description: "", statut: "en_cours", date_debut: "", date_fin: "" });
       setObjectives([]);
       setResourcesList([]);
       setImageUrl(null);
       setImagePreview(null);
+      setResponsableUserId("");
+      setVisibility("public");
     }
     setImageFile(null);
     setNewObjective("");
