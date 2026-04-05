@@ -60,7 +60,7 @@ export function ProjectCollaborators({ projectId, responsableUserId, visibility,
   const availableProfiles = profiles.filter(p => p.id !== responsableUserId && !collabUserIds.has(p.id));
 
   const handleChangeResponsable = async (userId: string) => {
-    const { error } = await supabase.from("projects").update({ responsable_user_id: userId || null }).eq("id", projectId);
+    const { error } = await supabase.from("projects").update({ responsable_user_id: userId === "none" ? null : userId }).eq("id", projectId);
     if (error) { toast.error(error.message); return; }
     toast.success("Responsable mis à jour");
     onUpdate();
