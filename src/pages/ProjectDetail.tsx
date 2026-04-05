@@ -202,6 +202,7 @@ export default function ProjectDetail() {
               {project.slogan && <p className="text-muted-foreground italic mt-0.5">{project.slogan}</p>}
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {project.visibility === "private" && <Badge variant="outline" className="text-[10px] gap-1"><Lock className="h-3 w-3" /> Privé</Badge>}
               <Badge className={`${st.class}`}>{st.label}</Badge>
               {canEdit && (
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
