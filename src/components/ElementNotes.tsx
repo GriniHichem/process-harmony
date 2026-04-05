@@ -141,6 +141,11 @@ export function ElementNotes({ elementType, elementId, responsableActeurId }: El
     return p ? `${p.prenom} ${p.nom}` : "...";
   };
 
+  const getAuthorPhoto = (userId: string | null) => {
+    if (!userId) return null;
+    return profiles[userId]?.photo_url || null;
+  };
+
   // Separate root notes and responses
   const rootNotes = notes.filter((n) => !n.parent_note_id);
   const responsesByParent = notes.reduce((acc, n) => {
@@ -191,6 +196,12 @@ export function ElementNotes({ elementType, elementId, responsableActeurId }: El
               <div className={`rounded-md border px-2.5 py-2 text-xs space-y-1 ${note.is_response ? "bg-primary/5 border-primary/20" : "bg-muted/40"}`}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={getAuthorPhoto(note.created_by) || undefined} />
+                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                        {getAuthorName(note.created_by).split(" ").map(w => w[0]).join("")}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="font-medium text-foreground">{getAuthorName(note.created_by)}</span>
                     <span>•</span>
                     <span>{format(new Date(note.created_at), "dd MMM yyyy HH:mm", { locale: fr })}</span>
@@ -222,6 +233,12 @@ export function ElementNotes({ elementType, elementId, responsableActeurId }: El
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       <Reply className="h-3 w-3 text-primary" />
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={getAuthorPhoto(resp.created_by) || undefined} />
+                        <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                          {getAuthorName(resp.created_by).split(" ").map(w => w[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="font-medium text-foreground">{getAuthorName(resp.created_by)}</span>
                       <span>•</span>
                       <span>{format(new Date(resp.created_at), "dd MMM yyyy HH:mm", { locale: fr })}</span>
