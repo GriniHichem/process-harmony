@@ -916,6 +916,40 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                         ))}
                       </div>
 
+                      {/* Weight (poids) input */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-muted-foreground">Poids dans le projet (%)</label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            className="h-8 w-24 text-xs"
+                            placeholder="Auto"
+                            value={action.poids ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value === "" ? null : Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                              if (val !== null) {
+                                const otherFixed = actions.filter(a => a.id !== action.id && a.poids != null).reduce((s, a) => s + (a.poids ?? 0), 0);
+                                if (otherFixed + val > 100) {
+                                  toast.error(`La somme des poids ne peut pas dépasser 100% (déjà ${otherFixed}% attribués)`);
+                                  return;
+                                }
+                              }
+                              updateAction(action.id, { poids: val });
+                            }}
+                          />
+                          <span className="text-[10px] text-muted-foreground">
+                            {action.poids != null ? `${action.poids}% (fixe)` : (() => {
+                              const totalFixed = actions.reduce((s, a) => s + (a.poids ?? 0), 0);
+                              const autoCount = actions.filter(a => a.poids == null).length;
+                              const autoW = autoCount > 0 ? Math.round((100 - totalFixed) / autoCount * 10) / 10 : 0;
+                              return `≈ ${autoW}% (auto)`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+
                       {/* Simple mode: avancement slider */}
                       {!action.multi_tasks && (
                         <div className="space-y-1.5">
