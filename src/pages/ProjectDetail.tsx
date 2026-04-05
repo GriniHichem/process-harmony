@@ -331,6 +331,14 @@ export default function ProjectDetail() {
                   )}
                 </CardContent>
               </Card>
+              {/* Accès & Collaborateurs */}
+              <ProjectCollaborators
+                projectId={projectId!}
+                responsableUserId={project.responsable_user_id}
+                visibility={project.visibility}
+                canEdit={canEdit}
+                onUpdate={fetchProject}
+              />
             </div>
           </div>
         </TabsContent>
