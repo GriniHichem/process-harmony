@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw, Pin, PinOff, EyeOff, Eye, Filter, ArrowUpDown, SlidersHorizontal } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw, Pin, PinOff, EyeOff, Eye, Filter, ArrowUpDown, SlidersHorizontal, Ban } from "lucide-react";
+import { ProjectActionDependencies, type Dependency } from "@/components/projects/ProjectActionDependencies";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
 import { ProjectActionLinks } from "@/components/projects/ProjectActionLinks";
@@ -68,6 +69,8 @@ const ACTION_STATUS: Record<string, { label: string; class: string }> = {
   en_cours: { label: "En cours", class: "bg-primary/15 text-primary" },
   terminee: { label: "Terminée", class: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" },
   en_retard: { label: "En retard", class: "bg-destructive/15 text-destructive" },
+  bloquee: { label: "Bloquée", class: "bg-slate-500/15 text-slate-600 dark:text-slate-400" },
+  annulee: { label: "Annulée", class: "bg-muted/50 text-muted-foreground line-through" },
 };
 
 const TASK_STATUS: Record<string, { label: string; icon: any; class: string }> = {
@@ -142,6 +145,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const [hideTerminees, setHideTerminees] = useState(false);
   const [filterEcheance, setFilterEcheance] = useState("all");
   const [sortBy, setSortBy] = useState("ordre");
+  const [dependencies, setDependencies] = useState<Dependency[]>([]);
 
   const fetchActions = async () => {
     const { data, error } = await supabase
@@ -174,12 +178,20 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         map[t.action_id].push(t as ProjectTask);
       });
       setTasksMap(map);
+      setTasksMap(map);
       const avg = Math.round(acts.reduce((s, a) => s + a.avancement, 0) / acts.length);
       onProgressChange(avg);
     } else {
       setTasksMap({});
       onProgressChange(0);
     }
+
+    // Fetch dependencies
+    const { data: deps } = await supabase
+      .from("project_action_dependencies")
+      .select("*")
+      .eq("project_id", projectId);
+    setDependencies((deps ?? []) as Dependency[]);
   };
 
   const fetchDeadlineLogs = async () => {
@@ -293,11 +305,32 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     fetchActions();
   };
 
+  /** Check if action is blocked by unfinished predecessors */
+  const isBlockedByDeps = (actionId: string): boolean => {
+    // Find deps where this action is the target and type is "before"
+    const blocking = dependencies.filter(d => d.target_action_id === actionId && d.dependency_type === "before");
+    // Find deps where this action is the source and type is "after"
+    const afterBlocking = dependencies.filter(d => d.source_action_id === actionId && d.dependency_type === "after");
+    const allBlockers = [
+      ...blocking.map(d => d.source_action_id),
+      ...afterBlocking.map(d => d.target_action_id),
+    ];
+    return allBlockers.some(bid => {
+      const blocker = actions.find(a => a.id === bid);
+      return blocker && blocker.statut !== "terminee";
+    });
+  };
+
   /** Handle status change with validation */
   const handleStatusChange = (action: ProjectAction, newStatut: string) => {
+    // Blocked actions can't move to en_cours
+    if (newStatut === "en_cours" && isBlockedByDeps(action.id)) {
+      toast.error("Cette action est bloquée par une dépendance non terminée.", { duration: 5000 });
+      return;
+    }
+
     // If trying to set "terminee", apply controls
     if (newStatut === "terminee") {
-      // Multi-tasks: all tasks must be "termine"
       if (action.multi_tasks) {
         const tasks = tasksMap[action.id] ?? [];
         const allDone = tasks.length > 0 && tasks.every(t => t.statut === "termine");
@@ -306,12 +339,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
           return;
         }
       }
-      // Show confirmation dialog
       setConfirmCloseActionId(action.id);
       return;
     }
 
-    // If trying to set "en_cours", warn if no date_debut
     if (newStatut === "en_cours" && !action.date_debut) {
       toast.warning("Pensez à définir une date de début pour cette action.", { duration: 4000 });
     }
@@ -319,12 +350,65 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     updateAction(action.id, { statut: newStatut });
   };
 
+  /** Apply dependency automations when an action is completed */
+  const applyDependencyAutomation = async (completedActionId: string) => {
+    // 1. Unblock successors (before deps where this is source)
+    const successors = dependencies.filter(d => d.source_action_id === completedActionId && d.dependency_type === "before");
+    for (const dep of successors) {
+      const target = actions.find(a => a.id === dep.target_action_id);
+      if (target && (target.statut === "bloquee" || target.statut === "planifiee")) {
+        // Check if ALL predecessors are done
+        const allPredDeps = dependencies.filter(d => d.target_action_id === dep.target_action_id && d.dependency_type === "before");
+        const allDone = allPredDeps.every(d => {
+          const src = actions.find(a => a.id === d.source_action_id);
+          return src?.id === completedActionId || src?.statut === "terminee";
+        });
+        if (allDone) {
+          await supabase.from("project_actions").update({ statut: "planifiee" }).eq("id", dep.target_action_id);
+          toast.info(`Action "${target.title}" débloquée automatiquement`);
+        }
+      }
+    }
+
+    // 2. Unblock "after" deps where this is target
+    const afterDeps = dependencies.filter(d => d.target_action_id === completedActionId && d.dependency_type === "after");
+    for (const dep of afterDeps) {
+      const src = actions.find(a => a.id === dep.source_action_id);
+      if (src && (src.statut === "bloquee" || src.statut === "planifiee")) {
+        const allAfterDeps = dependencies.filter(d => d.source_action_id === dep.source_action_id && d.dependency_type === "after");
+        const allDone = allAfterDeps.every(d => {
+          const tgt = actions.find(a => a.id === d.target_action_id);
+          return tgt?.id === completedActionId || tgt?.statut === "terminee";
+        });
+        if (allDone) {
+          await supabase.from("project_actions").update({ statut: "planifiee" }).eq("id", dep.source_action_id);
+          toast.info(`Action "${src.title}" débloquée automatiquement`);
+        }
+      }
+    }
+
+    // 3. Exclusive: cancel the other action
+    const exclusiveDeps = dependencies.filter(d =>
+      (d.source_action_id === completedActionId || d.target_action_id === completedActionId) && d.dependency_type === "exclusive"
+    );
+    for (const dep of exclusiveDeps) {
+      const otherId = dep.source_action_id === completedActionId ? dep.target_action_id : dep.source_action_id;
+      const other = actions.find(a => a.id === otherId);
+      if (other && other.statut !== "terminee" && other.statut !== "annulee") {
+        await supabase.from("project_actions").update({ statut: "annulee", avancement: 0 }).eq("id", otherId);
+        toast.info(`Action "${other.title}" annulée (exclusive)`);
+      }
+    }
+  };
+
   /** Confirm closing an action */
   const confirmCloseAction = async () => {
     if (!confirmCloseActionId) return;
     await updateAction(confirmCloseActionId, { statut: "terminee", avancement: 100 });
+    await applyDependencyAutomation(confirmCloseActionId);
     setConfirmCloseActionId(null);
     toast.success("Action terminée et figée ✓", { duration: 4000 });
+    fetchActions();
   };
 
   /** Reopen a closed action */
@@ -528,6 +612,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
               <SelectItem value="en_cours">🔄 En cours</SelectItem>
               <SelectItem value="terminee">✅ Terminée</SelectItem>
               <SelectItem value="en_retard">⚠️ En retard</SelectItem>
+              <SelectItem value="bloquee">🔒 Bloquée</SelectItem>
+              <SelectItem value="annulee">🚫 Annulée</SelectItem>
             </SelectContent>
           </Select>
 
@@ -587,12 +673,16 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         const hasResp2 = showResp2.has(action.id) || !!action.responsable_id_2;
         const hasResp3 = showResp3.has(action.id) || !!action.responsable_id_3;
         const isFrozen = action.statut === "terminee";
+        const isBlocked = action.statut === "bloquee" || isBlockedByDeps(action.id);
+        const isCancelled = action.statut === "annulee";
 
         return (
           <Collapsible key={action.id} open={isOpen} onOpenChange={() => setExpanded(isOpen ? null : action.id)}>
             <div className={`border rounded-xl overflow-hidden bg-card transition-colors ${
               action.pinned ? "border-primary/40 border-l-4 border-l-primary" :
               isFrozen ? "border-emerald-500/40 bg-emerald-50/5" :
+              isBlocked ? "border-slate-400/40 bg-slate-50/5 dark:bg-slate-900/10" :
+              isCancelled ? "border-muted/40 bg-muted/10 opacity-60" :
               actionDateStatus.status === "overdue" ? "border-destructive/40" :
               actionDateStatus.status === "exceeds" ? "border-orange-400/40" :
               actionDateStatus.status === "urgent" ? "border-amber-400/40" :
@@ -617,6 +707,16 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                       {isFrozen && (
                         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[9px] gap-1 h-4">
                           <Lock className="h-2.5 w-2.5" /> Figée
+                        </Badge>
+                      )}
+                      {isBlocked && (
+                        <Badge className="bg-slate-500/15 text-slate-600 dark:text-slate-400 text-[9px] gap-1 h-4">
+                          <Ban className="h-2.5 w-2.5" /> Bloquée
+                        </Badge>
+                      )}
+                      {isCancelled && (
+                        <Badge className="bg-muted text-muted-foreground text-[9px] gap-1 h-4 line-through">
+                          Annulée
                         </Badge>
                       )}
                     </div>
@@ -681,6 +781,17 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
                   {/* Entity links */}
                   <ProjectActionLinks actionId={action.id} canEdit={canEdit && !isFrozen} />
+
+                  {/* Dependencies */}
+                  <ProjectActionDependencies
+                    projectId={projectId}
+                    actionId={action.id}
+                    actionTitle={action.title}
+                    allActions={actions.map(a => ({ id: a.id, title: a.title, statut: a.statut }))}
+                    dependencies={dependencies}
+                    onChanged={fetchActions}
+                    canEdit={canEdit && !isFrozen && !isCancelled}
+                  />
 
                   {/* Action inline edit — disabled if frozen */}
                   {canEdit && !isFrozen && (

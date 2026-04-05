@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, Ban } from "lucide-react";
 
 interface GanttItem {
   id: string;
@@ -28,6 +28,8 @@ const STATUS_COLORS: Record<string, string> = {
   a_faire: "bg-muted-foreground/30",
   en_retard: "bg-destructive",
   archive: "bg-secondary",
+  bloquee: "bg-slate-400",
+  annulee: "bg-muted-foreground/20",
 };
 
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
@@ -109,7 +111,9 @@ export function ProjectGanttChart({ items }: Props) {
             ) : (
               <span className="w-3.5" />
             )}
-            <span className={`text-xs truncate ${item.level === "project" ? "font-semibold" : item.level === "action" ? "font-medium" : "text-muted-foreground"}`}>
+            <span className={`text-xs truncate ${item.level === "project" ? "font-semibold" : item.level === "action" ? "font-medium" : "text-muted-foreground"} ${item.statut === "annulee" ? "line-through opacity-50" : ""}`}>
+              {item.statut === "bloquee" && <Lock className="h-3 w-3 inline mr-1 text-slate-500" />}
+              {item.statut === "annulee" && <Ban className="h-3 w-3 inline mr-1 text-muted-foreground" />}
               {item.title}
             </span>
           </div>
