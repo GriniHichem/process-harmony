@@ -16,7 +16,6 @@ interface Profile {
   nom: string;
   prenom: string;
   email: string;
-  avatar_url: string | null;
   actif: boolean;
 }
 
