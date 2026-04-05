@@ -12,6 +12,7 @@ interface GanttItem {
   avancement: number;
   responsable?: string | null;
   level: "project" | "action" | "task";
+  poids?: number | null;
   children?: GanttItem[];
 }
 
