@@ -145,6 +145,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const [hideTerminees, setHideTerminees] = useState(false);
   const [filterEcheance, setFilterEcheance] = useState("all");
   const [sortBy, setSortBy] = useState("ordre");
+  const [dependencies, setDependencies] = useState<Dependency[]>([]);
 
   const fetchActions = async () => {
     const { data, error } = await supabase
