@@ -27,6 +27,8 @@ interface ProjectFormProps {
     image_url: string | null;
     objectives?: any;
     resources_list?: any;
+    responsable_user_id?: string | null;
+    visibility?: string;
   } | null;
 }
 
