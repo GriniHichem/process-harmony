@@ -48,15 +48,18 @@ export function UserProfileDialog({ open, onOpenChange }: Props) {
     if (!user) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${user.id}.${ext}`;
+      // Always use .jpg since resizeImage converts to JPEG
+      const path = `${user.id}.jpg`;
 
       // Resize image before upload
       const resized = await resizeImage(file, 400);
 
+      // Remove old file first to avoid conflicts on self-hosted
+      await supabase.storage.from("avatars").remove([path]);
+
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, resized, { upsert: true, contentType: resized.type });
+        .upload(path, resized, { upsert: true, contentType: "image/jpeg" });
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
