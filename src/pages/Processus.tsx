@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Search, Eye, UserCheck, Trash2, History } from "lucide-react";
 import { HelpTooltip } from "@/components/HelpTooltip";
-import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
