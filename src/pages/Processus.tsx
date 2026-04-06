@@ -143,17 +143,23 @@ export default function Processus() {
     return false;
   };
 
-  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  const handleDeleteClick = (id: string) => { setPendingDeleteId(id); setAdminDialogOpen(true); };
+  const handleDeleteClick = (id: string) => { setPendingDeleteId(id); setConfirmText(""); setConfirmDialogOpen(true); };
 
   const handleDeleteConfirm = async () => {
-    if (!pendingDeleteId) return;
+    if (!pendingDeleteId || confirmText !== "je confirme") return;
+    setDeleting(true);
     const { error } = await supabase.from("processes").delete().eq("id", pendingDeleteId);
+    setDeleting(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Processus supprimé");
     setPendingDeleteId(null);
+    setConfirmDialogOpen(false);
+    setConfirmText("");
     fetchProcesses();
   };
 
