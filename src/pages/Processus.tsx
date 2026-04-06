@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Search, Eye, UserCheck, Trash2, History } from "lucide-react";
 import { HelpTooltip } from "@/components/HelpTooltip";
-import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -143,17 +143,23 @@ export default function Processus() {
     return false;
   };
 
-  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  const handleDeleteClick = (id: string) => { setPendingDeleteId(id); setAdminDialogOpen(true); };
+  const handleDeleteClick = (id: string) => { setPendingDeleteId(id); setConfirmText(""); setConfirmDialogOpen(true); };
 
   const handleDeleteConfirm = async () => {
-    if (!pendingDeleteId) return;
+    if (!pendingDeleteId || confirmText !== "je confirme") return;
+    setDeleting(true);
     const { error } = await supabase.from("processes").delete().eq("id", pendingDeleteId);
+    setDeleting(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Processus supprimé");
     setPendingDeleteId(null);
+    setConfirmDialogOpen(false);
+    setConfirmText("");
     fetchProcesses();
   };
 
@@ -306,13 +312,40 @@ export default function Processus() {
         </DialogContent>
       </Dialog>
 
-      <AdminPasswordDialog
-        open={adminDialogOpen}
-        onOpenChange={setAdminDialogOpen}
-        onConfirm={handleDeleteConfirm}
-        title="Suppression de processus"
-        description="Cette action supprimera le processus et tous ses objets associés. Veuillez entrer les identifiants administrateur pour confirmer."
-      />
+      <Dialog open={confirmDialogOpen} onOpenChange={(v) => { if (!deleting) { setConfirmDialogOpen(v); setConfirmText(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> Suppression de processus
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Cette action supprimera le processus et tous ses objets associés de manière irréversible.
+          </p>
+          <p className="text-sm font-medium">
+            Pour confirmer, tapez <span className="font-mono text-destructive">je confirme</span> ci-dessous :
+          </p>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="je confirme"
+            disabled={deleting}
+            onKeyDown={(e) => { if (e.key === "Enter" && confirmText === "je confirme") handleDeleteConfirm(); }}
+          />
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="outline" onClick={() => { setConfirmDialogOpen(false); setConfirmText(""); }} disabled={deleting}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={confirmText !== "je confirme" || deleting}
+            >
+              {deleting ? "Suppression..." : "Supprimer définitivement"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
