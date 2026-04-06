@@ -312,13 +312,40 @@ export default function Processus() {
         </DialogContent>
       </Dialog>
 
-      <AdminPasswordDialog
-        open={adminDialogOpen}
-        onOpenChange={setAdminDialogOpen}
-        onConfirm={handleDeleteConfirm}
-        title="Suppression de processus"
-        description="Cette action supprimera le processus et tous ses objets associés. Veuillez entrer les identifiants administrateur pour confirmer."
-      />
+      <Dialog open={confirmDialogOpen} onOpenChange={(v) => { if (!deleting) { setConfirmDialogOpen(v); setConfirmText(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> Suppression de processus
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Cette action supprimera le processus et tous ses objets associés de manière irréversible.
+          </p>
+          <p className="text-sm font-medium">
+            Pour confirmer, tapez <span className="font-mono text-destructive">je confirme</span> ci-dessous :
+          </p>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="je confirme"
+            disabled={deleting}
+            onKeyDown={(e) => { if (e.key === "Enter" && confirmText === "je confirme") handleDeleteConfirm(); }}
+          />
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="outline" onClick={() => { setConfirmDialogOpen(false); setConfirmText(""); }} disabled={deleting}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={confirmText !== "je confirme" || deleting}
+            >
+              {deleting ? "Suppression..." : "Supprimer définitivement"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
