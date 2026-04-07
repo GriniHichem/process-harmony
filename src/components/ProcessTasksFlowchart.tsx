@@ -1562,7 +1562,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   // ─── Wrapper with resizable panels ───
   const mainLayout = (
-    <div className={cn("rounded-xl border border-border/50 overflow-hidden", fullscreen ? "fixed inset-0 z-50 rounded-none" : "w-full")}
+    <div className={cn("rounded-xl border border-border/50 overflow-hidden", fullscreen ? "fixed inset-0 z-[9999] rounded-none bg-background" : "w-full")}
       style={{ height: fullscreen ? "100vh" : "calc(100vh - 220px)", minHeight: "500px" }}>
       {showDetailPanel ? (
         <ResizablePanelGroup direction="horizontal">
