@@ -467,6 +467,9 @@ export default function ProcessDetail() {
                     <Workflow className="h-3.5 w-3.5" /> Logigramme
                   </ToggleGroupItem>
                 </ToggleGroup>
+                {(hasRole("admin") || hasRole("super_admin")) && effectiveCanEdit && (
+                  <CsvTaskImporter processId={id!} processElements={elements} onComplete={() => { fetchElements(); }} />
+                )}
               </div>
 
               {activityViewMode === "list" ? (
