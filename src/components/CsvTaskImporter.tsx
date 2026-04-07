@@ -32,6 +32,8 @@ interface ParsedRow {
 
 interface PreviewData {
   rows: ParsedRow[];
+  existingTaskCount: number;
+  overwriteCodes: string[];
   newEntrees: string[];
   newSorties: string[];
   matchedActeurs: { label: string; id: string }[];
@@ -184,6 +186,11 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
       const newEntrees = [...allEntreeDescs].filter(d => !existingEntrees.includes(d.toLowerCase()));
       const newSorties = [...allSortieDescs].filter(d => !existingSorties.includes(d.toLowerCase()));
 
+      // Check existing tasks
+      const { data: existingTasks } = await supabase.from("process_tasks").select("code").eq("process_id", processId);
+      const existingTaskCodes = new Set((existingTasks || []).map(t => t.code));
+      const overwriteCodes = rows.map(r => r.code).filter(c => existingTaskCodes.has(c));
+
       // Resolve acteurs
       const uniqueResponsables = [...new Set(rows.map(r => r.responsable).filter(Boolean))];
       const { data: acteurs } = await supabase.from("acteurs").select("id, fonction, organisation").eq("actif", true);
@@ -200,7 +207,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
         else unmatchedActeurs.push(resp);
       }
 
-      setPreview({ rows, newEntrees, newSorties, matchedActeurs, unmatchedActeurs, flowErrors });
+      setPreview({ rows, existingTaskCount: existingTaskCodes.size, overwriteCodes, newEntrees, newSorties, matchedActeurs, unmatchedActeurs, flowErrors });
       setOpen(true);
     } catch (err) {
       console.error(err);
@@ -435,6 +442,34 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                     </ul>
                     <p className="text-xs text-muted-foreground mt-2">
                       L'import reste possible, mais le logigramme pourrait ne pas être correct.
+                    </p>
+                  </div>
+                )}
+
+                {/* Overwrite warning */}
+                {preview.existingTaskCount > 0 && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                        ⚠ Écrasement de {preview.existingTaskCount} activité(s) existante(s)
+                      </p>
+                    </div>
+                    {preview.overwriteCodes.length > 0 && (
+                      <div className="mt-1.5">
+                        <p className="text-xs text-muted-foreground mb-1">Codes qui seront remplacés :</p>
+                        <div className="flex flex-wrap gap-1">
+                          {preview.overwriteCodes.slice(0, 20).map(c => (
+                            <Badge key={c} variant="outline" className="text-[10px] font-mono border-amber-500/30 text-amber-700 dark:text-amber-400">{c}</Badge>
+                          ))}
+                          {preview.overwriteCodes.length > 20 && (
+                            <Badge variant="secondary" className="text-[10px]">+{preview.overwriteCodes.length - 20} autres</Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Toutes les activités existantes seront supprimées et remplacées par les {preview.rows.length} activités du fichier CSV.
                     </p>
                   </div>
                 )}
