@@ -32,6 +32,8 @@ interface ParsedRow {
 
 interface PreviewData {
   rows: ParsedRow[];
+  existingTaskCount: number;
+  overwriteCodes: string[];
   newEntrees: string[];
   newSorties: string[];
   matchedActeurs: { label: string; id: string }[];
