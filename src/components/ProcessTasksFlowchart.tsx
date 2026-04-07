@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle,
   Locate, Link2, FileText, Grid3X3, Undo2, Redo2, Copy, Trash2, AlignCenterHorizontal,
-  AlignCenterVertical, LayoutGrid
+  AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen
 } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
+import { FlowchartDetailPanel } from "./FlowchartDetailPanel";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
@@ -117,14 +119,11 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
   const startCx = centerX, startCy = curY;
   curY += CIRCLE_R * 2 + V_GAP;
 
-  // Recursively compute the width a subtree needs (in pixels)
   function subtreeWidth(code: string): number {
     const ch = branchMap.get(code);
     if (!ch || ch.length === 0) return CARD_W;
-    // Each child subtree needs its own width; sum them + gaps between children
     const childWidths = ch.map(c => subtreeWidth(c.code));
     const totalChildrenW = childWidths.reduce((a, b) => a + b, 0) + (ch.length - 1) * H_GAP;
-    // The gateway node itself is narrow, but the subtree must be at least as wide as CARD_W
     return Math.max(CARD_W, totalChildrenW);
   }
 
@@ -142,7 +141,6 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
         const gwY = y;
         const gwCx = cx;
 
-        // Compute actual width each branch subtree needs
         const branchWidths = branches.map(b => subtreeWidth(b.code));
         const totalW = branchWidths.reduce((a, b) => a + b, 0) + (branches.length - 1) * H_GAP;
 
@@ -225,7 +223,6 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
 
   const processOutputsY = endCy + CIRCLE_R + 40;
 
-  // Apply manual position overrides
   if (positionOverrides && positionOverrides.size > 0) {
     for (const node of nodes) {
       const override = positionOverrides.get(node.task.id);
@@ -234,15 +231,12 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
         node.y = override.y;
       }
     }
-    // Recompute edges based on moved node positions
-    // We rebuild edges from node centers for moved nodes
-    // This is a simplified approach - edges connecting to/from moved nodes update endpoints
   }
 
   return { nodes, gateways, edges, startCx, startCy, endCx, endCy, processInputsY, processOutputsY, processEntrees, processSorties, realInputBoxH };
 }
 
-// ─── Data flow links between consecutive tasks ───
+// ─── Data flow links ───
 interface DataFlowLink {
   fromNodeId: string; toNodeId: string; code: string;
   fromX: number; fromY: number; toX: number; toY: number;
@@ -263,13 +257,9 @@ function computeDataFlowLinks(nodes: LayoutNode[], processElements: ProcessEleme
     for (const code of prevSorties) {
       if (nextEntrees.includes(code)) {
         links.push({
-          fromNodeId: prev.task.id,
-          toNodeId: next.task.id,
-          code,
-          fromX: prev.x + prev.w - IO_COL_W / 2,
-          fromY: prev.y + prev.h,
-          toX: next.x + IO_COL_W / 2,
-          toY: next.y,
+          fromNodeId: prev.task.id, toNodeId: next.task.id, code,
+          fromX: prev.x + prev.w - IO_COL_W / 2, fromY: prev.y + prev.h,
+          toX: next.x + IO_COL_W / 2, toY: next.y,
         });
       }
     }
@@ -382,15 +372,16 @@ function GatewayShape({ gw }: { gw: LayoutGateway }) {
   );
 }
 
-// ─── Minimap Component ───
-function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX, minY, vbW, vbH, zoom, pan, containerW, containerH }: {
+// ─── Interactive Minimap ───
+function InteractiveMinimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX, minY, vbW, vbH, zoom, pan, containerW, containerH, onPan }: {
   nodes: LayoutNode[]; gateways: LayoutGateway[]; edges: LayoutEdge[];
   startCx: number; startCy: number; endCx: number; endCy: number;
   minX: number; minY: number; vbW: number; vbH: number;
   zoom: number; pan: { x: number; y: number };
   containerW: number; containerH: number;
+  onPan: (pan: { x: number; y: number }) => void;
 }) {
-  const mmW = 180, mmH = 110;
+  const mmW = 200, mmH = 130;
   const scale = Math.min(mmW / vbW, mmH / vbH) * 0.9;
   const offX = (mmW - vbW * scale) / 2;
   const offY = (mmH - vbH * scale) / 2;
@@ -402,9 +393,46 @@ function Minimap({ nodes, gateways, edges, startCx, startCy, endCx, endCy, minX,
   const vpX = (-pan.x / zoom - minX) * scale + offX;
   const vpY = (-pan.y / zoom - minY) * scale + offY;
 
+  const isDragging = useRef(false);
+
+  const handleMinimapClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    // Convert minimap coords to diagram coords, then to pan
+    const diagramX = (clickX - offX) / scale + minX;
+    const diagramY = (clickY - offY) / scale + minY;
+    const newPanX = -(diagramX * zoom - containerW / 2);
+    const newPanY = -(diagramY * zoom - containerH / 2);
+    onPan({ x: newPanX, y: newPanY });
+  }, [offX, offY, scale, minX, minY, zoom, containerW, containerH, onPan]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    e.preventDefault();
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isDragging.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const diagramX = (clickX - offX) / scale + minX;
+    const diagramY = (clickY - offY) / scale + minY;
+    const newPanX = -(diagramX * zoom - containerW / 2);
+    const newPanY = -(diagramY * zoom - containerH / 2);
+    onPan({ x: newPanX, y: newPanY });
+  }, [offX, offY, scale, minX, minY, zoom, containerW, containerH, onPan]);
+
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
+  }, []);
+
   return (
     <div className="absolute bottom-12 right-3 z-20 bg-card/90 backdrop-blur-sm rounded-lg border border-border/50 shadow-md overflow-hidden" style={{ width: mmW, height: mmH }}>
-      <svg width={mmW} height={mmH}>
+      <svg width={mmW} height={mmH} className="cursor-crosshair"
+        onClick={handleMinimapClick} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
         {edges.map((e, i) => (
           <line key={i} x1={tx(e.fromX)} y1={ty(e.fromY)} x2={tx(e.toX)} y2={ty(e.toY)}
             stroke="hsl(var(--border))" strokeWidth={0.5} opacity={0.5} />
@@ -468,7 +496,16 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const [undoStack, setUndoStack] = useState<UndoAction[]>([]);
   const [redoStack, setRedoStack] = useState<UndoAction[]>([]);
 
-  // Debounce save timer
+  // ─── Search state ───
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // ─── Detail panel ───
+  const [detailPanelOpen, setDetailPanelOpen] = useState(true);
+
+  // ─── Auto-fit flag ───
+  const initialFitDone = useRef(false);
+
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchTasks = useCallback(async () => {
@@ -476,7 +513,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     if (data) {
       const tasksData = data as unknown as ProcessTask[];
       setTasks(tasksData);
-      // Initialize position overrides from saved positions
       const overrides = new Map<string, { x: number; y: number }>();
       for (const t of tasksData) {
         if (t.position_x != null && t.position_y != null) {
@@ -508,7 +544,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   useEffect(() => { fetchTasks(); fetchActeurs(); fetchInteractions(); fetchProcessNames(); }, [fetchTasks, fetchActeurs, fetchInteractions, fetchProcessNames]);
 
-  // Classify elements as external (in interactions) vs internal
   const externalElementMap = useMemo(() => {
     const map = new Map<string, { direction: string; linkedProcessId: string }>();
     for (const inter of interactions) {
@@ -535,6 +570,16 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     uniqueIds.forEach((id, i) => map.set(id, ACTOR_PALETTE[i % ACTOR_PALETTE.length]));
     return map;
   }, [tasks]);
+
+  // ─── Search matching ───
+  const searchMatchIds = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const q = searchQuery.toLowerCase();
+    return new Set(tasks.filter(t =>
+      t.description.toLowerCase().includes(q) ||
+      t.code.toLowerCase().includes(q)
+    ).map(t => t.id));
+  }, [searchQuery, tasks]);
 
   // ─── Position save (debounced) ───
   const savePosition = useCallback((taskId: string, x: number, y: number) => {
@@ -629,7 +674,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         taskId: t.id,
         oldX: positionOverrides.get(t.id)!.x,
         oldY: positionOverrides.get(t.id)!.y,
-        newX: 0, newY: 0, // will be auto
+        newX: 0, newY: 0,
       }));
 
     if (oldMoves.length > 0) {
@@ -647,7 +692,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     const selectedNode = layout.nodes.find(n => n.task.id === selectedTaskId);
     if (!selectedNode) return;
     const targetY = selectedNode.y;
-    // Align all nodes at same approximate Y level
     const nearNodes = layout.nodes.filter(n => Math.abs(n.y - targetY) < 80 && n.task.id !== selectedTaskId);
     if (nearNodes.length === 0) { toast.info("Aucun nœud proche à aligner"); return; }
 
@@ -655,8 +699,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       taskId: n.task.id,
       oldX: positionOverrides.get(n.task.id)?.x ?? null,
       oldY: positionOverrides.get(n.task.id)?.y ?? null,
-      newX: n.x,
-      newY: targetY,
+      newX: n.x, newY: targetY,
     }));
 
     pushUndo({ type: "move_batch", moves });
@@ -680,8 +723,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       taskId: n.task.id,
       oldX: positionOverrides.get(n.task.id)?.x ?? null,
       oldY: positionOverrides.get(n.task.id)?.y ?? null,
-      newX: targetX,
-      newY: n.y,
+      newX: targetX, newY: n.y,
     }));
 
     pushUndo({ type: "move_batch", moves });
@@ -826,75 +868,73 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   // ─── Drag & Drop handlers ───
   const handleNodeMouseDown = useCallback((e: React.MouseEvent, taskId: string, nodeX: number, nodeY: number) => {
     if (!canEdit) return;
+    if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
-    const svgPoint = svgRef.current?.createSVGPoint();
-    if (!svgPoint || !svgRef.current) return;
-    svgPoint.x = e.clientX;
-    svgPoint.y = e.clientY;
-    const ctm = svgRef.current.getScreenCTM()?.inverse();
+
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+
+    const pt = svgEl.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const ctm = svgEl.getScreenCTM()?.inverse();
     if (!ctm) return;
-    const p = svgPoint.matrixTransform(ctm);
-    // Transform to diagram coordinates considering pan/zoom
-    const diagramX = (p.x - pan.x) / zoom;
-    const diagramY = (p.y - pan.y) / zoom;
-    setDragOffset({ x: diagramX - nodeX, y: diagramY - nodeY });
+    const svgPt = pt.matrixTransform(ctm);
+    const diagramX = (svgPt.x - pan.x) / zoom;
+    const diagramY = (svgPt.y - pan.y) / zoom;
+
     setDraggedNodeId(taskId);
+    setDragOffset({ x: diagramX - nodeX, y: diagramY - nodeY });
     setSelectedTaskId(taskId);
   }, [canEdit, pan, zoom]);
 
   const handleSvgMouseMove = useCallback((e: React.MouseEvent) => {
     if (draggedNodeId) {
-      e.preventDefault();
-      const svgPoint = svgRef.current?.createSVGPoint();
-      if (!svgPoint || !svgRef.current) return;
-      svgPoint.x = e.clientX;
-      svgPoint.y = e.clientY;
-      const ctm = svgRef.current.getScreenCTM()?.inverse();
+      const svgEl = svgRef.current;
+      if (!svgEl) return;
+      const pt = svgEl.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const ctm = svgEl.getScreenCTM()?.inverse();
       if (!ctm) return;
-      const p = svgPoint.matrixTransform(ctm);
-      const diagramX = (p.x - pan.x) / zoom;
-      const diagramY = (p.y - pan.y) / zoom;
-      let newX = diagramX - dragOffset.x;
-      let newY = diagramY - dragOffset.y;
+      const svgPt = pt.matrixTransform(ctm);
+      let newX = (svgPt.x - pan.x) / zoom - dragOffset.x;
+      let newY = (svgPt.y - pan.y) / zoom - dragOffset.y;
+
       if (snapEnabled) {
         newX = Math.round(newX / SNAP_SIZE) * SNAP_SIZE;
         newY = Math.round(newY / SNAP_SIZE) * SNAP_SIZE;
       }
+
       setPositionOverrides(prev => {
         const next = new Map(prev);
         next.set(draggedNodeId, { x: newX, y: newY });
         return next;
       });
-      return;
-    }
-    if (isPanning) {
+    } else if (isPanning) {
       setPan({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
     }
-  }, [draggedNodeId, dragOffset, snapEnabled, isPanning, panStart, pan, zoom]);
+  }, [draggedNodeId, isPanning, pan, panStart, dragOffset, zoom, snapEnabled]);
 
   const handleSvgMouseUp = useCallback(() => {
     if (draggedNodeId) {
       const pos = positionOverrides.get(draggedNodeId);
       if (pos) {
         const task = tasks.find(t => t.id === draggedNodeId);
+        const oldPos = task?.position_x != null ? { x: task.position_x, y: task.position_y! } : null;
         pushUndo({
-          type: "move",
-          taskId: draggedNodeId,
-          oldX: task?.position_x ?? null,
-          oldY: task?.position_y ?? null,
-          newX: pos.x,
-          newY: pos.y,
+          type: "move", taskId: draggedNodeId,
+          oldX: oldPos?.x ?? null, oldY: oldPos?.y ?? null,
+          newX: pos.x, newY: pos.y,
         });
         savePosition(draggedNodeId, pos.x, pos.y);
       }
       setDraggedNodeId(null);
-      return;
     }
     setIsPanning(false);
   }, [draggedNodeId, positionOverrides, tasks, pushUndo, savePosition]);
 
-  // ─── Pan / Zoom ───
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.08 : 0.08;
@@ -910,46 +950,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   }, [pan]);
 
   const resetView = () => { setZoom(0.8); setPan({ x: 0, y: 0 }); };
-
-  const fitToView = useCallback(() => {
-    if (!layout || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const cW = rect.width;
-    const cH = rect.height;
-    const fitZoom = Math.min(cW / (vbW + 100), cH / (vbH + 100), 1.5);
-    const fitPanX = (cW - vbW * fitZoom) / 2 - minX * fitZoom;
-    const fitPanY = (cH - vbH * fitZoom) / 2 - minY * fitZoom;
-    setZoom(fitZoom);
-    setPan({ x: fitPanX, y: fitPanY });
-  }, [layout]);
-
-  // ─── Keyboard shortcuts ───
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!canEdit) return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); handleUndo(); }
-      if ((e.ctrlKey || e.metaKey) && e.key === "y") { e.preventDefault(); handleRedo(); }
-      if ((e.ctrlKey || e.metaKey) && e.key === "d") { e.preventDefault(); handleDuplicate(); }
-      if (e.key === "Delete" && selectedTaskId && !editorOpen) { handleDeleteSelected(); }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [canEdit, handleUndo, handleRedo, handleDuplicate, handleDeleteSelected, selectedTaskId, editorOpen]);
-
-  const acteurName = (id: string | null) => {
-    if (!id) return null;
-    const a = acteurs.find(a => a.id === id);
-    return a?.fonction || null;
-  };
-
-  const parseCodes = (v: string | null) => v ? v.split(",").map(s => s.trim()).filter(Boolean) : [];
-  const resolveDesc = (code: string) => {
-    const el = processElements.find(e => e.code === code);
-    return el?.description || code;
-  };
-
-  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
 
   // ─── Compute SVG viewBox ───
   let minX = 0, minY = 0, maxX = 1000, maxY = 800;
@@ -977,7 +977,83 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const containerW = containerRef.current?.getBoundingClientRect().width || 800;
   const containerH = containerRef.current?.getBoundingClientRect().height || 600;
 
+  const fitToView = useCallback(() => {
+    if (!layout || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const cW = rect.width;
+    const cH = rect.height;
+    const fitZoom = Math.min(cW / (vbW + 100), cH / (vbH + 100), 1.5);
+    const fitPanX = (cW - vbW * fitZoom) / 2 - minX * fitZoom;
+    const fitPanY = (cH - vbH * fitZoom) / 2 - minY * fitZoom;
+    setZoom(fitZoom);
+    setPan({ x: fitPanX, y: fitPanY });
+  }, [layout, vbW, vbH, minX, minY]);
+
+  // ─── Auto-fit on first load ───
+  useEffect(() => {
+    if (layout && !initialFitDone.current && containerRef.current) {
+      const timer = setTimeout(() => {
+        fitToView();
+        initialFitDone.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [layout, fitToView]);
+
+  // ─── Focus on search result ───
+  const focusOnTask = useCallback((taskId: string) => {
+    if (!layout || !containerRef.current) return;
+    const node = layout.nodes.find(n => n.task.id === taskId);
+    if (!node) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const cx = node.x + node.w / 2;
+    const cy = node.y + node.h / 2;
+    const targetZoom = 0.8;
+    setPan({ x: -(cx * targetZoom - rect.width / 2), y: -(cy * targetZoom - rect.height / 2) });
+    setZoom(targetZoom);
+    setSelectedTaskId(taskId);
+  }, [layout]);
+
+  // ─── Toggle fullscreen ───
+  const toggleFullscreen = useCallback(() => {
+    setFullscreen(f => !f);
+    // Reset fit after fullscreen change
+    initialFitDone.current = false;
+  }, []);
+
+  // ─── Keyboard shortcuts ───
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!canEdit) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); handleUndo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "y") { e.preventDefault(); handleRedo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "d") { e.preventDefault(); handleDuplicate(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") { e.preventDefault(); setSearchOpen(s => !s); }
+      if (e.key === "Delete" && selectedTaskId && !editorOpen) { handleDeleteSelected(); }
+      if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); setSelectedTaskId(null); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [canEdit, handleUndo, handleRedo, handleDuplicate, handleDeleteSelected, selectedTaskId, editorOpen]);
+
+  const acteurName = (id: string | null) => {
+    if (!id) return null;
+    const a = acteurs.find(a => a.id === id);
+    return a?.fonction || null;
+  };
+
+  const parseCodes = (v: string | null) => v ? v.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const resolveDesc = (code: string) => {
+    const el = processElements.find(e => e.code === code);
+    return el?.description || code;
+  };
+
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
+
   const hasManualPositions = positionOverrides.size > 0;
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
+  const showDetailPanel = detailPanelOpen && selectedTask && !editorOpen;
 
   const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
     <Tooltip>
@@ -992,73 +1068,125 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     </Tooltip>
   );
 
-  const canvas = (
-    <div ref={containerRef} className={cn("relative bg-muted/20 rounded-xl border border-border/50 overflow-hidden", fullscreen ? "w-full h-full" : "w-full")}
-      style={{ height: fullscreen ? "100%" : "min(75vh, 800px)" }}>
-      {/* Top-left toolbar */}
-      <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5">
-        {canEdit && (
-          <Button size="sm" variant="default" onClick={() => openAddDialog()} className="gap-1.5 shadow-md">
-            <Plus className="h-3.5 w-3.5" /> Activité
-          </Button>
-        )}
-        {tasks.length > 0 && (
-          <span className="text-[11px] bg-card/90 backdrop-blur-sm text-muted-foreground px-2.5 py-1 rounded-md border border-border/40 shadow-sm font-medium">
-            {tasks.length} activité{tasks.length > 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
+  // Search results for dropdown
+  const searchResults = searchQuery.trim()
+    ? tasks.filter(t => t.description.toLowerCase().includes(searchQuery.toLowerCase()) || t.code.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 8)
+    : [];
 
-      {/* Top-right toolbar */}
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
-        {/* Edit tools — only when canEdit */}
-        {canEdit && (
-          <>
-            <ToolbarButton onClick={handleUndo} disabled={undoStack.length === 0} title="Annuler (Ctrl+Z)">
-              <Undo2 className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton onClick={handleRedo} disabled={redoStack.length === 0} title="Refaire (Ctrl+Y)">
-              <Redo2 className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <div className="w-px h-6 bg-border/50 mx-0.5" />
-            <ToolbarButton onClick={() => setSnapEnabled(s => !s)} active={snapEnabled} title={`Grille snap ${snapEnabled ? "ON" : "OFF"}`}>
-              <Grid3X3 className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton onClick={handleAlignHorizontal} disabled={!selectedTaskId} title="Aligner horizontalement">
-              <AlignCenterHorizontal className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton onClick={handleAlignVertical} disabled={!selectedTaskId} title="Aligner verticalement">
-              <AlignCenterVertical className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton onClick={handleAutoLayout} disabled={!hasManualPositions} title="Disposition automatique">
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <div className="w-px h-6 bg-border/50 mx-0.5" />
-            <ToolbarButton onClick={handleDuplicate} disabled={!selectedTaskId} title="Dupliquer (Ctrl+D)">
-              <Copy className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <ToolbarButton onClick={handleDeleteSelected} disabled={!selectedTaskId || !canDelete} title="Supprimer (Del)">
-              <Trash2 className="h-3.5 w-3.5" />
-            </ToolbarButton>
-            <div className="w-px h-6 bg-border/50 mx-0.5" />
-          </>
-        )}
-        <ToolbarButton onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +">
-          <ZoomIn className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton onClick={() => setZoom(z => Math.max(0.15, z - 0.2))} title="Zoom −">
-          <ZoomOut className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton onClick={fitToView} title="Ajuster à la vue">
-          <Locate className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton onClick={resetView} title="Réinitialiser">
-          <RotateCcw className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <div className="w-px h-6 bg-border/50 mx-0.5" />
-        <ToolbarButton onClick={() => setFullscreen(f => !f)} title={fullscreen ? "Quitter plein écran" : "Plein écran"}>
-          {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-        </ToolbarButton>
+  const canvasContent = (
+    <div ref={containerRef} className="relative bg-muted/20 overflow-hidden w-full h-full">
+      {/* ─── Top toolbar ─── */}
+      <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2">
+        {/* Left: Add + count */}
+        <div className="flex items-center gap-1.5">
+          {canEdit && (
+            <Button size="sm" variant="default" onClick={() => openAddDialog()} className="gap-1.5 shadow-md">
+              <Plus className="h-3.5 w-3.5" /> Activité
+            </Button>
+          )}
+          {tasks.length > 0 && (
+            <span className="text-[11px] bg-card/90 backdrop-blur-sm text-muted-foreground px-2.5 py-1 rounded-md border border-border/40 shadow-sm font-medium">
+              {tasks.length} activité{tasks.length > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {/* Center: Search */}
+        <div className="flex items-center gap-1.5">
+          {searchOpen && (
+            <div className="relative">
+              <Input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Rechercher une activité..."
+                className="h-8 w-56 text-xs bg-card/95 backdrop-blur-sm shadow-md pr-8"
+                autoFocus
+              />
+              {searchQuery && (
+                <button className="absolute right-2 top-1/2 -translate-y-1/2" onClick={() => { setSearchQuery(""); }}>
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
+              {searchResults.length > 0 && (
+                <div className="absolute top-9 left-0 w-64 bg-card border border-border rounded-lg shadow-xl z-30 max-h-60 overflow-y-auto">
+                  {searchResults.map(t => (
+                    <button
+                      key={t.id}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 flex items-center gap-2 border-b border-border/30 last:border-0"
+                      onClick={() => { focusOnTask(t.id); setSearchQuery(""); setSearchOpen(false); }}
+                    >
+                      <span className="font-mono font-bold text-primary shrink-0">{t.code}</span>
+                      <span className="truncate text-foreground">{t.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right: Toolbar groups */}
+        <div className="flex items-center gap-1">
+          {/* Search toggle */}
+          <ToolbarButton onClick={() => { setSearchOpen(s => !s); if (searchOpen) setSearchQuery(""); }} active={searchOpen} title="Rechercher (Ctrl+F)">
+            <Search className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <div className="w-px h-6 bg-border/50 mx-0.5" />
+
+          {/* Edit tools */}
+          {canEdit && (
+            <>
+              <ToolbarButton onClick={handleUndo} disabled={undoStack.length === 0} title="Annuler (Ctrl+Z)">
+                <Undo2 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton onClick={handleRedo} disabled={redoStack.length === 0} title="Refaire (Ctrl+Y)">
+                <Redo2 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <div className="w-px h-6 bg-border/50 mx-0.5" />
+              <ToolbarButton onClick={() => setSnapEnabled(s => !s)} active={snapEnabled} title={`Grille snap ${snapEnabled ? "ON" : "OFF"}`}>
+                <Grid3X3 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton onClick={handleAlignHorizontal} disabled={!selectedTaskId} title="Aligner horizontalement">
+                <AlignCenterHorizontal className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton onClick={handleAlignVertical} disabled={!selectedTaskId} title="Aligner verticalement">
+                <AlignCenterVertical className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton onClick={handleAutoLayout} disabled={!hasManualPositions} title="Disposition automatique">
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <div className="w-px h-6 bg-border/50 mx-0.5" />
+              <ToolbarButton onClick={handleDuplicate} disabled={!selectedTaskId} title="Dupliquer (Ctrl+D)">
+                <Copy className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <ToolbarButton onClick={handleDeleteSelected} disabled={!selectedTaskId || !canDelete} title="Supprimer (Del)">
+                <Trash2 className="h-3.5 w-3.5" />
+              </ToolbarButton>
+              <div className="w-px h-6 bg-border/50 mx-0.5" />
+            </>
+          )}
+
+          {/* Navigation */}
+          <ToolbarButton onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +">
+            <ZoomIn className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => setZoom(z => Math.max(0.15, z - 0.2))} title="Zoom −">
+            <ZoomOut className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={fitToView} title="Ajuster à la vue">
+            <Locate className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <ToolbarButton onClick={resetView} title="Réinitialiser">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <div className="w-px h-6 bg-border/50 mx-0.5" />
+          <ToolbarButton onClick={() => setDetailPanelOpen(d => !d)} active={detailPanelOpen} title={detailPanelOpen ? "Masquer le panneau" : "Afficher le panneau"}>
+            {detailPanelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
+          </ToolbarButton>
+          <ToolbarButton onClick={toggleFullscreen} title={fullscreen ? "Quitter plein écran" : "Plein écran"}>
+            {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </ToolbarButton>
+        </div>
       </div>
 
       {/* Zoom indicator */}
@@ -1078,13 +1206,14 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         </div>
       )}
 
-      {/* Minimap */}
+      {/* Interactive Minimap */}
       {layout && (
-        <Minimap
+        <InteractiveMinimap
           nodes={layout.nodes} gateways={layout.gateways} edges={layout.edges}
           startCx={layout.startCx} startCy={layout.startCy} endCx={layout.endCx} endCy={layout.endCy}
           minX={minX} minY={minY} vbW={vbW} vbH={vbH}
           zoom={zoom} pan={pan} containerW={containerW} containerH={containerH}
+          onPan={setPan}
         />
       )}
 
@@ -1183,7 +1312,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               <circle cx={layout.startCx} cy={layout.startCy} r={CIRCLE_R} fill="hsl(var(--primary))" stroke="none" />
               <text x={layout.startCx} y={layout.startCy + 1} textAnchor="middle" dominantBaseline="middle" fill="hsl(var(--primary-foreground))" fontSize="11" fontWeight="600" fontFamily="inherit">Début</text>
 
-              {/* Gateways + incomplete warning badges */}
+              {/* Gateways */}
               {layout.gateways.map((gw, i) => {
                 const branchCount = !gw.isMerge ? tasks.filter(t => t.parent_code === gw.code).length : 2;
                 const isIncomplete = !gw.isMerge && (gw.type === "parallele" || gw.type === "inclusif" || gw.type === "conditionnel") && branchCount < 2;
@@ -1228,8 +1357,20 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                 const sorties = parseCodes(t.sorties);
                 const flowColor = FLOW_COLORS[t.type_flux] || FLOW_COLORS.sequentiel;
 
+                // Search highlighting
+                const isSearchMatch = searchMatchIds ? searchMatchIds.has(t.id) : true;
+                const nodeOpacity = searchMatchIds ? (isSearchMatch ? 1 : 0.25) : 1;
+
                 return (
-                  <g key={t.id}>
+                  <g key={t.id} opacity={nodeOpacity}>
+                    {/* Search highlight glow */}
+                    {searchMatchIds && isSearchMatch && (
+                      <rect x={node.x - 6} y={node.y - 6} width={node.w + 12} height={node.h + 12}
+                        rx={16} fill="none" stroke="hsl(38 92% 50%)" strokeWidth={3} opacity={0.7}
+                        strokeDasharray="8 4">
+                        <animate attributeName="stroke-dashoffset" values="0;24" dur="1.5s" repeatCount="indefinite" />
+                      </rect>
+                    )}
                     {/* Selection highlight */}
                     {isSelected && (
                       <rect x={node.x - 4} y={node.y - 4} width={node.w + 8} height={node.h + 8}
@@ -1278,7 +1419,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                               {t.condition && (
                                 <span className="text-[10px] text-muted-foreground italic truncate">({t.condition})</span>
                               )}
-                              {/* Drag handle indicator */}
                               {canEdit && isHovered && !isDragging && (
                                 <span className="ml-auto text-[10px] text-muted-foreground/50">⋮⋮</span>
                               )}
@@ -1420,15 +1560,35 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     </div>
   );
 
-  if (fullscreen) {
-    return (
-      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
-        <DialogContent className="max-w-[100vw] w-[100vw] h-[100vh] rounded-none m-0 p-0" aria-describedby={undefined}>
-          {canvas}
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  // ─── Wrapper with resizable panels ───
+  const mainLayout = (
+    <div className={cn("rounded-xl border border-border/50 overflow-hidden", fullscreen ? "fixed inset-0 z-50 rounded-none" : "w-full")}
+      style={{ height: fullscreen ? "100vh" : "calc(100vh - 220px)", minHeight: "500px" }}>
+      {showDetailPanel ? (
+        <ResizablePanelGroup direction="horizontal">
+          <ResizablePanel defaultSize={75} minSize={50}>
+            {canvasContent}
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={25} minSize={18} maxSize={40}>
+            <FlowchartDetailPanel
+              task={selectedTask as any}
+              acteurName={acteurName}
+              processElements={processElements}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              onEdit={() => openEditDialog(selectedTask as ProcessTask)}
+              onDuplicate={handleDuplicate}
+              onDelete={handleDeleteSelected}
+              onClose={() => setSelectedTaskId(null)}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        canvasContent
+      )}
+    </div>
+  );
 
-  return canvas;
+  return mainLayout;
 }
