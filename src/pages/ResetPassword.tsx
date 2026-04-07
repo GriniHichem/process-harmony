@@ -27,7 +27,26 @@ export default function ResetPassword() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    let error: Error | null = null;
+
+    const { error: directError } = await supabase.auth.updateUser({ password });
+
+    if (directError) {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        error = userError ?? directError;
+      } else {
+        const { error: fallbackError } = await supabase.functions.invoke("admin-reset-password", {
+          body: {
+            user_id: userData.user.id,
+            new_password: password,
+          },
+        });
+        error = fallbackError;
+      }
+    }
+
     if (error) {
       toast.error("Erreur : " + error.message);
     } else {
