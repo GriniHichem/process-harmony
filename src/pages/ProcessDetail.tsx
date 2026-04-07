@@ -27,6 +27,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { ProcessArchivedObjects } from "@/components/ProcessArchivedObjects";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { CsvTaskImporter } from "@/components/CsvTaskImporter";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
