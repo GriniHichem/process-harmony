@@ -1,72 +1,61 @@
 
 
-# Amélioration avancée du module Logigramme
+# Import CSV des activités de processus
 
-## Problèmes actuels
+## Fonctionnalité
 
-1. **Cadre limité** : hauteur fixée à `min(75vh, 800px)` — insuffisant pour les processus complexes (20 activités)
-2. **Plein écran rudimentaire** : un simple Dialog sans toolbar, pas de panneaux latéraux
-3. **Pas de mode horizontal** : tout est vertical, difficile à lire pour les processus longs
-4. **Minimap non interactive** : affichage seulement, pas de navigation par clic/drag
-5. **Pas de zoom intelligent** : fit-to-view ne s'exécute pas automatiquement au chargement
-6. **Toolbar encombrée** : tous les boutons entassés en haut à droite, pas de séparation claire
-7. **Pas de panneau de détails** : il faut ouvrir un Sheet pour voir les infos d'une activité
-8. **Pas de recherche/filtre** : impossible de localiser une activité spécifique dans un grand diagramme
+Bouton visible uniquement pour admin/super_admin dans l'onglet "Activités" de ProcessDetail. Permet d'uploader un fichier CSV pour importer/écraser les activités du processus, avec création automatique des entrées/sorties manquantes et résolution des acteurs.
 
-## Améliorations proposées
+## Format CSV supporté
 
-### 1. Layout flexible avec panneaux redimensionnables
-- Remplacer le conteneur fixe par `ResizablePanelGroup` (déjà disponible dans le projet)
-- **Panneau gauche** (70-80%) : le canvas SVG du logigramme
-- **Panneau droit** (20-30%) : panneau de détails contextuel de l'activité sélectionnée (description, entrées/sorties, responsable, flux) — consultable sans ouvrir de Sheet
-- Le panneau droit est rétractable/masquable
+```text
+Code,Description,Type de flux,Entrées,Sorties,Responsable
+1,Réceptionner la demande,Séquentiel,"Demande utilisateur, incident",Demande qualifiée,Help Desk
+```
 
-### 2. Plein écran amélioré
-- Passer de `Dialog` à un vrai plein écran natif (`document.documentElement.requestFullscreen()`) ou un overlay `fixed inset-0 z-50`
-- Conserver toute la toolbar + minimap + panneau latéral en plein écran
-- Hauteur du canvas en mode normal : passer de `min(75vh, 800px)` à `calc(100vh - 220px)` pour exploiter tout l'espace disponible
+- Délimiteur : auto-détection `,` ou `;`
+- Encodage : UTF-8 avec caractères spéciaux (é, ç, à...)
+- Entrées/Sorties : séparées par virgule dans le champ (entre guillemets si nécessaire)
 
-### 3. Minimap interactive
-- Ajouter `onMouseDown`/`onMouseMove` sur la minimap pour naviguer par drag du rectangle viewport
-- Cliquer dans la minimap recentre la vue sur la zone cliquée
+## Logique d'import
 
-### 4. Auto-fit au chargement
-- Appeler `fitToView()` automatiquement après le premier rendu du layout pour afficher tout le diagramme sans scroll initial
+1. **Parser le CSV** : détecter délimiteur (`;` vs `,`), gérer les guillemets, décoder UTF-8
+2. **Mapper le type de flux** : "Séquentiel" → `sequentiel`, "Conditionnel" → `conditionnel`, "Parallèle" → `parallele`, "Inclusif" → `inclusif`
+3. **Entrées/Sorties** :
+   - Pour chaque description listée, chercher un `process_element` existant (donnee_entree ou donnee_sortie) par description
+   - Si non trouvé → créer le `process_element` avec un code auto-généré (DE-XXX / DS-XXX)
+   - Stocker les codes séparés par virgule dans `entrees` / `sorties`
+4. **Responsable** :
+   - Chercher dans `acteurs` par `fonction` (match partiel, le CSV peut contenir "Help Desk / Responsable SI" → on prend le premier match)
+   - Si trouvé → `responsable_id` = acteur.id
+   - Si non trouvé → laisser `responsable_id` = null
+5. **Tâches** :
+   - Supprimer toutes les tâches existantes du processus (mode écrasement)
+   - Insérer les nouvelles avec code, description, type_flux, ordre séquentiel
+6. **Feedback** : dialog de prévisualisation avec nombre de lignes, éléments à créer, acteurs matchés/non matchés, puis confirmation
 
-### 5. Recherche et focus rapide
-- Ajouter un champ de recherche dans la toolbar (icône Search)
-- Filtre par description d'activité — les résultats highlight les nœuds correspondants
-- Cliquer sur un résultat recentre + zoome sur l'activité ciblée
+## Composant : `CsvTaskImporter`
 
-### 6. Panneau de détails inline (sans Sheet)
-- Quand une activité est sélectionnée, le panneau droit affiche :
-  - Code + description
-  - Type de flux (badge coloré)
-  - Condition (si applicable)
-  - Responsable
-  - Entrées / Sorties résolues
-  - Boutons : Modifier (ouvre le Sheet), Dupliquer, Supprimer
-- En mode consultation (pas canEdit), affichage lecture seule
+Nouveau fichier `src/components/CsvTaskImporter.tsx` :
+- Props : `processId`, `processElements`, `onComplete` (callback pour refresh)
+- UI : Bouton Upload (icône FileUp) → input file hidden → Dialog de preview/confirmation
+- Preview montre : nombre d'activités, entrées/sorties nouvelles à créer, acteurs résolus vs non résolus
+- Bouton "Importer" exécute les opérations Supabase
 
-### 7. Toolbar réorganisée
-- Regrouper en sections distinctes avec séparateurs visuels :
-  - **Navigation** : Zoom +/−, Fit, Reset, Plein écran
-  - **Édition** : Undo/Redo, Snap, Align H/V, Auto-layout
-  - **Actions** : Dupliquer, Supprimer, + Activité
-  - **Recherche** : champ avec icône
+## Intégration dans ProcessDetail
 
-## Détails techniques
+Dans l'onglet "tasks" (ligne ~459), à côté du ToggleGroup, ajouter le bouton conditionné par `hasRole("admin") || hasRole("super_admin")` :
 
-### Fichiers impactés
+```tsx
+{(hasRole("admin") || hasRole("super_admin")) && effectiveCanEdit && (
+  <CsvTaskImporter processId={id!} processElements={elements} onComplete={() => fetchElements()} />
+)}
+```
+
+## Fichiers impactés
 
 | Fichier | Action |
 |---|---|
-| `src/components/ProcessTasksFlowchart.tsx` | Refactoring majeur : panneau resizable, minimap interactive, auto-fit, recherche, toolbar réorganisée, plein écran amélioré, panneau détails inline |
-
-### Approche
-- Utiliser `ResizablePanelGroup` / `ResizablePanel` / `ResizableHandle` existants (`src/components/ui/resizable.tsx`)
-- Extraire le panneau de détails en sous-composant inline (pas un nouveau fichier, pour limiter la complexité)
-- Le `fitToView` est appelé dans un `useEffect` avec dépendance sur `layout` + un flag `initialFitDone`
-- La minimap reçoit des handlers `onMouseDown`/`onMouseMove` qui calculent le pan correspondant via la transformation inverse (coordonnées minimap → coordonnées diagram)
-- La recherche utilise un state `searchQuery` qui filtre les nœuds visuellement (opacité réduite pour les non-matchés, highlight pour les matchés)
+| `src/components/CsvTaskImporter.tsx` | Nouveau composant (parser CSV, preview, import) |
+| `src/pages/ProcessDetail.tsx` | Ajouter le bouton dans la toolbar des activités |
 
