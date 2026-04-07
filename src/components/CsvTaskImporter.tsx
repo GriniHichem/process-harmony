@@ -446,6 +446,34 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                   </div>
                 )}
 
+                {/* Overwrite warning */}
+                {preview.existingTaskCount > 0 && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                        ⚠ Écrasement de {preview.existingTaskCount} activité(s) existante(s)
+                      </p>
+                    </div>
+                    {preview.overwriteCodes.length > 0 && (
+                      <div className="mt-1.5">
+                        <p className="text-xs text-muted-foreground mb-1">Codes qui seront remplacés :</p>
+                        <div className="flex flex-wrap gap-1">
+                          {preview.overwriteCodes.slice(0, 20).map(c => (
+                            <Badge key={c} variant="outline" className="text-[10px] font-mono border-amber-500/30 text-amber-700 dark:text-amber-400">{c}</Badge>
+                          ))}
+                          {preview.overwriteCodes.length > 20 && (
+                            <Badge variant="secondary" className="text-[10px]">+{preview.overwriteCodes.length - 20} autres</Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Toutes les activités existantes seront supprimées et remplacées par les {preview.rows.length} activités du fichier CSV.
+                    </p>
+                  </div>
+                )}
+
                 {/* Summary */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg border border-border/50 p-3 bg-muted/30">
