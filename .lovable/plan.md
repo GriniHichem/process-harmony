@@ -1,89 +1,72 @@
 
 
-# Peupler le processus "Gérer SI" — Données complètes + 20 activités
+# Amélioration avancée du module Logigramme
 
-## Vue d'ensemble
+## Problèmes actuels
 
-Remplir le processus `44f32eb8-b0a2-4e7e-8439-e9cd2ca27d03` avec toutes les données métier et 20 activités couvrant les 4 types de flux (séquentiel, conditionnel XOR, parallèle AND, inclusif OR) avec imbrications.
+1. **Cadre limité** : hauteur fixée à `min(75vh, 800px)` — insuffisant pour les processus complexes (20 activités)
+2. **Plein écran rudimentaire** : un simple Dialog sans toolbar, pas de panneaux latéraux
+3. **Pas de mode horizontal** : tout est vertical, difficile à lire pour les processus longs
+4. **Minimap non interactive** : affichage seulement, pas de navigation par clic/drag
+5. **Pas de zoom intelligent** : fit-to-view ne s'exécute pas automatiquement au chargement
+6. **Toolbar encombrée** : tous les boutons entassés en haut à droite, pas de séparation claire
+7. **Pas de panneau de détails** : il faut ouvrir un Sheet pour voir les infos d'une activité
+8. **Pas de recherche/filtre** : impossible de localiser une activité spécifique dans un grand diagramme
 
-## Données à insérer
+## Améliorations proposées
 
-### 1. Mettre à jour le processus (tous les champs)
-- **description** : "Processus de gestion du Système d'Information couvrant l'infrastructure, les applications, la sécurité et le support utilisateur"
-- **responsable_id** : `bfe26ba2-...` (responsable SI)
-- **inclure_bpmn_pdf** : true
+### 1. Layout flexible avec panneaux redimensionnables
+- Remplacer le conteneur fixe par `ResizablePanelGroup` (déjà disponible dans le projet)
+- **Panneau gauche** (70-80%) : le canvas SVG du logigramme
+- **Panneau droit** (20-30%) : panneau de détails contextuel de l'activité sélectionnée (description, entrées/sorties, responsable, flux) — consultable sans ouvrir de Sheet
+- Le panneau droit est rétractable/masquable
 
-### 2. Éléments du processus (24 éléments)
+### 2. Plein écran amélioré
+- Passer de `Dialog` à un vrai plein écran natif (`document.documentElement.requestFullscreen()`) ou un overlay `fixed inset-0 z-50`
+- Conserver toute la toolbar + minimap + panneau latéral en plein écran
+- Hauteur du canvas en mode normal : passer de `min(75vh, 800px)` à `calc(100vh - 220px)` pour exploiter tout l'espace disponible
 
-| Type | Code | Description |
-|---|---|---|
-| finalite | F-001 | Assurer la disponibilité et la performance du SI |
-| finalite | F-002 | Garantir la sécurité des données |
-| donnee_entree | DE-001 | Demande d'intervention utilisateur |
-| donnee_entree | DE-002 | Rapport d'incident sécurité |
-| donnee_entree | DE-003 | Cahier des charges nouveau projet |
-| donnee_entree | DE-004 | Contrat fournisseur IT |
-| donnee_entree | DE-005 | Résultats audit précédent |
-| donnee_sortie | DS-001 | Ticket résolu et clôturé |
-| donnee_sortie | DS-002 | Rapport de sécurité mensuel |
-| donnee_sortie | DS-003 | Système déployé et validé |
-| donnee_sortie | DS-004 | Plan de reprise à jour |
-| donnee_sortie | DS-005 | Bilan de performance SI |
-| activite | AP-001 | Gestion des demandes |
-| activite | AP-002 | Maintenance infrastructure |
-| partie_prenante | PP-001 | Direction Générale |
-| partie_prenante | PP-002 | Utilisateurs métier |
-| partie_prenante | PP-003 | Fournisseurs IT |
-| partie_prenante | PP-004 | RSSI |
-| ressource | R-001 | Serveurs et réseau |
-| ressource | R-002 | ITSM (outil ticketing) |
-| ressource | R-003 | SIEM (supervision sécurité) |
-| ressource | R-004 | Budget IT annuel |
+### 3. Minimap interactive
+- Ajouter `onMouseDown`/`onMouseMove` sur la minimap pour naviguer par drag du rectangle viewport
+- Cliquer dans la minimap recentre la vue sur la zone cliquée
 
-### 3. Activités (20 tâches) — Architecture logique
+### 4. Auto-fit au chargement
+- Appeler `fitToView()` automatiquement après le premier rendu du layout pour afficher tout le diagramme sans scroll initial
 
-```text
-1. Réceptionner la demande (séquentiel) → DE-001
-2. Qualifier et prioriser (conditionnel XOR) → DS-001
-   ├─ 3. Traiter incident critique (SI condition="Critique")
-   │     → (conditionnel XOR)
-   │     ├─ 5. Escalader niveau 2 (SI condition="Non résolu N1")
-   │     └─ 6. Résoudre en niveau 1 (SINON — défaut)
-   └─ 4. Traiter demande standard (SINON — défaut)
-7. Analyser impact sécurité (parallèle AND)
-   ├─ 8. Scanner vulnérabilités (branche AND)
-   ├─ 9. Vérifier conformité RGPD (branche AND)
-   └─ 10. Auditer les accès (branche AND)
-11. Décider plan d'action sécurité (inclusif OR)
-    ├─ 12. Patch correctif urgent (SI condition="Faille critique")
-    ├─ 13. Mise à jour planifiée (SI condition="Faille mineure")
-    └─ 14. Formation utilisateurs (SI condition="Erreur humaine")
-15. Déployer les changements (séquentiel) → DE-003, DS-003
-16. Valider en recette (conditionnel XOR)
-    ├─ 17. Rollback et corriger (SI condition="Tests KO")
-    └─ 18. Mettre en production (SINON — défaut)
-19. Documenter et clôturer (séquentiel) → DS-001, DS-005
-20. Revue de performance SI (séquentiel) → DE-005, DS-002
-```
+### 5. Recherche et focus rapide
+- Ajouter un champ de recherche dans la toolbar (icône Search)
+- Filtre par description d'activité — les résultats highlight les nœuds correspondants
+- Cliquer sur un résultat recentre + zoome sur l'activité ciblée
 
-Ce schéma couvre :
-- **Séquentiel** : tâches 1, 15, 19, 20
-- **Conditionnel XOR** : tâche 2 (2 branches) + tâche 3 imbriquée (2 sous-branches) + tâche 16 (2 branches)
-- **Parallèle AND** : tâche 7 (3 branches simultanées)
-- **Inclusif OR** : tâche 11 (3 branches optionnelles)
-- **Imbrication** : XOR dans XOR (tâche 3 → 5/6 à l'intérieur de 2 → 3/4)
+### 6. Panneau de détails inline (sans Sheet)
+- Quand une activité est sélectionnée, le panneau droit affiche :
+  - Code + description
+  - Type de flux (badge coloré)
+  - Condition (si applicable)
+  - Responsable
+  - Entrées / Sorties résolues
+  - Boutons : Modifier (ouvre le Sheet), Dupliquer, Supprimer
+- En mode consultation (pas canEdit), affichage lecture seule
 
-### 4. Supprimer la tâche existante
-Supprimer l'ancienne tâche "suiver le CA" avant d'insérer les nouvelles.
+### 7. Toolbar réorganisée
+- Regrouper en sections distinctes avec séparateurs visuels :
+  - **Navigation** : Zoom +/−, Fit, Reset, Plein écran
+  - **Édition** : Undo/Redo, Snap, Align H/V, Auto-layout
+  - **Actions** : Dupliquer, Supprimer, + Activité
+  - **Recherche** : champ avec icône
 
-## Exécution
+## Détails techniques
 
-1. DELETE ancienne tâche
-2. UPDATE process (description, responsable_id, inclure_bpmn_pdf)
-3. INSERT 24 process_elements
-4. INSERT 20 process_tasks avec codes, parent_code, conditions, entrées/sorties
+### Fichiers impactés
 
-## Fichiers impactés
+| Fichier | Action |
+|---|---|
+| `src/components/ProcessTasksFlowchart.tsx` | Refactoring majeur : panneau resizable, minimap interactive, auto-fit, recherche, toolbar réorganisée, plein écran amélioré, panneau détails inline |
 
-Aucune modification de code — uniquement des insertions/updates SQL via les outils d'insertion.
+### Approche
+- Utiliser `ResizablePanelGroup` / `ResizablePanel` / `ResizableHandle` existants (`src/components/ui/resizable.tsx`)
+- Extraire le panneau de détails en sous-composant inline (pas un nouveau fichier, pour limiter la complexité)
+- Le `fitToView` est appelé dans un `useEffect` avec dépendance sur `layout` + un flag `initialFitDone`
+- La minimap reçoit des handlers `onMouseDown`/`onMouseMove` qui calculent le pan correspondant via la transformation inverse (coordonnées minimap → coordonnées diagram)
+- La recherche utilise un state `searchQuery` qui filtre les nœuds visuellement (opacité réduite pour les non-matchés, highlight pour les matchés)
 
