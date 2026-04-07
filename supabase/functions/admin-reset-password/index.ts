@@ -61,73 +61,87 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Session invalide ou expirée. Veuillez vous reconnecter.' }, 401);
     }
 
-    const [rolesRes, rolePermsRes, customRolesRes] = await Promise.all([
-      supabaseAdmin.from('user_roles').select('role').eq('user_id', callerUserId),
-      supabaseAdmin.from('role_permissions').select('role, can_edit').eq('module', 'utilisateurs'),
-      supabaseAdmin.from('user_custom_roles').select('custom_role_id').eq('user_id', callerUserId),
-    ]);
-
-    if (rolesRes.error || rolePermsRes.error || customRolesRes.error) {
-      console.error('Permission loading error:', rolesRes.error?.message || rolePermsRes.error?.message || customRolesRes.error?.message);
-      return jsonResponse({
-        error: 'Impossible de charger les permissions utilisateur.',
-        detail: rolesRes.error?.message || rolePermsRes.error?.message || customRolesRes.error?.message,
-      }, 500);
-    }
-
-    const callerRoles = (rolesRes.data ?? []).map((row) => row.role as string);
-    const roleEditOverrides = new Map((rolePermsRes.data ?? []).map((row) => [row.role as string, !!row.can_edit]));
-
-    let canManageUsers = callerRoles.includes('admin') || callerRoles.includes('super_admin');
-
-    if (!canManageUsers) {
-      canManageUsers = callerRoles.some((role) => roleEditOverrides.get(role) ?? defaultUserManagementEditRights[role] ?? false);
-    }
-
-    if (!canManageUsers) {
-      const customRoleIds = (customRolesRes.data ?? []).map((row) => row.custom_role_id);
-
-      if (customRoleIds.length > 0) {
-        const { data: customRolePerms, error: customRolePermsErr } = await supabaseAdmin
-          .from('custom_role_permissions')
-          .select('custom_role_id, can_edit')
-          .eq('module', 'utilisateurs')
-          .in('custom_role_id', customRoleIds);
-
-        if (customRolePermsErr) {
-          console.error('Custom role permission error:', customRolePermsErr.message);
-          return jsonResponse({
-            error: 'Impossible de vérifier les permissions des rôles personnalisés.',
-            detail: customRolePermsErr.message,
-          }, 500);
-        }
-
-        canManageUsers = (customRolePerms ?? []).some((row) => !!row.can_edit);
-      }
-    }
-
-    if (!canManageUsers) {
-      return jsonResponse({ error: 'Droit de modification du module Utilisateurs requis.' }, 403);
-    }
-
-    let body: Record<string, string>;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
       return jsonResponse({ error: 'Corps de requête JSON invalide.' }, 400);
     }
 
-    const { user_id, new_password } = body;
-    if (!user_id || !new_password) {
-      return jsonResponse({ error: 'user_id et new_password sont requis.' }, 400);
+    const rawUserId = body.user_id;
+    const rawNewPassword = body.new_password;
+
+    if (rawNewPassword == null) {
+      return jsonResponse({ error: 'new_password est requis.' }, 400);
     }
 
-    if (typeof user_id !== 'string' || typeof new_password !== 'string') {
-      return jsonResponse({ error: 'user_id et new_password doivent être des chaînes de caractères.' }, 400);
+    if (rawUserId != null && typeof rawUserId !== 'string') {
+      return jsonResponse({ error: 'user_id doit être une chaîne de caractères.' }, 400);
     }
+
+    if (typeof rawNewPassword !== 'string') {
+      return jsonResponse({ error: 'new_password doit être une chaîne de caractères.' }, 400);
+    }
+
+    const user_id = typeof rawUserId === 'string' && rawUserId.trim().length > 0
+      ? rawUserId.trim()
+      : callerUserId;
+    const new_password = rawNewPassword;
+    const isSelfChange = user_id === callerUserId;
 
     if (new_password.trim().length < 8) {
       return jsonResponse({ error: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
+    }
+
+    if (!isSelfChange) {
+      const [rolesRes, rolePermsRes, customRolesRes] = await Promise.all([
+        supabaseAdmin.from('user_roles').select('role').eq('user_id', callerUserId),
+        supabaseAdmin.from('role_permissions').select('role, can_edit').eq('module', 'utilisateurs'),
+        supabaseAdmin.from('user_custom_roles').select('custom_role_id').eq('user_id', callerUserId),
+      ]);
+
+      if (rolesRes.error || rolePermsRes.error || customRolesRes.error) {
+        console.error('Permission loading error:', rolesRes.error?.message || rolePermsRes.error?.message || customRolesRes.error?.message);
+        return jsonResponse({
+          error: 'Impossible de charger les permissions utilisateur.',
+          detail: rolesRes.error?.message || rolePermsRes.error?.message || customRolesRes.error?.message,
+        }, 500);
+      }
+
+      const callerRoles = (rolesRes.data ?? []).map((row) => row.role as string);
+      const roleEditOverrides = new Map((rolePermsRes.data ?? []).map((row) => [row.role as string, !!row.can_edit]));
+
+      let canManageUsers = callerRoles.includes('admin') || callerRoles.includes('super_admin');
+
+      if (!canManageUsers) {
+        canManageUsers = callerRoles.some((role) => roleEditOverrides.get(role) ?? defaultUserManagementEditRights[role] ?? false);
+      }
+
+      if (!canManageUsers) {
+        const customRoleIds = (customRolesRes.data ?? []).map((row) => row.custom_role_id);
+
+        if (customRoleIds.length > 0) {
+          const { data: customRolePerms, error: customRolePermsErr } = await supabaseAdmin
+            .from('custom_role_permissions')
+            .select('custom_role_id, can_edit')
+            .eq('module', 'utilisateurs')
+            .in('custom_role_id', customRoleIds);
+
+          if (customRolePermsErr) {
+            console.error('Custom role permission error:', customRolePermsErr.message);
+            return jsonResponse({
+              error: 'Impossible de vérifier les permissions des rôles personnalisés.',
+              detail: customRolePermsErr.message,
+            }, 500);
+          }
+
+          canManageUsers = (customRolePerms ?? []).some((row) => !!row.can_edit);
+        }
+      }
+
+      if (!canManageUsers) {
+        return jsonResponse({ error: 'Droit de modification du module Utilisateurs requis.' }, 403);
+      }
     }
 
     const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, { password: new_password });
