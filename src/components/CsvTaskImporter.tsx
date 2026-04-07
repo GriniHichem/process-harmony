@@ -186,6 +186,11 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
       const newEntrees = [...allEntreeDescs].filter(d => !existingEntrees.includes(d.toLowerCase()));
       const newSorties = [...allSortieDescs].filter(d => !existingSorties.includes(d.toLowerCase()));
 
+      // Check existing tasks
+      const { data: existingTasks } = await supabase.from("process_tasks").select("code").eq("process_id", processId);
+      const existingTaskCodes = new Set((existingTasks || []).map(t => t.code));
+      const overwriteCodes = rows.map(r => r.code).filter(c => existingTaskCodes.has(c));
+
       // Resolve acteurs
       const uniqueResponsables = [...new Set(rows.map(r => r.responsable).filter(Boolean))];
       const { data: acteurs } = await supabase.from("acteurs").select("id, fonction, organisation").eq("actif", true);
@@ -202,7 +207,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
         else unmatchedActeurs.push(resp);
       }
 
-      setPreview({ rows, newEntrees, newSorties, matchedActeurs, unmatchedActeurs, flowErrors });
+      setPreview({ rows, existingTaskCount: existingTaskCodes.size, overwriteCodes, newEntrees, newSorties, matchedActeurs, unmatchedActeurs, flowErrors });
       setOpen(true);
     } catch (err) {
       console.error(err);
