@@ -183,20 +183,20 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
       let dsCounter = processElements.filter(e => e.type === "donnee_sortie").length;
       let elementOrdre = processElements.length;
 
-      const newElements: { code: string; description: string; type: string; process_id: string; ordre: number }[] = [];
+      const newElements: { code: string; description: string; type: "donnee_entree" | "donnee_sortie"; process_id: string; ordre: number }[] = [];
 
       for (const desc of preview.newEntrees) {
         deCounter++;
         const code = `DE-${String(deCounter).padStart(3, "0")}`;
         existingEntreeMap.set(desc.toLowerCase(), code);
-        newElements.push({ code, description: desc, type: "donnee_entree", process_id: processId, ordre: ++elementOrdre });
+        newElements.push({ code, description: desc, type: "donnee_entree" as const, process_id: processId, ordre: ++elementOrdre });
       }
 
       for (const desc of preview.newSorties) {
         dsCounter++;
         const code = `DS-${String(dsCounter).padStart(3, "0")}`;
         existingSortieMap.set(desc.toLowerCase(), code);
-        newElements.push({ code, description: desc, type: "donnee_sortie", process_id: processId, ordre: ++elementOrdre });
+        newElements.push({ code, description: desc, type: "donnee_sortie" as const, process_id: processId, ordre: ++elementOrdre });
       }
 
       if (newElements.length > 0) {
@@ -223,6 +223,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
       if (delError) throw delError;
 
       // 4. Insert new tasks
+      type FluxType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
       const tasks = preview.rows.map((row, idx) => {
         const entreeCodes = row.entrees.map(e => existingEntreeMap.get(e.toLowerCase()) || "").filter(Boolean).join(", ");
         const sortieCodes = row.sorties.map(s => existingSortieMap.get(s.toLowerCase()) || "").filter(Boolean).join(", ");
@@ -231,7 +232,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
           process_id: processId,
           code: row.code,
           description: row.description,
-          type_flux: row.type_flux,
+          type_flux: (row.type_flux as FluxType),
           ordre: idx + 1,
           entrees: entreeCodes || null,
           sorties: sortieCodes || null,
