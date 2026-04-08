@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import {
   Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle,
   Locate, Link2, FileText, Grid3X3, Undo2, Redo2, Copy, Trash2, AlignCenterHorizontal,
-  AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen
+  AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { FlowchartDetailPanel } from "./FlowchartDetailPanel";
