@@ -1260,6 +1260,9 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   const currentNavIndex = selectedTaskId ? flatNavTaskIds.indexOf(selectedTaskId) : -1;
 
+  const taskById = useMemo(() => new Map(tasks.map(task => [task.id, task])), [tasks]);
+  const taskByCode = useMemo(() => new Map(tasks.map(task => [task.code, task])), [tasks]);
+
   // Jump to any activity by id
   const handleJumpToActivity = useCallback((taskId: string) => {
     focusOnTask(taskId);
@@ -1321,6 +1324,20 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       }
       return;
     }
+
+    const currentTask = taskById.get(selectedTaskId);
+    const manualNextCode = currentTask?.next_activity_code?.trim();
+    if (manualNextCode) {
+      const targetTask = taskByCode.get(manualNextCode);
+      if (targetTask) {
+        focusOnTask(targetTask.id);
+        setActiveBranchInfo(`Lien manuel → ${manualNextCode}`);
+        return;
+      }
+      setActiveBranchInfo("Fin de branche");
+      return;
+    }
+
     const next = findNextStep(selectedTaskId);
     if (!next) {
       const first = navPath[0];
@@ -1340,7 +1357,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       setPendingGateway(next);
       setGatewayPopoverOpen(true);
     }
-  }, [flatNavTaskIds, selectedTaskId, navPath, findNextStep, focusOnTask]);
+  }, [flatNavTaskIds, selectedTaskId, navPath, findNextStep, focusOnTask, taskByCode, taskById]);
 
   const handlePrevTask = useCallback(() => {
     if (flatNavTaskIds.length === 0) return;
