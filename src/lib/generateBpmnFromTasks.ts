@@ -88,6 +88,7 @@ export function generateBpmnFromTasks(
 
   const nodes: BpmnNode[] = [];
   const edges: BpmnEdge[] = [];
+  const taskCodeToNodeId = new Map<string, string>();
 
   // Empty process
   if (tasks.length === 0) {
@@ -153,6 +154,7 @@ export function generateBpmnFromTasks(
     } else {
       const taskNode = mkNode("task", task.description, curX, centerNodeY("task", BASE_Y));
       nodes.push(taskNode);
+      taskCodeToNodeId.set(task.code, taskNode.id);
       edges.push(mkEdge(lastId, taskNode.id));
       attachDataArtifacts(task, taskNode, curX, BASE_Y, nodes, edges, elByCode, docById);
       lastId = taskNode.id;
