@@ -45,18 +45,18 @@ export interface BpmnDiagram {
 }
 
 export const NODE_DEFAULTS: Record<BpmnNodeType, { width: number; height: number; label: string }> = {
-  "start": { width: 40, height: 40, label: "Début" },
-  "end": { width: 40, height: 40, label: "Fin" },
-  "task": { width: 140, height: 60, label: "Tâche" },
-  "gateway-exclusive": { width: 50, height: 50, label: "XOR" },
-  "gateway-parallel": { width: 50, height: 50, label: "AND" },
-  "gateway-inclusive": { width: 50, height: 50, label: "OR" },
-  "intermediate-timer": { width: 40, height: 40, label: "Timer" },
-  "intermediate-message": { width: 40, height: 40, label: "Message" },
-  "subprocess": { width: 160, height: 80, label: "Sous-processus" },
-  "annotation": { width: 150, height: 40, label: "Note" },
-  "data-object": { width: 36, height: 48, label: "Document" },
-  "data-store": { width: 44, height: 40, label: "Données" },
+  "start": { width: 44, height: 44, label: "Début" },
+  "end": { width: 44, height: 44, label: "Fin" },
+  "task": { width: 180, height: 70, label: "Tâche" },
+  "gateway-exclusive": { width: 54, height: 54, label: "XOR" },
+  "gateway-parallel": { width: 54, height: 54, label: "AND" },
+  "gateway-inclusive": { width: 54, height: 54, label: "OR" },
+  "intermediate-timer": { width: 44, height: 44, label: "Timer" },
+  "intermediate-message": { width: 44, height: 44, label: "Message" },
+  "subprocess": { width: 200, height: 90, label: "Sous-processus" },
+  "annotation": { width: 160, height: 44, label: "Note" },
+  "data-object": { width: 40, height: 52, label: "Document" },
+  "data-store": { width: 50, height: 44, label: "Données" },
 };
 
 export const NODE_CATEGORIES = [

@@ -77,7 +77,7 @@ function wrapText(text: string, maxLen: number): string[] {
     }
   }
   if (cur) lines.push(cur);
-  return lines.slice(0, 3); // max 3 lines
+  return lines.slice(0, 4); // max 4 lines for larger nodes
 }
 
 /** Build orthogonal path (right-angle connectors) */
@@ -313,13 +313,13 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
             {node.type === "gateway-inclusive" && (
               <circle cx={cx} cy={cy} r={11} fill="none" stroke="#78350f" strokeWidth={3.5} />
             )}
-            {/* Gateway label (below, multi-line) */}
+            {/* Gateway label (below, multi-line, with offset to avoid edges) */}
             {node.label && (() => {
-              const lines = wrapText(node.label, 24);
+              const lines = wrapText(node.label, 20);
               return lines.map((line, li) => (
-                <text key={li} x={cx} y={cy + r + 18 + li * 13} textAnchor="middle"
+                <text key={li} x={cx} y={cy + r + 22 + li * 14} textAnchor="middle"
                   fontSize="10" fontWeight="500" fill="hsl(var(--foreground))" opacity={0.65}>
-                  {line.length > 28 ? line.slice(0, 28) + "…" : line}
+                  {line.length > 24 ? line.slice(0, 24) + "…" : line}
                 </text>
               ));
             })()}
@@ -328,10 +328,10 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
       }
 
       case "task": {
-        const lines = wrapText(node.label, 22);
-        const lineH = 15;
+        const lines = wrapText(node.label, 26);
+        const lineH = 16;
         const textBlockH = lines.length * lineH;
-        const startTextY = node.y + (h - textBlockH) / 2 + 12;
+        const startTextY = node.y + (h - textBlockH) / 2 + 13;
         return (
           <g key={node.id} {...commonEvents}>
             {isFocused && (
