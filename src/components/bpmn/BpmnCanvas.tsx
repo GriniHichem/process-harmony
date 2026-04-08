@@ -77,7 +77,7 @@ function wrapText(text: string, maxLen: number): string[] {
     }
   }
   if (cur) lines.push(cur);
-  return lines.slice(0, 3); // max 3 lines
+  return lines.slice(0, 4); // max 4 lines for larger nodes
 }
 
 /** Build orthogonal path (right-angle connectors) */
