@@ -181,8 +181,18 @@ export function generateBpmnFromTasks(
     }
   }
 
+  // ── Jump edges (next_activity_code) ──
+  for (const task of tasks) {
+    if (task.next_activity_code) {
+      const fromNodeId = taskCodeToNodeId.get(task.code);
+      const toNodeId = taskCodeToNodeId.get(task.next_activity_code);
+      if (fromNodeId && toNodeId) {
+        edges.push(mkEdge(fromNodeId, toNodeId, `→ ${task.next_activity_code}`, "association"));
+      }
+    }
+  }
+
   return { nodes, edges };
-}
 
 // ─── Build a gateway split/merge group (supports nesting) ───────────
 
