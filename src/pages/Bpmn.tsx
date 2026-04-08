@@ -1,5 +1,5 @@
 import { HelpTooltip } from "@/components/HelpTooltip";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export default function Bpmn() {
   const [mode, setMode] = useState<ToolMode>("select");
   const [zoom, setZoom] = useState(1);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [history, setHistory] = useState<BpmnData[]>([]);
   const [generating, setGenerating] = useState(false);
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
