@@ -255,13 +255,14 @@ function buildGatewayGroup(
     const childBranches = branchMap.get(branch.code);
 
     if (childBranches && childBranches.length > 0) {
-      const nested = buildGatewayGroup(branch, childBranches, branchX, branchY, nodes, edges, elByCode, docById, branchMap);
+      const nested = buildGatewayGroup(branch, childBranches, branchX, branchY, nodes, edges, elByCode, docById, branchMap, taskCodeToNodeId);
       edges.push(mkEdge(splitGw.id, nested.entryId, branch.condition || undefined));
       branchEndIds.push(nested.exitId);
       maxBranchEndX = Math.max(maxBranchEndX, nested.nextX);
     } else {
       const branchNode = mkNode("task", branch.description, branchX, centerNodeY("task", branchY));
       nodes.push(branchNode);
+      taskCodeToNodeId.set(branch.code, branchNode.id);
       edges.push(mkEdge(splitGw.id, branchNode.id, branch.condition || undefined));
       branchEndIds.push(branchNode.id);
       attachDataArtifacts(branch, branchNode, branchX, branchY, nodes, edges, elByCode, docById);
