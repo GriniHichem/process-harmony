@@ -1738,8 +1738,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               {/* Edges */}
               {layout.edges.map((e, i) => <FlowchartEdge key={i} edge={e} />)}
 
-              {/* Custom jump arrows (next_activity_code) */}
-              {layout.nodes.filter(n => n.task.next_activity_code).map(node => {
+              {/* Custom jump arrows (next_activity_code) — only for root sequential tasks */}
+              {layout.nodes.filter(n => n.task.next_activity_code && !n.task.parent_code).map(node => {
                 const t = node.task;
                 const nac = t.next_activity_code!;
                 const targetNode = layout.nodes.find(n => n.task.code === nac);
