@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Trash2 } from "lucide-react";
+import { Plus, X, Trash2, ArrowRight } from "lucide-react";
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
@@ -29,6 +29,14 @@ interface TaskData {
   responsable_id: string | null;
   entrees: string | null;
   sorties: string | null;
+  next_activity_code: string | null;
+}
+
+interface AllTask {
+  id: string;
+  code: string;
+  description: string;
+  parent_code: string | null;
 }
 
 const FLOW_ICONS: Record<TaskFlowType, string> = {
@@ -48,14 +56,16 @@ interface Props {
   onSave: (data: {
     description: string; type_flux: TaskFlowType; condition: string | null;
     responsable_id: string | null; entrees: string | null; sorties: string | null;
+    next_activity_code: string | null;
   }) => void;
   onDelete?: () => void;
   onAddElement: (type: ElementType, description: string) => Promise<void>;
   canDelete: boolean;
   parentFluxType?: TaskFlowType | null;
+  allTasks?: AllTask[];
 }
 
-export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteurs, processElements, onSave, onDelete, onAddElement, canDelete, parentFluxType }: Props) {
+export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteurs, processElements, onSave, onDelete, onAddElement, canDelete, parentFluxType, allTasks = [] }: Props) {
   const [description, setDescription] = useState("");
   const [typeFlux, setTypeFlux] = useState<TaskFlowType>("sequentiel");
   const [condition, setCondition] = useState("");
@@ -64,6 +74,7 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
   const [selectedSorties, setSelectedSorties] = useState<string[]>([]);
   const [newEntreeDesc, setNewEntreeDesc] = useState("");
   const [newSortieDesc, setNewSortieDesc] = useState("");
+  const [nextActivityCode, setNextActivityCode] = useState("");
 
   const entreesElements = processElements.filter(e => e.type === "donnee_entree");
   const sortiesElements = processElements.filter(e => e.type === "donnee_sortie");
@@ -74,12 +85,14 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
       setTypeFlux(task.type_flux || "sequentiel");
       setCondition(task.condition || "");
       setResponsableId(task.responsable_id || "");
+      setNextActivityCode(task.next_activity_code || "");
       const parseCodes = (v: string | null) => v ? v.split(",").map(s => s.trim()).filter(Boolean) : [];
       setSelectedEntrees(parseCodes(task.entrees));
       setSelectedSorties(parseCodes(task.sorties));
     } else if (open) {
       setDescription(""); setTypeFlux("sequentiel"); setCondition("");
       setResponsableId(""); setSelectedEntrees([]); setSelectedSorties([]);
+      setNextActivityCode("");
     }
     setNewEntreeDesc(""); setNewSortieDesc("");
   }, [open, task]);
@@ -92,8 +105,12 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
       responsable_id: responsableId || null,
       entrees: selectedEntrees.length > 0 ? selectedEntrees.join(", ") : null,
       sorties: selectedSorties.length > 0 ? selectedSorties.join(", ") : null,
+      next_activity_code: nextActivityCode || null,
     });
   };
+
+  // Filter available targets for "next activity" (exclude self)
+  const availableNextTargets = allTasks.filter(t => t.code !== task?.code);
 
   const handleQuickAdd = async (type: "donnee_entree" | "donnee_sortie", desc: string) => {
     if (!desc.trim()) return;
@@ -228,6 +245,33 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
               </SelectContent>
             </Select>
           </div>
+
+          {/* Activité suivante (custom jump) */}
+          {showFluxType && typeFlux === "sequentiel" && availableNextTargets.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <ArrowRight className="h-3.5 w-3.5" />
+                Activité suivante
+              </Label>
+              <Select value={nextActivityCode || "__default__"} onValueChange={v => setNextActivityCode(v === "__default__" ? "" : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">Suivant par défaut (ordre séquentiel)</SelectItem>
+                  {availableNextTargets.map(t => (
+                    <SelectItem key={t.id} value={t.code}>
+                      <span className="font-mono text-xs mr-1.5">{t.code}</span>
+                      {t.description.length > 50 ? t.description.slice(0, 49) + "…" : t.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {nextActivityCode && (
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                  <ArrowRight className="h-3 w-3" /> Une flèche personnalisée sera dessinée vers <strong>{nextActivityCode}</strong>
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <SheetFooter className="flex-row gap-2 pt-2 border-t border-border/50">
