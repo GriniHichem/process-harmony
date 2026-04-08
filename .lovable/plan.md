@@ -1,113 +1,45 @@
 
-# Plan de correction définitive du logigramme
 
-## Objectif
-Remplacer la logique actuelle de “plein écran” embarqué par une vraie page/fenêtre dédiée au logigramme, plus stable, plus lisible, et plus simple à naviguer quand il y a beaucoup d’activités.
+# Navigation améliorée du logigramme avec focus & effets visuels
 
-## Ce que je vais faire
+## Problèmes identifiés
 
-### 1) Corriger d’abord l’erreur bloquante de build
-- Rechercher et supprimer toute référence résiduelle à `PROCESS_IO_BOX_H`.
-- Uniformiser toute la logique de hauteur des blocs Entrées/Sorties du processus avec `calcProcessIoBoxHeight(...)`.
-- Revalider les calculs `viewBox`, `maxY` et les zones bas de diagramme pour éviter les erreurs TypeScript et les débordements visuels.
+1. **Navigation Précédente/Suivante** : le zoom cible est 0.8 (trop petit) et il n'y a aucun effet visuel marqué pour identifier l'activité en cours
+2. **Pas d'effet lumineux** sur l'activité focalisée ni sur sa condition/remarque
+3. Le bouton "Suivante" est désactivé quand on est au dernier élément au lieu de boucler ou rester visible
 
-### 2) Changer la logique “plein écran”
-Au lieu d’essayer d’agrandir le logigramme dans la carte actuelle :
-- ajouter un bouton dans l’onglet Activités : `Ouvrir le logigramme`
-- ce bouton ouvrira une nouvelle fenêtre / page dédiée au logigramme
-- cette page utilisera toute la hauteur de l’écran sans dépendre de `requestFullscreen()`
+## Modifications prévues
 
-Résultat :
-- plus de bug de bascule rapide plein écran / non plein écran
-- plus de limitation par la carte ou l’onglet parent
-- expérience beaucoup plus propre et stable
+### 1) Zoom à 110% lors de la navigation
+Dans `focusOnTask`, changer `targetZoom = 0.8` → `targetZoom = 1.1` pour que l'activité ciblée soit bien visible et lisible au centre de l'écran.
 
-### 3) Créer un workspace de lecture/navigation plus pro
-Dans la nouvelle page du logigramme :
-- barre d’outils fixe en haut avec :
-  - Enregistrer
-  - Activité précédente
-  - Activité suivante
-  - Rechercher / Aller à une activité
-  - Ajuster à l’écran
-  - Zoom +
-  - Zoom -
-  - Fermer / Retour
-- sélection d’une activité = recentrage automatique sur l’activité
-- bouton précédent/suivant = navigation selon l’ordre des activités
-- recherche = focus direct sur l’activité ciblée
-- panneau latéral de détail = lecture claire de :
-  - description complète
-  - responsable
-  - entrées
-  - sorties
-  - condition / type de flux
+### 2) Effet de lumière (glow) sur l'activité focalisée
+Ajouter un filtre SVG `<feGaussianBlur>` + `<feMerge>` pour créer un halo lumineux autour du rectangle de l'activité sélectionnée via navigation. L'effet sera un rectangle animé avec `opacity` pulsante (keyframe SVG `animate`) en couleur primaire.
 
-### 4) Réduire les grands vides dans les rectangles activité
-La lecture actuelle souffre parce que les colonnes Entrées/Sorties occupent trop d’espace dans la carte.
+Remplacement du simple `rect` de sélection actuel par :
+- Un halo lumineux bleu/primaire avec blur (glow effect)
+- Une animation de pulsation douce (opacity 0.3 → 0.7 → 0.3)
 
-Je vais passer à une version plus compacte :
-- dans le rectangle activité :
-  - code
-  - description
-  - responsable
-  - petits badges de synthèse du type `3 entrées`, `2 sorties`
-- les listes détaillées d’entrées/sorties seront affichées surtout dans le panneau de détail
-- si une activité n’a pas d’entrée ou pas de sortie :
-  - la zone correspondante sera réduite fortement ou masquée
-  - l’espace sera redonné à la description
+### 3) Effet de lumière sur la condition
+Quand l'activité focalisée a une `condition` non nulle, ajouter un badge condition avec un effet de surbrillance (fond jaune/ambre lumineux avec animation subtile) pour attirer l'attention.
 
-Résultat :
-- moins de vide
-- plus de place pour lire l’activité
-- meilleure lisibilité sur gros logigrammes
+### 4) Transition fluide
+Ajouter une transition CSS `transition: all 0.3s ease` sur le pan/zoom pour que le déplacement vers l'activité suivante soit animé et non instantané.
 
-### 5) Corriger la lisibilité du responsable
-Problème actuel :
-- fond gris + texte blanc = contraste faible
+### 5) Navigation circulaire
+Quand on atteint la dernière activité et qu'on clique "Suivante" → revenir à la première. Idem "Précédente" depuis la première → aller à la dernière.
 
-Correction :
-- utiliser une pastille responsable avec contraste garanti
-- si la couleur est claire : texte foncé
-- si la couleur est foncée : texte blanc
-- pour le cas “non assigné” : fond clair neutre + texte foncé lisible
+## Fichier impacté
 
-## UX finale visée
-```text
-┌──────────────────────────────────────────────────────────────┐
-│ Enregistrer | Précédente | Suivante | Recherche | Zoom | X  │
-├───────────────────────┬──────────────────────────┬───────────┤
-│ Liste / recherche     │ Canvas logigramme        │ Détails   │
-│ des activités         │ centré sur activité      │ activité  │
-│                       │ sélectionnée             │ sélection │
-└───────────────────────┴──────────────────────────┴───────────┘
-```
+| Fichier | Changement |
+|---|---|
+| `src/components/ProcessTasksFlowchart.tsx` | `focusOnTask` zoom 1.1, glow filter SVG, animation pulsation, condition highlight, navigation circulaire |
 
 ## Détails techniques
-- Ajouter une vraie route dédiée, par ex. `/processus/:id/logigramme`
-- Ajouter un bouton d’ouverture depuis `ProcessDetail`
-- Réutiliser `ProcessTasksFlowchart` avec un mode `standalone` ou créer un wrapper dédié
-- Remplacer la logique actuelle de plein écran natif/fallback par une page plein écran structurelle
-- Introduire une navigation pilotée par `selectedTaskId` + index courant
-- Recentrage via `focusOnTask(taskId)` pour recherche, précédent, suivant
-- Refactor des cartes activité pour réduire les colonnes IO internes et déplacer le détail vers le panneau latéral
-- Corriger les couleurs du bandeau responsable avec une logique de contraste
 
-## Fichiers impactés
-- `src/components/ProcessTasksFlowchart.tsx`
-- `src/pages/ProcessDetail.tsx`
-- `src/App.tsx`
-- nouveau fichier probable : `src/pages/ProcessFlowchartPage.tsx`
-- éventuellement `src/components/FlowchartDetailPanel.tsx`
+- **Glow filter** : ajout d'un `<filter id="glow-focus">` dans les `<defs>` du SVG avec `feGaussianBlur stdDeviation="6"` + merge
+- **Pulsation** : `<animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite" />`
+- **Condition highlight** : badge ambre avec `animate` sur `opacity` similaire
+- **Zoom** : `targetZoom = 1.1` dans `focusOnTask`
+- **Navigation** : modulo logic dans `handlePrevTask`/`handleNextTask`
 
-## Impact base de données
-- aucun changement de base nécessaire
-
-## Ordre d’implémentation
-1. Fix build `PROCESS_IO_BOX_H`
-2. Ajouter la route/page dédiée logigramme
-3. Ajouter le bouton d’ouverture depuis Activités
-4. Mettre la navigation précédente/suivante + focus activité
-5. Refondre les cartes activité pour supprimer les grands vides
-6. Corriger le style du responsable
-7. Ajuster la lecture sur gros volumes d’activités
