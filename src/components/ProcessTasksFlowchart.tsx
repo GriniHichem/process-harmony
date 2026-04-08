@@ -1178,38 +1178,184 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     const el = processElements.find(e => e.code === code);
     return el?.description || code;
   };
-  // ─── Prev/Next navigation ───
-  const sortedTaskIds = useMemo(() => [...tasks].sort((a, b) => a.ordre - b.ordre).map(t => t.id), [tasks]);
+  // ─── Smart BPMN navigation ───
+  type NavStep =
+    | { type: "task"; taskId: string; label: string; branchInfo?: string }
+    | { type: "gateway-choice"; parentCode: string; parentDesc: string; branches: { taskId: string; label: string; stepsInBranch: NavStep[] }[] };
 
-  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
+  const navPath = useMemo((): NavStep[] => {
+    if (tasks.length === 0) return [];
+    const sorted = [...tasks].sort((a, b) => a.ordre - b.ordre);
+    const roots = sorted.filter(t => !t.parent_code);
+    const branchMap = new Map<string, ProcessTask[]>();
+    for (const t of sorted) {
+      if (t.parent_code) {
+        let arr = branchMap.get(t.parent_code);
+        if (!arr) { arr = []; branchMap.set(t.parent_code, arr); }
+        arr.push(t);
+      }
+    }
 
-  const hasManualPositions = positionOverrides.size > 0;
-  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
-  const showDetailPanel = detailPanelOpen && selectedTask && !editorOpen;
+    function buildSteps(taskList: ProcessTask[], branchLabel?: string): NavStep[] {
+      const steps: NavStep[] = [];
+      for (const task of taskList) {
+        const branches = branchMap.get(task.code);
+        if (branches && branches.length > 0) {
+          if (task.type_flux === "conditionnel") {
+            // XOR: user chooses
+            steps.push({
+              type: "gateway-choice",
+              parentCode: task.code,
+              parentDesc: task.description,
+              branches: branches.map(b => ({
+                taskId: b.id,
+                label: b.condition || "Sinon",
+                stepsInBranch: buildSteps([b], b.condition || "Sinon"),
+              })),
+            });
+          } else {
+            // AND / OR: navigate all branches sequentially
+            for (let bi = 0; bi < branches.length; bi++) {
+              const b = branches[bi];
+              const bLabel = `Branche ${bi + 1}/${branches.length}`;
+              const bSteps = buildSteps([b], bLabel);
+              steps.push(...bSteps.map(s => {
+                if (s.type === "task") return { ...s, branchInfo: bLabel };
+                return s;
+              }));
+            }
+          }
+        } else {
+          steps.push({ type: "task", taskId: task.id, label: task.code, branchInfo: branchLabel });
+        }
+      }
+      return steps;
+    }
 
-  const currentNavIndex = selectedTaskId ? sortedTaskIds.indexOf(selectedTaskId) : -1;
-  const handlePrevTask = () => {
-    if (sortedTaskIds.length === 0) return;
-    if (currentNavIndex <= 0) {
+    return buildSteps(roots);
+  }, [tasks]);
+
+  // Flatten to get all task steps (for index tracking)
+  const flatNavTaskIds = useMemo(() => {
+    const ids: string[] = [];
+    function collect(steps: NavStep[]) {
+      for (const s of steps) {
+        if (s.type === "task") ids.push(s.taskId);
+        else {
+          // For gateway-choice, include all branches so we can find position
+          for (const b of s.branches) collect(b.stepsInBranch);
+        }
+      }
+    }
+    collect(navPath);
+    return ids;
+  }, [navPath]);
+
+  const [gatewayPopoverOpen, setGatewayPopoverOpen] = useState(false);
+  const [pendingGateway, setPendingGateway] = useState<NavStep | null>(null);
+  const [activeBranchInfo, setActiveBranchInfo] = useState<string | null>(null);
+
+  const currentNavIndex = selectedTaskId ? flatNavTaskIds.indexOf(selectedTaskId) : -1;
+
+  // Find the next step in navPath after current position
+  const findNextStep = useCallback((fromTaskId: string | null): NavStep | null => {
+    if (!fromTaskId) return navPath.length > 0 ? navPath[0] : null;
+
+    // Walk navPath linearly to find current and return next
+    let found = false;
+    function search(steps: NavStep[]): NavStep | null {
+      for (let i = 0; i < steps.length; i++) {
+        const s = steps[i];
+        if (found) return s;
+        if (s.type === "task" && s.taskId === fromTaskId) {
+          found = true;
+          if (i + 1 < steps.length) return steps[i + 1];
+          return null; // end of this sequence, will be caught by parent
+        }
+        if (s.type === "gateway-choice") {
+          for (const b of s.branches) {
+            const result = search(b.stepsInBranch);
+            if (found) {
+              if (result) return result;
+              // Finished this branch, continue after gateway
+              if (i + 1 < steps.length) return steps[i + 1];
+              return null;
+            }
+          }
+        }
+      }
+      return null;
+    }
+    return search(navPath);
+  }, [navPath]);
+
+  const findPrevStep = useCallback((fromTaskId: string | null): NavStep | null => {
+    if (!fromTaskId || flatNavTaskIds.length === 0) return null;
+    const idx = flatNavTaskIds.indexOf(fromTaskId);
+    if (idx <= 0) {
       // Circular: go to last
-      focusOnTask(sortedTaskIds[sortedTaskIds.length - 1]);
+      const lastId = flatNavTaskIds[flatNavTaskIds.length - 1];
+      return { type: "task", taskId: lastId, label: "" };
+    }
+    return { type: "task", taskId: flatNavTaskIds[idx - 1], label: "" };
+  }, [flatNavTaskIds]);
+
+  const handleNextTask = useCallback(() => {
+    if (flatNavTaskIds.length === 0) return;
+    if (!selectedTaskId) {
+      // Start from first
+      const first = navPath[0];
+      if (!first) return;
+      if (first.type === "task") {
+        focusOnTask(first.taskId);
+        setActiveBranchInfo(first.branchInfo || null);
+      } else {
+        setPendingGateway(first);
+        setGatewayPopoverOpen(true);
+      }
       return;
     }
-    focusOnTask(sortedTaskIds[currentNavIndex - 1]);
-  };
-  const handleNextTask = () => {
-    if (sortedTaskIds.length === 0) return;
-    if (currentNavIndex < 0) {
-      focusOnTask(sortedTaskIds[0]);
-      return;
-    }
-    if (currentNavIndex >= sortedTaskIds.length - 1) {
+
+    const next = findNextStep(selectedTaskId);
+    if (!next) {
       // Circular: go to first
-      focusOnTask(sortedTaskIds[0]);
+      const first = navPath[0];
+      if (first?.type === "task") {
+        focusOnTask(first.taskId);
+        setActiveBranchInfo(first.branchInfo || null);
+      } else if (first) {
+        setPendingGateway(first);
+        setGatewayPopoverOpen(true);
+      }
       return;
     }
-    focusOnTask(sortedTaskIds[currentNavIndex + 1]);
-  };
+
+    if (next.type === "task") {
+      focusOnTask(next.taskId);
+      setActiveBranchInfo(next.branchInfo || null);
+    } else {
+      setPendingGateway(next);
+      setGatewayPopoverOpen(true);
+    }
+  }, [flatNavTaskIds, selectedTaskId, navPath, findNextStep, focusOnTask]);
+
+  const handlePrevTask = useCallback(() => {
+    if (flatNavTaskIds.length === 0) return;
+    const prev = findPrevStep(selectedTaskId);
+    if (prev && prev.type === "task") {
+      focusOnTask(prev.taskId);
+      // Try to find branch info
+      const task = tasks.find(t => t.id === prev.taskId);
+      setActiveBranchInfo(task?.parent_code ? `Branche` : null);
+    }
+  }, [flatNavTaskIds, selectedTaskId, findPrevStep, focusOnTask, tasks]);
+
+  const handleGatewayChoice = useCallback((branch: { taskId: string; label: string; stepsInBranch: NavStep[] }) => {
+    setGatewayPopoverOpen(false);
+    setPendingGateway(null);
+    focusOnTask(branch.taskId);
+    setActiveBranchInfo(`Condition: ${branch.label}`);
+  }, [focusOnTask]);
 
   const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
     <Tooltip>
