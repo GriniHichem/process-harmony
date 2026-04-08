@@ -328,7 +328,9 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                   <TableCell className="text-sm">{resolveElementDescriptions(task.entrees)}</TableCell>
                   <TableCell className="text-sm">{resolveElementDescriptions(task.sorties)}</TableCell>
                   <TableCell className="text-sm">
-                    {task.next_activity_code ? (
+                    {task.next_activity_code === "__end__" ? (
+                      <Badge variant="destructive" className="gap-1 text-[10px]">🔚 Fin</Badge>
+                    ) : task.next_activity_code ? (
                       <Badge variant="outline" className="gap-1">
                         <ArrowRight className="h-3 w-3" />
                         <span className="font-mono text-xs">{task.next_activity_code}</span>
@@ -518,6 +520,9 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__default__">Suivant par défaut (ordre séquentiel)</SelectItem>
+                    <SelectItem value="__end__">
+                      <span className="text-destructive font-semibold">🔚 Fin de branche</span>
+                    </SelectItem>
                     {availableNextTargets.map((task) => (
                       <SelectItem key={task.id} value={task.code}>
                         <span className="font-mono text-xs mr-1">{task.code}</span>
@@ -526,10 +531,15 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                     ))}
                   </SelectContent>
                 </Select>
-                {form.next_activity_code && (
+                {form.next_activity_code === "__end__" && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    🔚 Cette activité marque la <strong>fin de branche</strong>
+                  </p>
+                )}
+                {form.next_activity_code && form.next_activity_code !== "__end__" && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <ArrowRight className="h-3 w-3" />
-                    Cette valeur sera enregistrée en base et utilisée dans le logigramme et le BPMN.
+                    Flèche vers <strong>{form.next_activity_code}</strong> dans le logigramme et le BPMN.
                   </p>
                 )}
               </div>
