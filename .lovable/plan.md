@@ -1,45 +1,82 @@
 
 
-# Navigation améliorée du logigramme avec focus & effets visuels
+# Navigation intelligente par type de flux
 
-## Problèmes identifiés
+## Contexte
 
-1. **Navigation Précédente/Suivante** : le zoom cible est 0.8 (trop petit) et il n'y a aucun effet visuel marqué pour identifier l'activité en cours
-2. **Pas d'effet lumineux** sur l'activité focalisée ni sur sa condition/remarque
-3. Le bouton "Suivante" est désactivé quand on est au dernier élément au lieu de boucler ou rester visible
+Actuellement, la navigation Précédente/Suivante parcourt les activités dans l'ordre plat (`ordre`), sans tenir compte de la structure logique du logigramme (branches conditionnelles, parallèles, inclusives). L'utilisateur veut une navigation qui respecte le flux BPMN réel.
 
-## Modifications prévues
+## Comportement cible
 
-### 1) Zoom à 110% lors de la navigation
-Dans `focusOnTask`, changer `targetZoom = 0.8` → `targetZoom = 1.1` pour que l'activité ciblée soit bien visible et lisible au centre de l'écran.
+### Séquentiel
+- Passe directement à l'activité suivante dans la séquence racine
+- Si l'activité 2 n'existe pas (supprimée), saute de 1 à 3
 
-### 2) Effet de lumière (glow) sur l'activité focalisée
-Ajouter un filtre SVG `<feGaussianBlur>` + `<feMerge>` pour créer un halo lumineux autour du rectangle de l'activité sélectionnée via navigation. L'effet sera un rectangle animé avec `opacity` pulsante (keyframe SVG `animate`) en couleur primaire.
+### Conditionnel (XOR)
+- Quand on arrive sur une gateway conditionnelle, afficher un **popover de choix** listant les branches disponibles (avec leur condition comme label)
+- L'utilisateur clique sur une branche pour y naviguer
+- Les autres branches sont ignorées
 
-Remplacement du simple `rect` de sélection actuel par :
-- Un halo lumineux bleu/primaire avec blur (glow effect)
-- Une animation de pulsation douce (opacity 0.3 → 0.7 → 0.3)
+### Parallèle (AND)
+- Quand on arrive sur une gateway parallèle, naviguer automatiquement dans **toutes les branches séquentiellement** (branche 1 complète, puis branche 2, etc.)
+- Un indicateur visuel montre quelle branche est en cours : `Branche 1/3`
 
-### 3) Effet de lumière sur la condition
-Quand l'activité focalisée a une `condition` non nulle, ajouter un badge condition avec un effet de surbrillance (fond jaune/ambre lumineux avec animation subtile) pour attirer l'attention.
+### Inclusif (OR)
+- Même logique que Parallèle : parcourir toutes les branches séquentiellement
+- Indicateur de branche affiché
 
-### 4) Transition fluide
-Ajouter une transition CSS `transition: all 0.3s ease` sur le pan/zoom pour que le déplacement vers l'activité suivante soit animé et non instantané.
+## Modifications techniques
 
-### 5) Navigation circulaire
-Quand on atteint la dernière activité et qu'on clique "Suivante" → revenir à la première. Idem "Précédente" depuis la première → aller à la dernière.
+### 1) Construire un chemin de navigation structuré
+
+Remplacer `sortedTaskIds` (tri plat par `ordre`) par un **parcours en profondeur du graphe** qui suit la structure du logigramme :
+
+```text
+Exemple : AP-001 (seq) → AP-002 (cond) → [choix] → AP-002a (branche) → AP-003 (seq) → AP-004 (par) → AP-004p1 → AP-004p2 → AP-005
+```
+
+Nouveau type pour représenter les étapes de navigation :
+```typescript
+type NavStep =
+  | { type: "task"; taskId: string }
+  | { type: "gateway-choice"; parentCode: string; branches: { taskId: string; label: string }[] }
+```
+
+### 2) Popover de choix pour les conditionnels
+
+Quand `handleNextTask` arrive sur un `gateway-choice` :
+- Afficher un petit **Popover** ancré au bouton "Suivante" avec la liste des branches
+- Chaque option affiche le label de la condition
+- Cliquer sur une option focus sur cette branche et continue la navigation dedans
+- Après la dernière activité de la branche, revenir au flux principal (après le merge)
+
+### 3) Navigation séquentielle des branches parallèles/inclusives
+
+Pour AND et OR :
+- Entrer automatiquement dans la première branche
+- Parcourir toutes ses activités
+- Passer à la branche suivante
+- Après la dernière branche, continuer après le merge
+- Afficher un badge `Branche 1/N` dans la toolbar
+
+### 4) Indicateur visuel dans la toolbar
+
+Remplacer le simple compteur `1/N` par un affichage contextuel :
+- Séquentiel : `AP-003 — 3/12`
+- Conditionnel : `AP-002a — Branche: Si condition X`
+- Parallèle/Inclusif : `AP-004p1 — Branche 1/3`
 
 ## Fichier impacté
 
 | Fichier | Changement |
 |---|---|
-| `src/components/ProcessTasksFlowchart.tsx` | `focusOnTask` zoom 1.1, glow filter SVG, animation pulsation, condition highlight, navigation circulaire |
+| `src/components/ProcessTasksFlowchart.tsx` | Nouvelle logique `buildNavPath()`, popover conditionnel, indicateur de branche, remplacement de `sortedTaskIds` |
 
-## Détails techniques
+## Détails d'implémentation
 
-- **Glow filter** : ajout d'un `<filter id="glow-focus">` dans les `<defs>` du SVG avec `feGaussianBlur stdDeviation="6"` + merge
-- **Pulsation** : `<animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite" />`
-- **Condition highlight** : badge ambre avec `animate` sur `opacity` similaire
-- **Zoom** : `targetZoom = 1.1` dans `focusOnTask`
-- **Navigation** : modulo logic dans `handlePrevTask`/`handleNextTask`
+1. **`buildNavPath(tasks)`** : fonction qui parcourt les racines en ordre, et pour chaque gateway insère soit un `gateway-choice` (XOR) soit les branches aplaties séquentiellement (AND/OR)
+2. **`currentNavStep`** : state qui pointe vers l'index dans le navPath
+3. **`handleNextTask`** : si l'étape courante est un `gateway-choice`, ouvrir le popover au lieu d'avancer ; sinon avancer normalement
+4. **Popover** : utiliser le composant `Popover` existant, ancré au bouton Suivante
+5. **Badge branche** : affiché dans la toolbar quand on est dans une branche parallèle/inclusive
 
