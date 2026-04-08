@@ -1184,6 +1184,18 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
   const showDetailPanel = detailPanelOpen && selectedTask && !editorOpen;
 
+  // ─── Prev/Next navigation ───
+  const sortedTaskIds = useMemo(() => [...tasks].sort((a, b) => a.ordre - b.ordre).map(t => t.id), [tasks]);
+  const currentNavIndex = selectedTaskId ? sortedTaskIds.indexOf(selectedTaskId) : -1;
+  const handlePrevTask = useCallback(() => {
+    if (currentNavIndex <= 0) return;
+    focusOnTask(sortedTaskIds[currentNavIndex - 1]);
+  }, [currentNavIndex, sortedTaskIds, focusOnTask]);
+  const handleNextTask = useCallback(() => {
+    if (currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1) return;
+    focusOnTask(sortedTaskIds[currentNavIndex + 1]);
+  }, [currentNavIndex, sortedTaskIds, focusOnTask]);
+
   const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
     <Tooltip>
       <TooltipTrigger asChild>
