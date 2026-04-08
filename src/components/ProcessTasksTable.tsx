@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, Edit, GitBranch, X, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
@@ -263,14 +264,34 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
     return a ? (a.fonction || "—") : "—";
   };
 
-  const resolveElementDescriptions = (codesStr: string | null): string => {
-    if (!codesStr) return "—";
+  const resolveElementBadges = (codesStr: string | null, variant: "blue" | "amber") => {
+    if (!codesStr) return <span className="text-muted-foreground">—</span>;
     const codes = parseCodes(codesStr);
-    if (codes.length === 0) return "—";
-    return codes.map(code => {
-      const el = processElements.find(e => e.code === code);
-      return el ? el.description : code;
-    }).join(", ");
+    if (codes.length === 0) return <span className="text-muted-foreground">—</span>;
+    return (
+      <div className="flex flex-wrap gap-1">
+        {codes.map(code => {
+          const el = processElements.find(e => e.code === code);
+          const desc = el?.description || code;
+          const shortDesc = desc.length > 35 ? desc.slice(0, 34) + "…" : desc;
+          return (
+            <span
+              key={code}
+              title={desc}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] leading-tight max-w-[180px]",
+                variant === "blue"
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40"
+                  : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40"
+              )}
+            >
+              <span className="font-mono font-semibold shrink-0">{code}</span>
+              <span className="truncate">{shortDesc}</span>
+            </span>
+          );
+        })}
+      </div>
+    );
   };
 
   const isSubTask = (task: ProcessTask) => !!task.parent_code;
@@ -325,8 +346,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                   <TableCell className="text-center text-lg" title={FLOW_LABELS[task.type_flux]}>
                     {FLOW_ICONS[task.type_flux]}
                   </TableCell>
-                  <TableCell className="text-sm">{resolveElementDescriptions(task.entrees)}</TableCell>
-                  <TableCell className="text-sm">{resolveElementDescriptions(task.sorties)}</TableCell>
+                  <TableCell>{resolveElementBadges(task.entrees, "blue")}</TableCell>
+                  <TableCell>{resolveElementBadges(task.sorties, "amber")}</TableCell>
                   <TableCell className="text-sm">
                     {task.next_activity_code === "__end__" ? (
                       <Badge variant="destructive" className="gap-1 text-[10px]">🔚 Fin</Badge>
