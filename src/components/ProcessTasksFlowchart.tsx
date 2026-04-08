@@ -26,6 +26,7 @@ interface ProcessTask {
   responsable_id: string | null; ordre: number; entrees: string | null;
   sorties: string | null; documents: string[] | null;
   position_x?: number | null; position_y?: number | null;
+  next_activity_code?: string | null;
 }
 interface ProcessElement { id: string; code: string; description: string; type: ElementType; ordre: number; }
 interface Acteur { id: string; fonction: string | null; }
@@ -849,7 +850,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         description: data.description, type_flux: data.type_flux,
         condition: data.condition, responsable_id: data.responsable_id,
         entrees: data.entrees, sorties: data.sorties,
-      }).eq("id", editorTask.id);
+        next_activity_code: data.next_activity_code,
+      } as any).eq("id", editorTask.id);
       if (error) { toast.error(error.message); return; }
       toast.success("Activité modifiée");
     } else {
@@ -1999,6 +2001,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         onAddElement={onAddElement}
         canDelete={canDelete}
         parentFluxType={editorParentFluxType}
+        allTasks={tasks.map(t => ({ id: t.id, code: t.code, description: t.description, parent_code: t.parent_code }))}
       />
     </div>
   );
