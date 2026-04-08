@@ -1177,6 +1177,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     const el = processElements.find(e => e.code === code);
     return el?.description || code;
   };
+  // ─── Prev/Next navigation ───
+  const sortedTaskIds = useMemo(() => [...tasks].sort((a, b) => a.ordre - b.ordre).map(t => t.id), [tasks]);
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
 
@@ -1184,17 +1186,15 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
   const showDetailPanel = detailPanelOpen && selectedTask && !editorOpen;
 
-  // ─── Prev/Next navigation ───
-  const sortedTaskIds = useMemo(() => [...tasks].sort((a, b) => a.ordre - b.ordre).map(t => t.id), [tasks]);
   const currentNavIndex = selectedTaskId ? sortedTaskIds.indexOf(selectedTaskId) : -1;
-  const handlePrevTask = useCallback(() => {
+  const handlePrevTask = () => {
     if (currentNavIndex <= 0) return;
     focusOnTask(sortedTaskIds[currentNavIndex - 1]);
-  }, [currentNavIndex, sortedTaskIds, focusOnTask]);
-  const handleNextTask = useCallback(() => {
+  };
+  const handleNextTask = () => {
     if (currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1) return;
     focusOnTask(sortedTaskIds[currentNavIndex + 1]);
-  }, [currentNavIndex, sortedTaskIds, focusOnTask]);
+  };
 
   const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
     <Tooltip>
