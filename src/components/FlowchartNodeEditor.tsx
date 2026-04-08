@@ -257,6 +257,9 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__default__">Suivant par défaut (ordre séquentiel)</SelectItem>
+                  <SelectItem value="__end__">
+                    <span className="text-destructive font-semibold">🔚 Fin de branche</span>
+                  </SelectItem>
                   {availableNextTargets.map(t => (
                     <SelectItem key={t.id} value={t.code}>
                       <span className="font-mono text-xs mr-1.5">{t.code}</span>
@@ -265,7 +268,12 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
                   ))}
                 </SelectContent>
               </Select>
-              {nextActivityCode && (
+              {nextActivityCode === "__end__" && (
+                <p className="text-[10px] text-destructive flex items-center gap-1">
+                  🔚 Cette activité marque la <strong>fin de branche</strong> — aucune flèche vers une activité suivante
+                </p>
+              )}
+              {nextActivityCode && nextActivityCode !== "__end__" && (
                 <p className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
                   <ArrowRight className="h-3 w-3" /> Une flèche personnalisée sera dessinée vers <strong>{nextActivityCode}</strong>
                 </p>
