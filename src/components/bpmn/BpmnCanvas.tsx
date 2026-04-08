@@ -21,6 +21,7 @@ interface BpmnCanvasProps {
 
 export interface BpmnCanvasHandle {
   getSvgElement: () => SVGSVGElement | null;
+  panToNode: (nodeId: string, targetZoom: number) => void;
 }
 
 /* ── Helpers ────────────────────────────────────────────── */
