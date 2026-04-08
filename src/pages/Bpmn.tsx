@@ -215,6 +215,7 @@ export default function Bpmn() {
           sorties: t.sorties,
           ordre: t.ordre,
           documents: t.documents,
+          next_activity_code: t.next_activity_code,
         })),
         (elements ?? []).map(e => ({
           id: e.id,
