@@ -100,7 +100,7 @@ function generateExampleCsv(delimiter: string): string {
     `7${d}Créer compte ERP${d}Séquentiel${d}5${d}${d}${d}Compte ERP créé${d}Admin ERP${d}`,
     `8${d}Vérifier résultat${d}Inclusif${d}${d}${d}${d}${d}${d}`,
     `9${d}Test fonctionnel${d}Séquentiel${d}8${d}SI disponible${d}${d}Test OK${d}Help Desk${d}`,
-    `10${d}Test sécurité${d}Séquentiel${d}8${d}SI critique${d}${d}Audit OK${d}Admin Systèmes${d}1`,
+    `10${d}Test sécurité${d}Séquentiel${d}8${d}SI critique${d}${d}Audit OK${d}Admin Systèmes${d}__end__`,
   ];
   return lines.join("\n");
 }
