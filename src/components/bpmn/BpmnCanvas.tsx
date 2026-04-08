@@ -205,6 +205,7 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
     const w = node.width ?? def.width;
     const h = node.height ?? def.height;
     const isSelected = node.id === selectedNodeId;
+    const isFocused = node.id === focusedNodeId;
 
     const commonEvents = {
       onMouseDown: (e: React.MouseEvent) => { e.stopPropagation(); handleMouseDown(e, node.id); },
@@ -212,7 +213,7 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
       style: { cursor: mode === "delete" ? "crosshair" : mode === "connect" ? "cell" : "grab" } as React.CSSProperties,
     };
 
-    const selFilter = isSelected ? "url(#selectedGlow)" : "url(#nodeShadow)";
+    const selFilter = isFocused ? "url(#focusGlow)" : isSelected ? "url(#selectedGlow)" : "url(#nodeShadow)";
 
     switch (node.type) {
       case "start":
