@@ -1357,6 +1357,12 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     setActiveBranchInfo(`Condition: ${branch.label}`);
   }, [focusOnTask]);
 
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
+
+  const hasManualPositions = positionOverrides.size > 0;
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
+  const showDetailPanel = detailPanelOpen && selectedTask && !editorOpen;
+
   const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
     <Tooltip>
       <TooltipTrigger asChild>
