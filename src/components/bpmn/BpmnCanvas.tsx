@@ -15,6 +15,7 @@ interface BpmnCanvasProps {
   onEdgeDelete: (id: string) => void;
   onNodeSelect: (id: string | null) => void;
   selectedNodeId: string | null;
+  focusedNodeId?: string | null;
   canEdit: boolean;
 }
 
