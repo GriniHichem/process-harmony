@@ -8,12 +8,13 @@ import {
   Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle,
   Locate, Link2, FileText, Grid3X3, Undo2, Redo2, Copy, Trash2, AlignCenterHorizontal,
   AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, GitBranch
 } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { FlowchartDetailPanel } from "./FlowchartDetailPanel";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
