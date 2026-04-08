@@ -13,6 +13,7 @@ export interface TaskInput {
   sorties: string | null;
   ordre: number;
   documents: string[] | null;
+  next_activity_code?: string | null;
 }
 
 export interface ElementInput {

@@ -223,12 +223,20 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
     setImporting(true);
 
     try {
-      // 1. Create missing elements
-      const existingEntreeMap = new Map(processElements.filter(e => e.type === "donnee_entree").map(e => [e.description.toLowerCase(), e.code]));
-      const existingSortieMap = new Map(processElements.filter(e => e.type === "donnee_sortie").map(e => [e.description.toLowerCase(), e.code]));
-      let deCounter = processElements.filter(e => e.type === "donnee_entree").length;
-      let dsCounter = processElements.filter(e => e.type === "donnee_sortie").length;
-      let elementOrdre = processElements.length;
+      // 0. Delete existing entries/exits and tasks (full cleanup)
+      const { error: delElementsError } = await supabase
+        .from("process_elements")
+        .delete()
+        .eq("process_id", processId)
+        .in("type", ["donnee_entree", "donnee_sortie"]);
+      if (delElementsError) throw delElementsError;
+
+      // 1. Create fresh elements from CSV
+      let deCounter = 0;
+      let dsCounter = 0;
+      let elementOrdre = processElements.filter(e => e.type !== "donnee_entree" && e.type !== "donnee_sortie").length;
+      const existingEntreeMap = new Map<string, string>();
+      const existingSortieMap = new Map<string, string>();
       const newElements: { code: string; description: string; type: "donnee_entree" | "donnee_sortie"; process_id: string; ordre: number }[] = [];
 
       for (const desc of preview.newEntrees) {
