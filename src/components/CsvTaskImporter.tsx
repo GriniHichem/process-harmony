@@ -386,7 +386,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Entrées</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données d'entrée, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Sorties</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données de sortie, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Responsable</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Fonction de l'acteur responsable</td></tr>
-                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Code présent dans la colonne <strong>Code</strong> du même fichier = flèche de saut/boucle utilisée dans le logigramme, le BPMN et la navigation. Code absent ou <strong>__end__</strong> = fin de branche. Vide = ordre normal.</td></tr>
+                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5"><strong>Uniquement pour les activités racines</strong> (sans Parent). Code d'une autre activité = flèche de saut/boucle. <code>__end__</code> = fin du processus. Vide = ordre normal. <em>Ignoré pour les branches XOR/AND/OR</em> (leur flux est géré par la passerelle).</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -444,7 +444,9 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                   <li>Un flux XOR/AND/OR <strong>doit avoir au moins 2 branches</strong> (enfants avec le même Parent)</li>
                   <li>Laissez la Condition vide pour une branche XOR par défaut (SINON)</li>
                   <li>Les branches AND n'ont pas besoin de Condition</li>
-                  <li><strong>Activité suivante</strong> permet de sauter vers une autre activité, revenir en arrière, boucler ou terminer une branche</li>
+                  <li><strong>Activité suivante</strong> ne s'applique qu'aux activités <strong>racines</strong> (sans Parent) — pas aux branches</li>
+                  <li>Les branches rejoignent automatiquement le flux principal via la passerelle de fusion</li>
+                  <li>Conseil codes : utilisez <code>3-a1, 3-a2</code> pour les branches XOR de l'activité 3, <code>4-p1, 4-p2</code> pour AND, <code>5-o1, 5-o2</code> pour OR</li>
                 </ul>
               </div>
 
