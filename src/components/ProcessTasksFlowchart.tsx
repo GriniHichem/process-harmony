@@ -1188,11 +1188,22 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   const currentNavIndex = selectedTaskId ? sortedTaskIds.indexOf(selectedTaskId) : -1;
   const handlePrevTask = () => {
-    if (currentNavIndex <= 0) return;
+    if (sortedTaskIds.length === 0) return;
+    if (currentNavIndex <= 0) {
+      // If nothing selected or already at first, select the first task
+      focusOnTask(sortedTaskIds[0]);
+      return;
+    }
     focusOnTask(sortedTaskIds[currentNavIndex - 1]);
   };
   const handleNextTask = () => {
-    if (currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1) return;
+    if (sortedTaskIds.length === 0) return;
+    if (currentNavIndex < 0) {
+      // Nothing selected → select first task
+      focusOnTask(sortedTaskIds[0]);
+      return;
+    }
+    if (currentNavIndex >= sortedTaskIds.length - 1) return;
     focusOnTask(sortedTaskIds[currentNavIndex + 1]);
   };
 
