@@ -585,10 +585,11 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                         <th className="px-2 py-1.5 text-left font-medium">Flux</th>
                         <th className="px-2 py-1.5 text-left font-medium">Parent</th>
                         <th className="px-2 py-1.5 text-left font-medium">Condition</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Suivante</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {preview.rows.slice(0, 20).map((r, i) => (
+                      {preview.rows.slice(0, 30).map((r, i) => (
                         <tr key={i} className={`border-t border-border/30 ${r.parent_code ? "bg-muted/20" : ""}`}>
                           <td className="px-2 py-1 font-mono">{r.code}</td>
                           <td className="px-2 py-1 max-w-[200px] truncate">{r.parent_code ? "↳ " : ""}{r.description}</td>
@@ -597,11 +598,18 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                           </td>
                           <td className="px-2 py-1 font-mono text-primary">{r.parent_code || "—"}</td>
                           <td className="px-2 py-1 text-muted-foreground">{r.condition || "—"}</td>
+                          <td className="px-2 py-1 font-mono">
+                            {r.activite_suivante === "__end__" ? (
+                              <Badge variant="destructive" className="text-[9px]">🔚 Fin</Badge>
+                            ) : r.activite_suivante ? (
+                              <Badge variant="outline" className="text-[9px]">→ {r.activite_suivante}</Badge>
+                            ) : "—"}
+                          </td>
                         </tr>
                       ))}
-                      {preview.rows.length > 20 && (
+                      {preview.rows.length > 30 && (
                         <tr className="border-t border-border/30">
-                          <td colSpan={5} className="px-2 py-1 text-center text-muted-foreground">… et {preview.rows.length - 20} autres</td>
+                          <td colSpan={6} className="px-2 py-1 text-center text-muted-foreground">… et {preview.rows.length - 30} autres</td>
                         </tr>
                       )}
                     </tbody>
