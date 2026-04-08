@@ -989,7 +989,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       ...layout.nodes.map(n => n.y), ...layout.nodes.map(n => n.y + n.h),
       ...layout.gateways.map(g => g.y), ...layout.gateways.map(g => g.y + g.s),
       layout.startCy + CIRCLE_R, layout.endCy + CIRCLE_R,
-      layout.processOutputsY + PROCESS_IO_BOX_H,
+      layout.processOutputsY + calcProcessIoBoxHeight(layout.processSorties.length),
     ];
     minX = Math.min(...allX) - 100;
     minY = Math.min(...allY) - 80;
