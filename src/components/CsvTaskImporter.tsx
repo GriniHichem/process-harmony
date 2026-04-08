@@ -108,15 +108,21 @@ function generateExampleCsv(delimiter: string): string {
   const q = delimiter === "," ? '"' : '';
   const lines = [
     `Code${d}Description${d}Type de flux${d}Parent${d}Condition${d}Entrées${d}Sorties${d}Responsable${d}Activité suivante`,
-    `1${d}Réceptionner la demande${d}Séquentiel${d}${d}${d}${q}Demande utilisateur${q}${d}${q}Demande qualifiée${q}${d}Help Desk${d}2`,
-    `2${d}Orienter la demande${d}Conditionnel${d}${d}${d}Demande qualifiée${d}${d}Responsable SI${d}3`,
-    `3${d}Traiter cas standard${d}Séquentiel${d}2${d}SI standard${d}${d}Résultat standard${d}Help Desk${d}10`,
-    `4${d}Traiter cas urgent${d}Séquentiel${d}2${d}SI urgent${d}${d}Résultat urgent${d}Admin Systèmes${d}20`,
-    `10${d}Valider la prise en charge${d}Séquentiel${d}${d}${d}Résultat standard${d}Prise en charge validée${d}Responsable SI${d}11`,
-    `11${d}Créer les accès${d}Parallèle${d}${d}${d}Prise en charge validée${d}Accès créés${d}Responsable SI${d}12`,
-    `12${d}Créer le compte Windows${d}Séquentiel${d}11${d}${d}${d}Compte Windows créé${d}Help Desk${d}13`,
-    `13${d}Créer le compte ERP${d}Séquentiel${d}11${d}${d}${d}Compte ERP créé${d}Admin ERP${d}20`,
-    `20${d}Assurer le suivi${d}Séquentiel${d}${d}${d}${d}Suivi réalisé${d}Responsable SI${d}__end__`,
+    `1${d}Réceptionner la demande${d}Séquentiel${d}${d}${d}${q}Demande client${q}${d}${q}Demande qualifiée${q}${d}Help Desk${d}`,
+    `2${d}Analyser la demande${d}Séquentiel${d}${d}${d}${q}Demande qualifiée${q}${d}${q}Analyse terminée${q}${d}Responsable SI${d}`,
+    `3${d}Orienter la demande${d}Conditionnel${d}${d}${d}${q}Analyse terminée${q}${d}${d}Responsable SI${d}`,
+    `3-a1${d}Traiter cas standard${d}Séquentiel${d}3${d}SI standard${d}${d}${q}Résultat standard${q}${d}Help Desk${d}`,
+    `3-a2${d}Traiter cas urgent${d}Séquentiel${d}3${d}SI urgent${d}${d}${q}Résultat urgent${q}${d}Admin Systèmes${d}`,
+    `3-a3${d}Escalader au fournisseur${d}Séquentiel${d}3${d}SINON${d}${d}${q}Ticket externe${q}${d}Responsable SI${d}`,
+    `4${d}Préparer les accès${d}Parallèle${d}${d}${d}${q}Résultat standard, Résultat urgent${q}${d}${d}Responsable SI${d}`,
+    `4-p1${d}Créer compte Windows${d}Séquentiel${d}4${d}${d}${d}${q}Compte Windows créé${q}${d}Help Desk${d}`,
+    `4-p2${d}Créer compte ERP${d}Séquentiel${d}4${d}${d}${d}${q}Compte ERP créé${q}${d}Admin ERP${d}`,
+    `4-p3${d}Configurer messagerie${d}Séquentiel${d}4${d}${d}${d}${q}Messagerie OK${q}${d}Help Desk${d}`,
+    `5${d}Vérifier résultat${d}Inclusif${d}${d}${d}${q}Compte Windows créé, Compte ERP créé${q}${d}${d}Responsable Qualité${d}`,
+    `5-o1${d}Test fonctionnel${d}Séquentiel${d}5${d}SI disponible${d}${d}${q}Test fonctionnel OK${q}${d}Testeur${d}`,
+    `5-o2${d}Test sécurité${d}Séquentiel${d}5${d}SI critique${d}${d}${q}Test sécurité OK${q}${d}RSSI${d}`,
+    `6${d}Documenter et clôturer${d}Séquentiel${d}${d}${d}${q}Test fonctionnel OK, Test sécurité OK${q}${d}${q}Rapport clôture${q}${d}Responsable SI${d}`,
+    `7${d}Assurer le suivi${d}Séquentiel${d}${d}${d}${q}Rapport clôture${q}${d}${q}Suivi réalisé${q}${d}Responsable SI${d}2`,
   ];
   return lines.join("\n");
 }
@@ -380,7 +386,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Entrées</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données d'entrée, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Sorties</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données de sortie, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Responsable</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Fonction de l'acteur responsable</td></tr>
-                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Code présent dans la colonne <strong>Code</strong> du même fichier = flèche de saut/boucle utilisée dans le logigramme, le BPMN et la navigation. Code absent ou <strong>__end__</strong> = fin de branche. Vide = ordre normal.</td></tr>
+                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5"><strong>Uniquement pour les activités racines</strong> (sans Parent). Code d'une autre activité = flèche de saut/boucle. <code>__end__</code> = fin du processus. Vide = ordre normal. <em>Ignoré pour les branches XOR/AND/OR</em> (leur flux est géré par la passerelle).</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -438,7 +444,9 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                   <li>Un flux XOR/AND/OR <strong>doit avoir au moins 2 branches</strong> (enfants avec le même Parent)</li>
                   <li>Laissez la Condition vide pour une branche XOR par défaut (SINON)</li>
                   <li>Les branches AND n'ont pas besoin de Condition</li>
-                  <li><strong>Activité suivante</strong> permet de sauter vers une autre activité, revenir en arrière, boucler ou terminer une branche</li>
+                  <li><strong>Activité suivante</strong> ne s'applique qu'aux activités <strong>racines</strong> (sans Parent) — pas aux branches</li>
+                  <li>Les branches rejoignent automatiquement le flux principal via la passerelle de fusion</li>
+                  <li>Conseil codes : utilisez <code>3-a1, 3-a2</code> pour les branches XOR de l'activité 3, <code>4-p1, 4-p2</code> pour AND, <code>5-o1, 5-o2</code> pour OR</li>
                 </ul>
               </div>
 
