@@ -28,11 +28,12 @@ import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { ProcessArchivedObjects } from "@/components/ProcessArchivedObjects";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { CsvTaskImporter } from "@/components/CsvTaskImporter";
+import { useActeurs } from "@/hooks/useActeurs";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
 interface ProcessElement {
-  id: string; code: string; description: string; type: ElementType; ordre: number; process_id: string;
+  id: string; code: string; description: string; type: ElementType; ordre: number; process_id: string; responsable_id?: string | null;
 }
 
 const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string; icon: React.ReactNode; helpTerm?: string }[] = [
@@ -71,6 +72,7 @@ export default function ProcessDetail() {
   const navigate = useNavigate();
   const { hasRole, hasPermission, user } = useAuth();
   const { checkProcessPermission } = useProcessPermissions();
+  const { acteurs } = useActeurs();
   const [process, setProcess] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -234,6 +236,12 @@ export default function ProcessDetail() {
     fetchElements();
   };
 
+  const handleUpdateResponsable = async (elementId: string, acteurId: string | null) => {
+    const { error } = await supabase.from("process_elements").update({ responsable_id: acteurId }).eq("id", elementId);
+    if (error) { toast.error(error.message); return; }
+    fetchElements();
+  };
+
   const responsableName = users.find(u => u.id === process?.responsable_id);
 
   if (loading) return (
@@ -394,6 +402,10 @@ export default function ProcessDetail() {
                         onAdd={(desc) => handleAddElement(type, prefix, desc)}
                         onUpdate={handleUpdateElement}
                         onRemove={handleRemoveElement}
+                        showResponsable={type === "activite"}
+                        acteurs={type === "activite" ? acteurs : undefined}
+                        onUpdateResponsable={type === "activite" ? handleUpdateResponsable : undefined}
+                        showAttentes={type === "partie_prenante"}
                         customAdder={type === "partie_prenante" ? (
                           <PartiePrenanteAdder existingDescriptions={elements.filter(e => e.type === "partie_prenante").map(e => e.description)} onAdd={(desc) => handleAddElement("partie_prenante", "PP", desc)} />
                         ) : undefined}

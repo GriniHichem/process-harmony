@@ -3,16 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronRight, Search, User } from "lucide-react";
 import { toast } from "sonner";
 import { HelpTooltip } from "@/components/HelpTooltip";
+import { ProcessElementAttentes } from "@/components/ProcessElementAttentes";
+import { ActeurOption } from "@/hooks/useActeurs";
 
 interface ProcessElement {
   id: string;
   code: string;
   description: string;
   ordre: number;
+  responsable_id?: string | null;
 }
 
 interface ProcessElementListProps {
@@ -26,11 +29,15 @@ interface ProcessElementListProps {
   onRemove: (id: string) => Promise<void>;
   customAdder?: React.ReactNode;
   helpTerm?: string;
+  showResponsable?: boolean;
+  acteurs?: ActeurOption[];
+  onUpdateResponsable?: (elementId: string, acteurId: string | null) => Promise<void>;
+  showAttentes?: boolean;
 }
 
 const COLLAPSE_THRESHOLD = 5;
 
-export function ProcessElementList({ title, elements, canEdit, canDelete, multiline, onAdd, onUpdate, onRemove, customAdder, helpTerm }: ProcessElementListProps) {
+export function ProcessElementList({ title, elements, canEdit, canDelete, multiline, onAdd, onUpdate, onRemove, customAdder, helpTerm, showResponsable, acteurs, onUpdateResponsable, showAttentes }: ProcessElementListProps) {
   const [adding, setAdding] = useState(false);
   const [newDesc, setNewDesc] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -46,6 +53,12 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
     const q = search.toLowerCase();
     return elements.filter(el => el.code.toLowerCase().includes(q) || el.description.toLowerCase().includes(q));
   }, [elements, search]);
+
+  const getActeurLabel = (acteurId: string | null | undefined) => {
+    if (!acteurId || !acteurs) return null;
+    const a = acteurs.find(a => a.id === acteurId);
+    return a ? (a.fonction || a.organisation || "Acteur") : null;
+  };
 
   const handleAdd = async () => {
     if (!newDesc.trim()) { toast.error("Description requise"); return; }
@@ -70,10 +83,7 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           {isLongList && (
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-0.5 rounded hover:bg-muted transition-colors"
-            >
+            <button onClick={() => setIsOpen(!isOpen)} className="p-0.5 rounded hover:bg-muted transition-colors">
               {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
             </button>
           )}
@@ -101,13 +111,7 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
       {showSearch && (
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Filtrer..."
-            className="h-7 pl-7 text-xs"
-            autoFocus
-          />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filtrer..." className="h-7 pl-7 text-xs" autoFocus />
           {search && (
             <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2">
               <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
@@ -124,36 +128,62 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
       {isOpen && (
         <div className={`space-y-1 ${isLongList ? "max-h-[280px] overflow-y-auto pr-1 scrollbar-thin" : ""}`}>
           {filtered.map((el) => (
-            <div
-              key={el.id}
-              className={`group/item flex ${multiline ? "items-start" : "items-center"} gap-2 rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/40 hover:border-border/60`}
-            >
-              {editingId === el.id ? (
-                <>
-                  <span className="font-mono text-[11px] font-semibold text-primary w-16 shrink-0 pt-0.5">{el.code}</span>
-                  {multiline ? (
-                    <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="flex-1 text-xs min-h-[60px] resize-y" rows={3} />
-                  ) : (
-                    <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="h-7 flex-1 text-xs" />
-                  )}
-                  <div className={`flex ${multiline ? "flex-col" : ""} gap-0.5`}>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleUpdate}><Check className="h-3 w-3" /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <span className="font-mono text-[11px] font-semibold text-primary w-16 shrink-0">{el.code}</span>
-                  <span className={`flex-1 text-xs leading-relaxed ${multiline ? "whitespace-pre-wrap" : "truncate"}`} title={el.description}>{el.description}</span>
-                  <div className="flex gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0">
-                    {canEdit && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => startEdit(el)}><Pencil className="h-3 w-3" /></Button>
+            <div key={el.id}>
+              <div className={`group/item flex ${multiline ? "items-start" : "items-center"} gap-2 rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/40 hover:border-border/60`}>
+                {editingId === el.id ? (
+                  <>
+                    <span className="font-mono text-[11px] font-semibold text-primary w-16 shrink-0 pt-0.5">{el.code}</span>
+                    {multiline ? (
+                      <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="flex-1 text-xs min-h-[60px] resize-y" rows={3} />
+                    ) : (
+                      <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="h-7 flex-1 text-xs" />
                     )}
-                    {canDelete && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onRemove(el.id)}><Trash2 className="h-3 w-3" /></Button>
+                    <div className={`flex ${multiline ? "flex-col" : ""} gap-0.5`}>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleUpdate}><Check className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-mono text-[11px] font-semibold text-primary w-16 shrink-0">{el.code}</span>
+                    <span className={`flex-1 text-xs leading-relaxed ${multiline ? "whitespace-pre-wrap" : "truncate"}`} title={el.description}>{el.description}</span>
+                    {/* Responsable inline */}
+                    {showResponsable && acteurs && onUpdateResponsable && (
+                      canEdit ? (
+                        <Select value={el.responsable_id || "none"} onValueChange={(v) => onUpdateResponsable(el.id, v === "none" ? null : v)}>
+                          <SelectTrigger className="h-6 w-[140px] text-[10px] shrink-0 border-border/40 bg-muted/30">
+                            <SelectValue placeholder="Non assigné" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Non assigné</SelectItem>
+                            {acteurs.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        getActeurLabel(el.responsable_id) && (
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-0.5 font-normal shrink-0">
+                            <User className="h-2.5 w-2.5" />
+                            {getActeurLabel(el.responsable_id)}
+                          </Badge>
+                        )
+                      )
                     )}
-                  </div>
-                </>
+                    <div className="flex gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0">
+                      {canEdit && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => startEdit(el)}><Pencil className="h-3 w-3" /></Button>
+                      )}
+                      {canDelete && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onRemove(el.id)}><Trash2 className="h-3 w-3" /></Button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+              {/* Attentes sub-list for parties prenantes */}
+              {showAttentes && (
+                <ProcessElementAttentes elementId={el.id} canEdit={canEdit} />
               )}
             </div>
           ))}

@@ -1952,6 +1952,38 @@ export type Database = {
           },
         ]
       }
+      process_element_attentes: {
+        Row: {
+          created_at: string | null
+          date_prevue: string | null
+          description: string
+          element_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date_prevue?: string | null
+          description?: string
+          element_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          date_prevue?: string | null
+          description?: string
+          element_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_element_attentes_element_id_fkey"
+            columns: ["element_id"]
+            isOneToOne: false
+            referencedRelation: "process_elements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_elements: {
         Row: {
           code: string
@@ -1960,6 +1992,7 @@ export type Database = {
           id: string
           ordre: number
           process_id: string
+          responsable_id: string | null
           type: Database["public"]["Enums"]["process_element_type"]
           updated_at: string
         }
@@ -1970,6 +2003,7 @@ export type Database = {
           id?: string
           ordre?: number
           process_id: string
+          responsable_id?: string | null
           type: Database["public"]["Enums"]["process_element_type"]
           updated_at?: string
         }
@@ -1980,6 +2014,7 @@ export type Database = {
           id?: string
           ordre?: number
           process_id?: string
+          responsable_id?: string | null
           type?: Database["public"]["Enums"]["process_element_type"]
           updated_at?: string
         }
@@ -1989,6 +2024,13 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_elements_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "acteurs"
             referencedColumns: ["id"]
           },
         ]
