@@ -8,7 +8,7 @@ import {
   Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle,
   Locate, Link2, FileText, Grid3X3, Undo2, Redo2, Copy, Trash2, AlignCenterHorizontal,
   AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen,
-  ChevronLeft, ChevronRight, GitBranch
+  ChevronLeft, ChevronRight, GitBranch, List
 } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { FlowchartDetailPanel } from "./FlowchartDetailPanel";
@@ -1254,14 +1254,21 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const [gatewayPopoverOpen, setGatewayPopoverOpen] = useState(false);
   const [pendingGateway, setPendingGateway] = useState<NavStep | null>(null);
   const [activeBranchInfo, setActiveBranchInfo] = useState<string | null>(null);
+  const [activityListOpen, setActivityListOpen] = useState(false);
 
   const currentNavIndex = selectedTaskId ? flatNavTaskIds.indexOf(selectedTaskId) : -1;
+
+  // Jump to any activity by id
+  const handleJumpToActivity = useCallback((taskId: string) => {
+    focusOnTask(taskId);
+    const task = tasks.find(t => t.id === taskId);
+    setActiveBranchInfo(task?.parent_code ? `Branche` : null);
+    setActivityListOpen(false);
+  }, [focusOnTask, tasks]);
 
   // Find the next step in navPath after current position
   const findNextStep = useCallback((fromTaskId: string | null): NavStep | null => {
     if (!fromTaskId) return navPath.length > 0 ? navPath[0] : null;
-
-    // Walk navPath linearly to find current and return next
     let found = false;
     function search(steps: NavStep[]): NavStep | null {
       for (let i = 0; i < steps.length; i++) {
@@ -1270,14 +1277,13 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         if (s.type === "task" && s.taskId === fromTaskId) {
           found = true;
           if (i + 1 < steps.length) return steps[i + 1];
-          return null; // end of this sequence, will be caught by parent
+          return null;
         }
         if (s.type === "gateway-choice") {
           for (const b of s.branches) {
             const result = search(b.stepsInBranch);
             if (found) {
               if (result) return result;
-              // Finished this branch, continue after gateway
               if (i + 1 < steps.length) return steps[i + 1];
               return null;
             }
@@ -1293,7 +1299,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     if (!fromTaskId || flatNavTaskIds.length === 0) return null;
     const idx = flatNavTaskIds.indexOf(fromTaskId);
     if (idx <= 0) {
-      // Circular: go to last
       const lastId = flatNavTaskIds[flatNavTaskIds.length - 1];
       return { type: "task", taskId: lastId, label: "" };
     }
@@ -1303,7 +1308,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const handleNextTask = useCallback(() => {
     if (flatNavTaskIds.length === 0) return;
     if (!selectedTaskId) {
-      // Start from first
       const first = navPath[0];
       if (!first) return;
       if (first.type === "task") {
@@ -1315,10 +1319,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       }
       return;
     }
-
     const next = findNextStep(selectedTaskId);
     if (!next) {
-      // Circular: go to first
       const first = navPath[0];
       if (first?.type === "task") {
         focusOnTask(first.taskId);
@@ -1329,7 +1331,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       }
       return;
     }
-
     if (next.type === "task") {
       focusOnTask(next.taskId);
       setActiveBranchInfo(next.branchInfo || null);
@@ -1344,7 +1345,6 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     const prev = findPrevStep(selectedTaskId);
     if (prev && prev.type === "task") {
       focusOnTask(prev.taskId);
-      // Try to find branch info
       const task = tasks.find(t => t.id === prev.taskId);
       setActiveBranchInfo(task?.parent_code ? `Branche` : null);
     }
