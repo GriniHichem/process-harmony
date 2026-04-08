@@ -13,6 +13,7 @@ export interface TaskInput {
   sorties: string | null;
   ordre: number;
   documents: string[] | null;
+  next_activity_code?: string | null;
 }
 
 export interface ElementInput {
@@ -87,6 +88,7 @@ export function generateBpmnFromTasks(
 
   const nodes: BpmnNode[] = [];
   const edges: BpmnEdge[] = [];
+  const taskCodeToNodeId = new Map<string, string>();
 
   // Empty process
   if (tasks.length === 0) {
@@ -145,13 +147,14 @@ export function generateBpmnFromTasks(
     const branches = branchMap.get(task.code);
 
     if (branches && branches.length > 0) {
-      const result = buildGatewayGroup(task, branches, curX, BASE_Y, nodes, edges, elByCode, docById, branchMap);
+      const result = buildGatewayGroup(task, branches, curX, BASE_Y, nodes, edges, elByCode, docById, branchMap, taskCodeToNodeId);
       edges.push(mkEdge(lastId, result.entryId));
       lastId = result.exitId;
       curX = result.nextX;
     } else {
       const taskNode = mkNode("task", task.description, curX, centerNodeY("task", BASE_Y));
       nodes.push(taskNode);
+      taskCodeToNodeId.set(task.code, taskNode.id);
       edges.push(mkEdge(lastId, taskNode.id));
       attachDataArtifacts(task, taskNode, curX, BASE_Y, nodes, edges, elByCode, docById);
       lastId = taskNode.id;
@@ -178,6 +181,17 @@ export function generateBpmnFromTasks(
     }
   }
 
+  // ── Jump edges (next_activity_code) ──
+  for (const task of tasks) {
+    if (task.next_activity_code) {
+      const fromNodeId = taskCodeToNodeId.get(task.code);
+      const toNodeId = taskCodeToNodeId.get(task.next_activity_code);
+      if (fromNodeId && toNodeId) {
+        edges.push(mkEdge(fromNodeId, toNodeId, `→ ${task.next_activity_code}`, "association"));
+      }
+    }
+  }
+
   return { nodes, edges };
 }
 
@@ -198,7 +212,8 @@ function buildGatewayGroup(
   edges: BpmnEdge[],
   elByCode: Map<string, ElementInput>,
   docById: Map<string, DocumentInput>,
-  branchMap: Map<string, TaskInput[]>
+  branchMap: Map<string, TaskInput[]>,
+  taskCodeToNodeId: Map<string, string>
 ): GatewayResult {
   const fluxType = branches[0].type_flux;
   const gwType = gwTypeFor(fluxType);
@@ -240,13 +255,14 @@ function buildGatewayGroup(
     const childBranches = branchMap.get(branch.code);
 
     if (childBranches && childBranches.length > 0) {
-      const nested = buildGatewayGroup(branch, childBranches, branchX, branchY, nodes, edges, elByCode, docById, branchMap);
+      const nested = buildGatewayGroup(branch, childBranches, branchX, branchY, nodes, edges, elByCode, docById, branchMap, taskCodeToNodeId);
       edges.push(mkEdge(splitGw.id, nested.entryId, branch.condition || undefined));
       branchEndIds.push(nested.exitId);
       maxBranchEndX = Math.max(maxBranchEndX, nested.nextX);
     } else {
       const branchNode = mkNode("task", branch.description, branchX, centerNodeY("task", branchY));
       nodes.push(branchNode);
+      taskCodeToNodeId.set(branch.code, branchNode.id);
       edges.push(mkEdge(splitGw.id, branchNode.id, branch.condition || undefined));
       branchEndIds.push(branchNode.id);
       attachDataArtifacts(branch, branchNode, branchX, branchY, nodes, edges, elByCode, docById);

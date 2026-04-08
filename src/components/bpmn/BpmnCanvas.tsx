@@ -15,11 +15,13 @@ interface BpmnCanvasProps {
   onEdgeDelete: (id: string) => void;
   onNodeSelect: (id: string | null) => void;
   selectedNodeId: string | null;
+  focusedNodeId?: string | null;
   canEdit: boolean;
 }
 
 export interface BpmnCanvasHandle {
   getSvgElement: () => SVGSVGElement | null;
+  panToNode: (nodeId: string, targetZoom: number) => void;
 }
 
 /* ── Helpers ────────────────────────────────────────────── */
@@ -108,7 +110,7 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
   nodes, edges, mode, zoom,
   onNodesChange, onEdgesChange, onEdgeAdd,
   onNodeDelete, onEdgeDelete, onNodeSelect,
-  selectedNodeId, canEdit,
+  selectedNodeId, focusedNodeId, canEdit,
 }, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
@@ -119,6 +121,21 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
 
   useImperativeHandle(ref, () => ({
     getSvgElement: () => svgRef.current,
+    panToNode: (nodeId: string, targetZoom: number) => {
+      const node = nodes.find(n => n.id === nodeId);
+      if (!node || !svgRef.current) return;
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const def = NODE_DEFAULTS[node.type];
+      const w = node.width ?? def.width;
+      const h = node.height ?? def.height;
+      const cx = node.x + w / 2;
+      const cy = node.y + h / 2;
+      setPan({
+        x: rect.width / 2 - cx * targetZoom,
+        y: rect.height / 2 - cy * targetZoom,
+      });
+    },
   }));
 
   const getSvgPoint = useCallback((e: React.MouseEvent) => {
@@ -188,6 +205,7 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
     const w = node.width ?? def.width;
     const h = node.height ?? def.height;
     const isSelected = node.id === selectedNodeId;
+    const isFocused = node.id === focusedNodeId;
 
     const commonEvents = {
       onMouseDown: (e: React.MouseEvent) => { e.stopPropagation(); handleMouseDown(e, node.id); },
@@ -195,7 +213,7 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
       style: { cursor: mode === "delete" ? "crosshair" : mode === "connect" ? "cell" : "grab" } as React.CSSProperties,
     };
 
-    const selFilter = isSelected ? "url(#selectedGlow)" : "url(#nodeShadow)";
+    const selFilter = isFocused ? "url(#focusGlow)" : isSelected ? "url(#selectedGlow)" : "url(#nodeShadow)";
 
     switch (node.type) {
       case "start":
@@ -316,8 +334,14 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
         const startTextY = node.y + (h - textBlockH) / 2 + 12;
         return (
           <g key={node.id} {...commonEvents}>
+            {isFocused && (
+              <rect x={node.x - 6} y={node.y - 6} width={w + 12} height={h + 12} rx={14}
+                fill="none" stroke="#3b82f6" strokeWidth={3} opacity={0.6}>
+                <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite" />
+              </rect>
+            )}
             <rect x={node.x} y={node.y} width={w} height={h} rx={10}
-              fill="url(#gradTask)" stroke={isSelected ? "#1d4ed8" : "#60a5fa"} strokeWidth={isSelected ? 3 : 2}
+              fill="url(#gradTask)" stroke={isFocused ? "#2563eb" : isSelected ? "#1d4ed8" : "#60a5fa"} strokeWidth={isFocused ? 3 : isSelected ? 3 : 2}
               filter={selFilter} />
             {/* Left accent bar */}
             <rect x={node.x} y={node.y} width={5} height={h} rx={2}
@@ -546,6 +570,14 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
           </filter>
           <filter id="selectedGlow" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy="0" stdDeviation="5" floodOpacity="0.35" floodColor="#3b82f6" />
+          </filter>
+          <filter id="focusGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
           </filter>
 
           {/* ── Arrow markers ── */}

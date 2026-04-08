@@ -1,5 +1,5 @@
 import { HelpTooltip } from "@/components/HelpTooltip";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export default function Bpmn() {
   const [mode, setMode] = useState<ToolMode>("select");
   const [zoom, setZoom] = useState(1);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [history, setHistory] = useState<BpmnData[]>([]);
   const [generating, setGenerating] = useState(false);
   const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
@@ -88,6 +89,41 @@ export default function Bpmn() {
 
   const nodes = diagram?.donnees?.nodes ?? [];
   const edges = diagram?.donnees?.edges ?? [];
+
+  // Navigation: list only task/subprocess nodes
+  const taskNodes = useMemo(() => 
+    nodes.filter(n => n.type === "task" || n.type === "subprocess"),
+    [nodes]
+  );
+
+  const navIndex = useMemo(() => {
+    if (!focusedNodeId) return -1;
+    return taskNodes.findIndex(n => n.id === focusedNodeId);
+  }, [focusedNodeId, taskNodes]);
+
+  const handleNavPrev = useCallback(() => {
+    if (taskNodes.length === 0) return;
+    const idx = navIndex <= 0 ? taskNodes.length - 1 : navIndex - 1;
+    const node = taskNodes[idx];
+    setFocusedNodeId(node.id);
+    setZoom(1.1);
+    setTimeout(() => canvasRef.current?.panToNode(node.id, 1.1), 50);
+  }, [taskNodes, navIndex]);
+
+  const handleNavNext = useCallback(() => {
+    if (taskNodes.length === 0) return;
+    const idx = navIndex >= taskNodes.length - 1 ? 0 : navIndex + 1;
+    const node = taskNodes[idx];
+    setFocusedNodeId(node.id);
+    setZoom(1.1);
+    setTimeout(() => canvasRef.current?.panToNode(node.id, 1.1), 50);
+  }, [taskNodes, navIndex]);
+
+  const handleNavJump = useCallback((nodeId: string) => {
+    setFocusedNodeId(nodeId);
+    setZoom(1.1);
+    setTimeout(() => canvasRef.current?.panToNode(nodeId, 1.1), 50);
+  }, []);
 
   const createDiagram = async () => {
     if (!selectedProcessId) return;
@@ -215,6 +251,7 @@ export default function Bpmn() {
           sorties: t.sorties,
           ordre: t.ordre,
           documents: t.documents,
+          next_activity_code: t.next_activity_code,
         })),
         (elements ?? []).map(e => ({
           id: e.id,
@@ -341,7 +378,7 @@ export default function Bpmn() {
             onAddNode={handleAddNode}
             onZoomIn={() => setZoom(z => Math.min(z + 0.15, 3))}
             onZoomOut={() => setZoom(z => Math.max(z - 0.15, 0.3))}
-            onFitView={() => { setZoom(1); }}
+            onFitView={() => { setZoom(1); setFocusedNodeId(null); }}
             onSave={saveDiagram}
             onUndo={handleUndo}
             onGenerate={handleGenerate}
@@ -349,6 +386,13 @@ export default function Bpmn() {
             saving={saving}
             generating={generating}
             canEdit={canEdit}
+            taskNodes={taskNodes}
+            focusedNodeId={focusedNodeId}
+            onNavPrev={handleNavPrev}
+            onNavNext={handleNavNext}
+            onNavJump={handleNavJump}
+            navIndex={navIndex >= 0 ? navIndex : undefined}
+            navTotal={taskNodes.length > 0 ? taskNodes.length : undefined}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
@@ -365,6 +409,7 @@ export default function Bpmn() {
               onEdgeDelete={handleEdgeDelete}
               onNodeSelect={setSelectedNodeId}
               selectedNodeId={selectedNodeId}
+              focusedNodeId={focusedNodeId}
               canEdit={canEdit}
             />
 

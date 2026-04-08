@@ -2,12 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { 
   Play, Square, CheckSquare, Diamond, Clock, Mail, Layers, StickyNote,
   MousePointer, Link2, Trash2, ZoomIn, ZoomOut, Maximize, Save, Undo2, Wand2,
-  Download, FileImage, FileText
+  Download, FileImage, FileText, ChevronLeft, ChevronRight, Navigation
 } from "lucide-react";
-import { BpmnNodeType, NODE_CATEGORIES } from "./types";
+import { BpmnNodeType, BpmnNode, NODE_CATEGORIES } from "./types";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   "play": <Play className="h-4 w-4" />,
@@ -36,12 +38,21 @@ interface BpmnToolbarProps {
   saving: boolean;
   generating?: boolean;
   canEdit: boolean;
+  // Navigation props
+  taskNodes?: BpmnNode[];
+  focusedNodeId?: string | null;
+  onNavPrev?: () => void;
+  onNavNext?: () => void;
+  onNavJump?: (nodeId: string) => void;
+  navIndex?: number;
+  navTotal?: number;
 }
 
 export default function BpmnToolbar({
   mode, onModeChange, onAddNode,
   onZoomIn, onZoomOut, onFitView,
   onSave, onUndo, onGenerate, onExport, saving, generating, canEdit,
+  taskNodes, focusedNodeId, onNavPrev, onNavNext, onNavJump, navIndex, navTotal,
 }: BpmnToolbarProps) {
   return (
     <TooltipProvider delayDuration={200}>
@@ -77,6 +88,38 @@ export default function BpmnToolbar({
         <ToolBtn icon={<Maximize className="h-4 w-4" />} label="Ajuster la vue" onClick={onFitView} />
 
         <Separator orientation="vertical" className="h-8 mx-1" />
+
+        {/* Navigation controls */}
+        {taskNodes && taskNodes.length > 0 && onNavPrev && onNavNext && onNavJump && (
+          <>
+            <div className="flex items-center gap-1">
+              <ToolBtn icon={<ChevronLeft className="h-4 w-4" />} label="Précédente" onClick={onNavPrev} />
+              
+              <Select value={focusedNodeId || ""} onValueChange={(val) => onNavJump(val)}>
+                <SelectTrigger className="h-8 w-[160px] text-xs">
+                  <SelectValue placeholder="Naviguer..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {taskNodes.map((node, idx) => (
+                    <SelectItem key={node.id} value={node.id} className="text-xs">
+                      {idx + 1}. {node.label.length > 25 ? node.label.slice(0, 25) + "…" : node.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <ToolBtn icon={<ChevronRight className="h-4 w-4" />} label="Suivante" onClick={onNavNext} />
+              
+              {navIndex !== undefined && navTotal !== undefined && (
+                <Badge variant="outline" className="text-xs ml-1">
+                  <Navigation className="h-3 w-3 mr-1" />
+                  {navIndex + 1}/{navTotal}
+                </Badge>
+              )}
+            </div>
+            <Separator orientation="vertical" className="h-8 mx-1" />
+          </>
+        )}
 
         {/* Export dropdown */}
         {onExport && (
