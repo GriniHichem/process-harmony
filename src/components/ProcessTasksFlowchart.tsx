@@ -475,7 +475,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [fullscreen, setFullscreen] = useState(false);
+  const [nativeFullscreen, setNativeFullscreen] = useState(false);
+  const [fallbackFullscreen, setFallbackFullscreen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorTask, setEditorTask] = useState<any>(null);
@@ -485,6 +486,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // ─── Drag & Drop state ───
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -505,8 +507,12 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   // ─── Auto-fit flag ───
   const initialFitDone = useRef(false);
+  const fullscreenFitPendingRef = useRef(false);
+  const fullscreenStateReadyRef = useRef(false);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fullscreen = nativeFullscreen || fallbackFullscreen;
 
   const fetchTasks = useCallback(async () => {
     const { data } = await supabase.from("process_tasks").select("*").eq("process_id", processId).order("ordre", { ascending: true });
@@ -989,6 +995,28 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     setPan({ x: fitPanX, y: fitPanY });
   }, [layout, vbW, vbH, minX, minY]);
 
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      const activeElement = document.fullscreenElement;
+      setNativeFullscreen(activeElement === wrapperRef.current);
+    };
+
+    syncFullscreenState();
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreenState);
+    };
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = !nativeFullscreen && fallbackFullscreen ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [nativeFullscreen, fallbackFullscreen]);
+
   // ─── Auto-fit on first load ───
   useEffect(() => {
     if (layout && !initialFitDone.current && containerRef.current) {
@@ -999,6 +1027,31 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       return () => clearTimeout(timer);
     }
   }, [layout, fitToView]);
+
+  useEffect(() => {
+    if (!fullscreenStateReadyRef.current) {
+      fullscreenStateReadyRef.current = true;
+      return;
+    }
+
+    if (!layout || !fullscreenFitPendingRef.current) return;
+
+    let raf1 = 0;
+    let raf2 = 0;
+
+    raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        fitToView();
+        initialFitDone.current = true;
+        fullscreenFitPendingRef.current = false;
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
+    };
+  }, [fullscreen, layout, fitToView]);
 
   // ─── Focus on search result ───
   const focusOnTask = useCallback((taskId: string) => {
@@ -1015,11 +1068,33 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   }, [layout]);
 
   // ─── Toggle fullscreen ───
-  const toggleFullscreen = useCallback(() => {
-    setFullscreen(f => !f);
-    // Reset fit after fullscreen change
+  const toggleFullscreen = useCallback(async () => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    fullscreenFitPendingRef.current = true;
     initialFitDone.current = false;
-  }, []);
+
+    if (nativeFullscreen) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    if (fallbackFullscreen) {
+      setFallbackFullscreen(false);
+      return;
+    }
+
+    try {
+      if (document.fullscreenEnabled && wrapper.requestFullscreen) {
+        await wrapper.requestFullscreen();
+      } else {
+        setFallbackFullscreen(true);
+      }
+    } catch {
+      setFallbackFullscreen(true);
+    }
+  }, [nativeFullscreen, fallbackFullscreen]);
 
   // ─── Keyboard shortcuts ───
   useEffect(() => {
@@ -1031,11 +1106,19 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       if ((e.ctrlKey || e.metaKey) && e.key === "d") { e.preventDefault(); handleDuplicate(); }
       if ((e.ctrlKey || e.metaKey) && e.key === "f") { e.preventDefault(); setSearchOpen(s => !s); }
       if (e.key === "Delete" && selectedTaskId && !editorOpen) { handleDeleteSelected(); }
-      if (e.key === "Escape") { setSearchOpen(false); setSearchQuery(""); setSelectedTaskId(null); }
+      if (e.key === "Escape") {
+        if (fallbackFullscreen) {
+          fullscreenFitPendingRef.current = true;
+          setFallbackFullscreen(false);
+        }
+        setSearchOpen(false);
+        setSearchQuery("");
+        setSelectedTaskId(null);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [canEdit, handleUndo, handleRedo, handleDuplicate, handleDeleteSelected, selectedTaskId, editorOpen]);
+  }, [canEdit, handleUndo, handleRedo, handleDuplicate, handleDeleteSelected, selectedTaskId, editorOpen, fallbackFullscreen]);
 
   const acteurName = (id: string | null) => {
     if (!id) return null;
@@ -1562,8 +1645,15 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   // ─── Wrapper with resizable panels ───
   const mainLayout = (
-    <div className={cn("rounded-xl border border-border/50 overflow-hidden", fullscreen ? "fixed inset-0 z-[9999] rounded-none bg-background" : "w-full")}
-      style={{ height: fullscreen ? "100vh" : "calc(100vh - 220px)", minHeight: "500px" }}>
+    <div
+      ref={wrapperRef}
+      className={cn(
+        "border border-border/50 overflow-hidden bg-background",
+        fallbackFullscreen ? "fixed inset-0 z-[9999] rounded-none" : "w-full rounded-xl",
+        nativeFullscreen && "rounded-none"
+      )}
+      style={{ height: fullscreen ? "100vh" : "calc(100vh - 220px)", minHeight: fullscreen ? "100vh" : "500px" }}
+    >
       {showDetailPanel ? (
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={75} minSize={50}>
