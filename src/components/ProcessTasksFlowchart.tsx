@@ -8,12 +8,13 @@ import {
   Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle,
   Locate, Link2, FileText, Grid3X3, Undo2, Redo2, Copy, Trash2, AlignCenterHorizontal,
   AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, GitBranch
 } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { FlowchartDetailPanel } from "./FlowchartDetailPanel";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
@@ -1177,38 +1178,190 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     const el = processElements.find(e => e.code === code);
     return el?.description || code;
   };
-  // ─── Prev/Next navigation ───
-  const sortedTaskIds = useMemo(() => [...tasks].sort((a, b) => a.ordre - b.ordre).map(t => t.id), [tasks]);
+  // ─── Smart BPMN navigation ───
+  type NavStep =
+    | { type: "task"; taskId: string; label: string; branchInfo?: string }
+    | { type: "gateway-choice"; parentCode: string; parentDesc: string; branches: { taskId: string; label: string; stepsInBranch: NavStep[] }[] };
+
+  const navPath = useMemo((): NavStep[] => {
+    if (tasks.length === 0) return [];
+    const sorted = [...tasks].sort((a, b) => a.ordre - b.ordre);
+    const roots = sorted.filter(t => !t.parent_code);
+    const branchMap = new Map<string, ProcessTask[]>();
+    for (const t of sorted) {
+      if (t.parent_code) {
+        let arr = branchMap.get(t.parent_code);
+        if (!arr) { arr = []; branchMap.set(t.parent_code, arr); }
+        arr.push(t);
+      }
+    }
+
+    function buildSteps(taskList: ProcessTask[], branchLabel?: string): NavStep[] {
+      const steps: NavStep[] = [];
+      for (const task of taskList) {
+        const branches = branchMap.get(task.code);
+        if (branches && branches.length > 0) {
+          if (task.type_flux === "conditionnel") {
+            // XOR: user chooses
+            steps.push({
+              type: "gateway-choice",
+              parentCode: task.code,
+              parentDesc: task.description,
+              branches: branches.map(b => ({
+                taskId: b.id,
+                label: b.condition || "Sinon",
+                stepsInBranch: buildSteps([b], b.condition || "Sinon"),
+              })),
+            });
+          } else {
+            // AND / OR: navigate all branches sequentially
+            for (let bi = 0; bi < branches.length; bi++) {
+              const b = branches[bi];
+              const bLabel = `Branche ${bi + 1}/${branches.length}`;
+              const bSteps = buildSteps([b], bLabel);
+              steps.push(...bSteps.map(s => {
+                if (s.type === "task") return { ...s, branchInfo: bLabel };
+                return s;
+              }));
+            }
+          }
+        } else {
+          steps.push({ type: "task", taskId: task.id, label: task.code, branchInfo: branchLabel });
+        }
+      }
+      return steps;
+    }
+
+    return buildSteps(roots);
+  }, [tasks]);
+
+  // Flatten to get all task steps (for index tracking)
+  const flatNavTaskIds = useMemo(() => {
+    const ids: string[] = [];
+    function collect(steps: NavStep[]) {
+      for (const s of steps) {
+        if (s.type === "task") ids.push(s.taskId);
+        else {
+          // For gateway-choice, include all branches so we can find position
+          for (const b of s.branches) collect(b.stepsInBranch);
+        }
+      }
+    }
+    collect(navPath);
+    return ids;
+  }, [navPath]);
+
+  const [gatewayPopoverOpen, setGatewayPopoverOpen] = useState(false);
+  const [pendingGateway, setPendingGateway] = useState<NavStep | null>(null);
+  const [activeBranchInfo, setActiveBranchInfo] = useState<string | null>(null);
+
+  const currentNavIndex = selectedTaskId ? flatNavTaskIds.indexOf(selectedTaskId) : -1;
+
+  // Find the next step in navPath after current position
+  const findNextStep = useCallback((fromTaskId: string | null): NavStep | null => {
+    if (!fromTaskId) return navPath.length > 0 ? navPath[0] : null;
+
+    // Walk navPath linearly to find current and return next
+    let found = false;
+    function search(steps: NavStep[]): NavStep | null {
+      for (let i = 0; i < steps.length; i++) {
+        const s = steps[i];
+        if (found) return s;
+        if (s.type === "task" && s.taskId === fromTaskId) {
+          found = true;
+          if (i + 1 < steps.length) return steps[i + 1];
+          return null; // end of this sequence, will be caught by parent
+        }
+        if (s.type === "gateway-choice") {
+          for (const b of s.branches) {
+            const result = search(b.stepsInBranch);
+            if (found) {
+              if (result) return result;
+              // Finished this branch, continue after gateway
+              if (i + 1 < steps.length) return steps[i + 1];
+              return null;
+            }
+          }
+        }
+      }
+      return null;
+    }
+    return search(navPath);
+  }, [navPath]);
+
+  const findPrevStep = useCallback((fromTaskId: string | null): NavStep | null => {
+    if (!fromTaskId || flatNavTaskIds.length === 0) return null;
+    const idx = flatNavTaskIds.indexOf(fromTaskId);
+    if (idx <= 0) {
+      // Circular: go to last
+      const lastId = flatNavTaskIds[flatNavTaskIds.length - 1];
+      return { type: "task", taskId: lastId, label: "" };
+    }
+    return { type: "task", taskId: flatNavTaskIds[idx - 1], label: "" };
+  }, [flatNavTaskIds]);
+
+  const handleNextTask = useCallback(() => {
+    if (flatNavTaskIds.length === 0) return;
+    if (!selectedTaskId) {
+      // Start from first
+      const first = navPath[0];
+      if (!first) return;
+      if (first.type === "task") {
+        focusOnTask(first.taskId);
+        setActiveBranchInfo(first.branchInfo || null);
+      } else {
+        setPendingGateway(first);
+        setGatewayPopoverOpen(true);
+      }
+      return;
+    }
+
+    const next = findNextStep(selectedTaskId);
+    if (!next) {
+      // Circular: go to first
+      const first = navPath[0];
+      if (first?.type === "task") {
+        focusOnTask(first.taskId);
+        setActiveBranchInfo(first.branchInfo || null);
+      } else if (first) {
+        setPendingGateway(first);
+        setGatewayPopoverOpen(true);
+      }
+      return;
+    }
+
+    if (next.type === "task") {
+      focusOnTask(next.taskId);
+      setActiveBranchInfo(next.branchInfo || null);
+    } else {
+      setPendingGateway(next);
+      setGatewayPopoverOpen(true);
+    }
+  }, [flatNavTaskIds, selectedTaskId, navPath, findNextStep, focusOnTask]);
+
+  const handlePrevTask = useCallback(() => {
+    if (flatNavTaskIds.length === 0) return;
+    const prev = findPrevStep(selectedTaskId);
+    if (prev && prev.type === "task") {
+      focusOnTask(prev.taskId);
+      // Try to find branch info
+      const task = tasks.find(t => t.id === prev.taskId);
+      setActiveBranchInfo(task?.parent_code ? `Branche` : null);
+    }
+  }, [flatNavTaskIds, selectedTaskId, findPrevStep, focusOnTask, tasks]);
+
+  const handleGatewayChoice = useCallback((branch: { taskId: string; label: string; stepsInBranch: NavStep[] }) => {
+    setGatewayPopoverOpen(false);
+    setPendingGateway(null);
+    focusOnTask(branch.taskId);
+    setActiveBranchInfo(`Condition: ${branch.label}`);
+  }, [focusOnTask]);
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
 
   const hasManualPositions = positionOverrides.size > 0;
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
   const showDetailPanel = detailPanelOpen && selectedTask && !editorOpen;
-
-  const currentNavIndex = selectedTaskId ? sortedTaskIds.indexOf(selectedTaskId) : -1;
-  const handlePrevTask = () => {
-    if (sortedTaskIds.length === 0) return;
-    if (currentNavIndex <= 0) {
-      // Circular: go to last
-      focusOnTask(sortedTaskIds[sortedTaskIds.length - 1]);
-      return;
-    }
-    focusOnTask(sortedTaskIds[currentNavIndex - 1]);
-  };
-  const handleNextTask = () => {
-    if (sortedTaskIds.length === 0) return;
-    if (currentNavIndex < 0) {
-      focusOnTask(sortedTaskIds[0]);
-      return;
-    }
-    if (currentNavIndex >= sortedTaskIds.length - 1) {
-      // Circular: go to first
-      focusOnTask(sortedTaskIds[0]);
-      return;
-    }
-    focusOnTask(sortedTaskIds[currentNavIndex + 1]);
-  };
 
   const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
     <Tooltip>
@@ -1322,21 +1475,58 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
 
           {/* Navigation */}
-          <ToolbarButton onClick={handlePrevTask} disabled={sortedTaskIds.length === 0} title="Activité précédente">
+          <ToolbarButton onClick={handlePrevTask} disabled={flatNavTaskIds.length === 0} title="Activité précédente">
             <ChevronLeft className="h-3.5 w-3.5" />
           </ToolbarButton>
           {currentNavIndex >= 0 ? (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
+                {currentNavIndex + 1}/{flatNavTaskIds.length}
+              </span>
+              {activeBranchInfo && (
+                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-medium flex items-center gap-1">
+                  <GitBranch className="h-3 w-3" />
+                  {activeBranchInfo}
+                </span>
+              )}
+            </div>
+          ) : flatNavTaskIds.length > 0 ? (
             <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
-              {currentNavIndex + 1}/{sortedTaskIds.length}
-            </span>
-          ) : sortedTaskIds.length > 0 ? (
-            <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
-              —/{sortedTaskIds.length}
+              —/{flatNavTaskIds.length}
             </span>
           ) : null}
-          <ToolbarButton onClick={handleNextTask} disabled={sortedTaskIds.length === 0} title="Activité suivante">
-            <ChevronRight className="h-3.5 w-3.5" />
-          </ToolbarButton>
+          <Popover open={gatewayPopoverOpen} onOpenChange={setGatewayPopoverOpen}>
+            <PopoverTrigger asChild>
+              <span>
+                <ToolbarButton onClick={handleNextTask} disabled={flatNavTaskIds.length === 0} title="Activité suivante">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </ToolbarButton>
+              </span>
+            </PopoverTrigger>
+            {pendingGateway && pendingGateway.type === "gateway-choice" && (
+              <PopoverContent className="w-64 p-2" side="bottom" align="end">
+                <div className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <GitBranch className="h-3.5 w-3.5 text-amber-500" />
+                  Choisir une branche
+                </div>
+                <p className="text-[11px] text-foreground mb-2 font-medium">{pendingGateway.parentDesc}</p>
+                <div className="flex flex-col gap-1">
+                  {pendingGateway.branches.map((branch, i) => (
+                    <button
+                      key={i}
+                      className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent/10 border border-border/40 transition-colors flex items-center gap-2"
+                      onClick={() => handleGatewayChoice(branch)}
+                    >
+                      <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {i + 1}
+                      </span>
+                      <span className="text-foreground font-medium truncate">{branch.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            )}
+          </Popover>
           <div className="w-px h-6 bg-border/50 mx-0.5" />
           <ToolbarButton onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +">
             <ZoomIn className="h-3.5 w-3.5" />
