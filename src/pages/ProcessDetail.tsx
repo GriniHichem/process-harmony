@@ -28,11 +28,12 @@ import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { ProcessArchivedObjects } from "@/components/ProcessArchivedObjects";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { CsvTaskImporter } from "@/components/CsvTaskImporter";
+import { useActeurs } from "@/hooks/useActeurs";
 
 type ElementType = "finalite" | "donnee_entree" | "donnee_sortie" | "activite" | "interaction" | "partie_prenante" | "ressource";
 
 interface ProcessElement {
-  id: string; code: string; description: string; type: ElementType; ordre: number; process_id: string;
+  id: string; code: string; description: string; type: ElementType; ordre: number; process_id: string; responsable_id?: string | null;
 }
 
 const ELEMENT_SECTIONS: { type: ElementType; title: string; prefix: string; icon: React.ReactNode; helpTerm?: string }[] = [
