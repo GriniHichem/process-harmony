@@ -1099,7 +1099,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     const rect = containerRef.current.getBoundingClientRect();
     const cx = node.x + node.w / 2;
     const cy = node.y + node.h / 2;
-    const targetZoom = 0.8;
+    const targetZoom = 1.1;
     setPan({ x: -(cx * targetZoom - rect.width / 2), y: -(cy * targetZoom - rect.height / 2) });
     setZoom(targetZoom);
     setSelectedTaskId(taskId);
@@ -1190,8 +1190,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const handlePrevTask = () => {
     if (sortedTaskIds.length === 0) return;
     if (currentNavIndex <= 0) {
-      // If nothing selected or already at first, select the first task
-      focusOnTask(sortedTaskIds[0]);
+      // Circular: go to last
+      focusOnTask(sortedTaskIds[sortedTaskIds.length - 1]);
       return;
     }
     focusOnTask(sortedTaskIds[currentNavIndex - 1]);
@@ -1199,11 +1199,14 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const handleNextTask = () => {
     if (sortedTaskIds.length === 0) return;
     if (currentNavIndex < 0) {
-      // Nothing selected → select first task
       focusOnTask(sortedTaskIds[0]);
       return;
     }
-    if (currentNavIndex >= sortedTaskIds.length - 1) return;
+    if (currentNavIndex >= sortedTaskIds.length - 1) {
+      // Circular: go to first
+      focusOnTask(sortedTaskIds[0]);
+      return;
+    }
     focusOnTask(sortedTaskIds[currentNavIndex + 1]);
   };
 
@@ -1319,7 +1322,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
 
           {/* Navigation */}
-          <ToolbarButton onClick={handlePrevTask} disabled={sortedTaskIds.length === 0 || currentNavIndex === 0} title="Activité précédente">
+          <ToolbarButton onClick={handlePrevTask} disabled={sortedTaskIds.length === 0} title="Activité précédente">
             <ChevronLeft className="h-3.5 w-3.5" />
           </ToolbarButton>
           {currentNavIndex >= 0 ? (
@@ -1331,7 +1334,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               —/{sortedTaskIds.length}
             </span>
           ) : null}
-          <ToolbarButton onClick={handleNextTask} disabled={sortedTaskIds.length === 0 || currentNavIndex >= sortedTaskIds.length - 1} title="Activité suivante">
+          <ToolbarButton onClick={handleNextTask} disabled={sortedTaskIds.length === 0} title="Activité suivante">
             <ChevronRight className="h-3.5 w-3.5" />
           </ToolbarButton>
           <div className="w-px h-6 bg-border/50 mx-0.5" />
@@ -1398,6 +1401,21 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           <marker id="arrowhead-data" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="hsl(30 80% 50%)" />
           </marker>
+          <filter id="glow-focus" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="glow-condition" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
           <pattern id="flowgrid" width="20" height="20" patternUnits="userSpaceOnUse">
             <circle cx="10" cy="10" r="0.5" fill="hsl(var(--border) / 0.3)" />
           </pattern>
@@ -1408,7 +1426,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
         </defs>
 
-        <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+        <g style={{ transition: "transform 0.3s ease" }} transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
           <rect data-bg="true" x={minX - 500} y={minY - 500} width={vbW + 1000} height={vbH + 1000}
             fill={snapEnabled ? "url(#snapgrid)" : "url(#flowgrid)"} />
 
@@ -1543,11 +1561,26 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                         <animate attributeName="stroke-dashoffset" values="0;24" dur="1.5s" repeatCount="indefinite" />
                       </rect>
                     )}
-                    {/* Selection highlight */}
+                    {/* Selection highlight with glow */}
                     {isSelected && (
-                      <rect x={node.x - 4} y={node.y - 4} width={node.w + 8} height={node.h + 8}
-                        rx={14} fill="none" stroke="hsl(var(--primary))" strokeWidth={2}
-                        strokeDasharray="6 3" opacity={0.6} />
+                      <g filter="url(#glow-focus)">
+                        <rect x={node.x - 6} y={node.y - 6} width={node.w + 12} height={node.h + 12}
+                          rx={16} fill="none" stroke="hsl(var(--primary))" strokeWidth={3}>
+                          <animate attributeName="opacity" values="0.4;0.85;0.4" dur="2s" repeatCount="indefinite" />
+                        </rect>
+                      </g>
+                    )}
+                    {/* Condition badge glow */}
+                    {isSelected && t.condition && (
+                      <g filter="url(#glow-condition)">
+                        <rect x={node.x + 90} y={node.y - 18} width={Math.min(t.condition.length * 7 + 24, node.w - 100)} height={20}
+                          rx={10} fill="hsl(38 92% 50%)" stroke="hsl(38 92% 60%)" strokeWidth={1.5}>
+                          <animate attributeName="opacity" values="0.6;1;0.6" dur="2.5s" repeatCount="indefinite" />
+                        </rect>
+                        <text x={node.x + 102} y={node.y - 5} fontSize="10" fontWeight="600" fill="hsl(0 0% 100%)" fontFamily="inherit">
+                          {t.condition.length > 40 ? t.condition.slice(0, 39) + "…" : t.condition}
+                        </text>
+                      </g>
                     )}
                     <foreignObject x={node.x} y={node.y} width={node.w} height={node.h}
                       className="overflow-visible"
