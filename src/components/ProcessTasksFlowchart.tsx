@@ -1327,7 +1327,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
     const currentTask = taskById.get(selectedTaskId);
     const manualNextCode = currentTask?.next_activity_code?.trim();
-    if (manualNextCode) {
+    // Only apply manual jump for root sequential tasks (not gateway branches)
+    if (manualNextCode && !currentTask?.parent_code) {
       const targetTask = taskByCode.get(manualNextCode);
       if (targetTask) {
         focusOnTask(targetTask.id);
