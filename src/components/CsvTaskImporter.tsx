@@ -361,7 +361,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Entrées</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données d'entrée, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Sorties</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données de sortie, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Responsable</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Fonction de l'acteur responsable</td></tr>
-                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Code de l'activité suivante (saut, boucle). Laissez vide pour l'ordre normal</td></tr>
+                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Code d'une activité existante = flèche de saut/boucle. Code inexistant = <strong>fin de branche</strong> (aucune flèche, nœud Fin). Vide = ordre normal.</td></tr>
                     </tbody>
                   </table>
                 </div>

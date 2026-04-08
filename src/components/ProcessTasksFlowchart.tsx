@@ -1724,8 +1724,26 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               {/* Custom jump arrows (next_activity_code) */}
               {layout.nodes.filter(n => n.task.next_activity_code).map(node => {
                 const t = node.task;
-                const targetNode = layout.nodes.find(n => n.task.code === t.next_activity_code);
-                if (!targetNode) return null;
+                const nac = t.next_activity_code!;
+                const targetNode = layout.nodes.find(n => n.task.code === nac);
+
+                // If code doesn't match any task → end of branch marker
+                if (!targetNode) {
+                  const endX = node.x + node.w / 2;
+                  const endY = node.y + node.h + 40;
+                  const endR = 14;
+                  return (
+                    <g key={`end-${t.id}`}>
+                      <line x1={endX} y1={node.y + node.h} x2={endX} y2={endY - endR}
+                        stroke="hsl(var(--destructive))" strokeWidth={2} markerEnd="url(#arrowhead)" />
+                      <circle cx={endX} cy={endY} r={endR} fill="none" stroke="hsl(var(--destructive))" strokeWidth={2.5} />
+                      <circle cx={endX} cy={endY} r={endR - 4} fill="hsl(var(--destructive))" />
+                      <text x={endX} y={endY + 1} textAnchor="middle" dominantBaseline="middle"
+                        fill="hsl(var(--destructive-foreground, 0 0% 100%))" fontSize="8" fontWeight="700" fontFamily="inherit">Fin</text>
+                    </g>
+                  );
+                }
+
                 const fromX = node.x + node.w / 2;
                 const fromY = node.y + node.h;
                 const toX = targetNode.x + targetNode.w / 2;
@@ -1745,7 +1763,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                       fill="hsl(215 70% 50% / 0.15)" stroke="hsl(215 70% 50%)" strokeWidth={1} />
                     <text x={labelX} y={labelY + 4} textAnchor="middle" fontSize="10" fontWeight="700"
                       fill="hsl(215 70% 50%)" fontFamily="inherit">
-                      → {t.next_activity_code}
+                      → {nac}
                     </text>
                   </g>
                 );
