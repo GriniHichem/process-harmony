@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import {
   Plus, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, User, AlertTriangle,
   Locate, Link2, FileText, Grid3X3, Undo2, Redo2, Copy, Trash2, AlignCenterHorizontal,
-  AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen
+  AlignCenterVertical, LayoutGrid, Search, X, PanelRightClose, PanelRightOpen,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { FlowchartNodeEditor } from "./FlowchartNodeEditor";
 import { FlowchartDetailPanel } from "./FlowchartDetailPanel";
@@ -32,6 +33,7 @@ interface Props {
   processId: string; canEdit: boolean; canDelete: boolean;
   processElements: ProcessElement[];
   onAddElement: (type: ElementType, description: string) => Promise<void>;
+  standalone?: boolean;
 }
 
 // ─── Layout types ───
@@ -476,7 +478,7 @@ interface InteractionRow {
 }
 interface ProcessName { id: string; code: string; nom: string; }
 
-export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processElements, onAddElement }: Props) {
+export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processElements, onAddElement, standalone = false }: Props) {
   const [tasks, setTasks] = useState<ProcessTask[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [interactions, setInteractions] = useState<InteractionRow[]>([]);
@@ -1175,12 +1177,24 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     const el = processElements.find(e => e.code === code);
     return el?.description || code;
   };
+  // ─── Prev/Next navigation ───
+  const sortedTaskIds = useMemo(() => [...tasks].sort((a, b) => a.ordre - b.ordre).map(t => t.id), [tasks]);
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
 
   const hasManualPositions = positionOverrides.size > 0;
   const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
   const showDetailPanel = detailPanelOpen && selectedTask && !editorOpen;
+
+  const currentNavIndex = selectedTaskId ? sortedTaskIds.indexOf(selectedTaskId) : -1;
+  const handlePrevTask = () => {
+    if (currentNavIndex <= 0) return;
+    focusOnTask(sortedTaskIds[currentNavIndex - 1]);
+  };
+  const handleNextTask = () => {
+    if (currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1) return;
+    focusOnTask(sortedTaskIds[currentNavIndex + 1]);
+  };
 
   const ToolbarButton = ({ onClick, disabled, title, children, active }: { onClick: () => void; disabled?: boolean; title: string; children: React.ReactNode; active?: boolean }) => (
     <Tooltip>
@@ -1294,6 +1308,18 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
 
           {/* Navigation */}
+          <ToolbarButton onClick={handlePrevTask} disabled={currentNavIndex <= 0} title="Activité précédente">
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          {currentNavIndex >= 0 && (
+            <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
+              {currentNavIndex + 1}/{sortedTaskIds.length}
+            </span>
+          )}
+          <ToolbarButton onClick={handleNextTask} disabled={currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1} title="Activité suivante">
+            <ChevronRight className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <div className="w-px h-6 bg-border/50 mx-0.5" />
           <ToolbarButton onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +">
             <ZoomIn className="h-3.5 w-3.5" />
           </ToolbarButton>
@@ -1310,9 +1336,11 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           <ToolbarButton onClick={() => setDetailPanelOpen(d => !d)} active={detailPanelOpen} title={detailPanelOpen ? "Masquer le panneau" : "Afficher le panneau"}>
             {detailPanelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
           </ToolbarButton>
-          <ToolbarButton onClick={toggleFullscreen} title={fullscreen ? "Quitter plein écran" : "Plein écran"}>
-            {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          </ToolbarButton>
+          {!standalone && (
+            <ToolbarButton onClick={toggleFullscreen} title={fullscreen ? "Quitter plein écran" : "Plein écran"}>
+              {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </ToolbarButton>
+          )}
         </div>
       </div>
 
@@ -1556,14 +1584,17 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                           </div>
                           {/* Actor banner */}
                           <div
-                            className="h-8 flex items-center gap-1.5 px-3 shrink-0"
-                            style={{
-                              backgroundColor: actorColor ? actorColor : "hsl(var(--muted))",
-                              opacity: actorColor ? 0.9 : 0.5,
-                            }}
+                            className={cn(
+                              "h-8 flex items-center gap-1.5 px-3 shrink-0 rounded-b-[10px]",
+                              !actorColor && "bg-muted"
+                            )}
+                            style={actorColor ? { backgroundColor: actorColor } : undefined}
                           >
-                            <User className="h-3.5 w-3.5 text-white" />
-                            <span className="text-[11px] font-medium text-white truncate">
+                            <User className={cn("h-3.5 w-3.5", actorColor ? "text-white" : "text-muted-foreground")} />
+                            <span className={cn(
+                              "text-[11px] font-medium truncate",
+                              actorColor ? "text-white" : "text-muted-foreground"
+                            )}>
                               {resp || "Non assigné"}
                             </span>
                           </div>
@@ -1698,7 +1729,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         fallbackFullscreen ? "fixed inset-0 z-[9999] rounded-none" : "w-full rounded-xl",
         nativeFullscreen && "rounded-none"
       )}
-      style={{ height: fullscreen ? "100vh" : "calc(100vh - 220px)", minHeight: fullscreen ? "100vh" : "500px" }}
+      style={{ height: standalone ? "100%" : (fullscreen ? "100vh" : "calc(100vh - 220px)"), minHeight: standalone ? "100%" : (fullscreen ? "100vh" : "500px") }}
     >
       {showDetailPanel ? (
         <ResizablePanelGroup direction="horizontal">
