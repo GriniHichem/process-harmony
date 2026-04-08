@@ -378,7 +378,7 @@ export default function Bpmn() {
             onAddNode={handleAddNode}
             onZoomIn={() => setZoom(z => Math.min(z + 0.15, 3))}
             onZoomOut={() => setZoom(z => Math.max(z - 0.15, 0.3))}
-            onFitView={() => { setZoom(1); }}
+            onFitView={() => { setZoom(1); setFocusedNodeId(null); }}
             onSave={saveDiagram}
             onUndo={handleUndo}
             onGenerate={handleGenerate}
@@ -386,6 +386,13 @@ export default function Bpmn() {
             saving={saving}
             generating={generating}
             canEdit={canEdit}
+            taskNodes={taskNodes}
+            focusedNodeId={focusedNodeId}
+            onNavPrev={handleNavPrev}
+            onNavNext={handleNavNext}
+            onNavJump={handleNavJump}
+            navIndex={navIndex >= 0 ? navIndex : undefined}
+            navTotal={taskNodes.length > 0 ? taskNodes.length : undefined}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
@@ -402,6 +409,7 @@ export default function Bpmn() {
               onEdgeDelete={handleEdgeDelete}
               onNodeSelect={setSelectedNodeId}
               selectedNodeId={selectedNodeId}
+              focusedNodeId={focusedNodeId}
               canEdit={canEdit}
             />
 
