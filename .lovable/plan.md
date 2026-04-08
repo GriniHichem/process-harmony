@@ -1,61 +1,81 @@
 
 
-# Import CSV des activités de processus
+# Ajouter Responsable aux Activités + Attentes aux Parties prenantes
 
-## Fonctionnalité
+## Problème actuel
 
-Bouton visible uniquement pour admin/super_admin dans l'onglet "Activités" de ProcessDetail. Permet d'uploader un fichier CSV pour importer/écraser les activités du processus, avec création automatique des entrées/sorties manquantes et résolution des acteurs.
+La table `process_elements` n'a que `code`, `description`, `ordre`, `type`, `process_id`. Pas de champ responsable ni de gestion des attentes.
 
-## Format CSV supporté
+## Modifications base de données
+
+### Migration 1 : Colonne `responsable_id` sur `process_elements`
+```sql
+ALTER TABLE process_elements ADD COLUMN responsable_id uuid REFERENCES acteurs(id) ON DELETE SET NULL;
+```
+Utilisé uniquement pour les éléments de type `activite`.
+
+### Migration 2 : Table `process_element_attentes`
+```sql
+CREATE TABLE process_element_attentes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  element_id uuid NOT NULL REFERENCES process_elements(id) ON DELETE CASCADE,
+  description text NOT NULL,
+  date_prevue date,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE process_element_attentes ENABLE ROW LEVEL SECURITY;
+-- RLS : authenticated can all
+CREATE POLICY "Authenticated full access" ON process_element_attentes
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+```
+Chaque partie prenante (process_element de type `partie_prenante`) peut avoir N attentes avec date prévue.
+
+## Modifications UI
+
+### 1. `ProcessElementList.tsx` — Afficher le responsable pour les activités
+- Ajouter une prop optionnelle `showResponsable?: boolean` + `acteurs` + `onUpdateResponsable`
+- Quand `showResponsable=true`, afficher un petit sélecteur d'acteur inline à droite de chaque élément (icône User + nom de fonction)
+- En mode lecture : badge avec nom de l'acteur
+- En mode édition : Select compact inline
+
+### 2. Nouveau composant `ProcessElementAttentes.tsx` — Attentes par partie prenante
+- Affiché sous chaque partie prenante dans la liste
+- UI : bouton "+" pour ajouter une attente (description + date)
+- Liste des attentes en sous-items avec date en badge
+- Chaque attente a un bouton supprimer (hover)
+- Design compact : attentes en lignes indentées sous la PP, avec calendrier pour la date
+
+### 3. `ProcessDetail.tsx` — Intégration
+- Pour la section `activite` : passer `showResponsable={true}` + acteurs au `ProcessElementList`
+- Pour la section `partie_prenante` : remplacer le rendu simple par un composant enrichi qui combine la liste d'éléments + les attentes par élément
+- Utiliser `useActeurs()` pour charger les acteurs
+
+### 4. Design UX
 
 ```text
-Code,Description,Type de flux,Entrées,Sorties,Responsable
-1,Réceptionner la demande,Séquentiel,"Demande utilisateur, incident",Demande qualifiée,Help Desk
-```
+┌─ Activités principales (6) ─────────────────────┐
+│ AP-001  Réceptionner la demande    [Help Desk ▼] │
+│ AP-002  Analyser l'incident        [RSI ▼]       │
+│ AP-003  Résoudre                   [Non assigné▼] │
+└──────────────────────────────────────────────────┘
 
-- Délimiteur : auto-détection `,` ou `;`
-- Encodage : UTF-8 avec caractères spéciaux (é, ç, à...)
-- Entrées/Sorties : séparées par virgule dans le champ (entre guillemets si nécessaire)
-
-## Logique d'import
-
-1. **Parser le CSV** : détecter délimiteur (`;` vs `,`), gérer les guillemets, décoder UTF-8
-2. **Mapper le type de flux** : "Séquentiel" → `sequentiel`, "Conditionnel" → `conditionnel`, "Parallèle" → `parallele`, "Inclusif" → `inclusif`
-3. **Entrées/Sorties** :
-   - Pour chaque description listée, chercher un `process_element` existant (donnee_entree ou donnee_sortie) par description
-   - Si non trouvé → créer le `process_element` avec un code auto-généré (DE-XXX / DS-XXX)
-   - Stocker les codes séparés par virgule dans `entrees` / `sorties`
-4. **Responsable** :
-   - Chercher dans `acteurs` par `fonction` (match partiel, le CSV peut contenir "Help Desk / Responsable SI" → on prend le premier match)
-   - Si trouvé → `responsable_id` = acteur.id
-   - Si non trouvé → laisser `responsable_id` = null
-5. **Tâches** :
-   - Supprimer toutes les tâches existantes du processus (mode écrasement)
-   - Insérer les nouvelles avec code, description, type_flux, ordre séquentiel
-6. **Feedback** : dialog de prévisualisation avec nombre de lignes, éléments à créer, acteurs matchés/non matchés, puis confirmation
-
-## Composant : `CsvTaskImporter`
-
-Nouveau fichier `src/components/CsvTaskImporter.tsx` :
-- Props : `processId`, `processElements`, `onComplete` (callback pour refresh)
-- UI : Bouton Upload (icône FileUp) → input file hidden → Dialog de preview/confirmation
-- Preview montre : nombre d'activités, entrées/sorties nouvelles à créer, acteurs résolus vs non résolus
-- Bouton "Importer" exécute les opérations Supabase
-
-## Intégration dans ProcessDetail
-
-Dans l'onglet "tasks" (ligne ~459), à côté du ToggleGroup, ajouter le bouton conditionné par `hasRole("admin") || hasRole("super_admin")` :
-
-```tsx
-{(hasRole("admin") || hasRole("super_admin")) && effectiveCanEdit && (
-  <CsvTaskImporter processId={id!} processElements={elements} onComplete={() => fetchElements()} />
-)}
+┌─ Parties prenantes (3) ──────────────────────────┐
+│ PP-001  Direction Générale                        │
+│   ├ Attente: Reporting mensuel         📅 15/06  │
+│   ├ Attente: Conformité réglementaire  📅 30/09  │
+│   └ [+ Ajouter une attente]                      │
+│ PP-002  Clients internes                          │
+│   ├ Attente: Temps de réponse < 4h     📅 01/07  │
+│   └ [+ Ajouter une attente]                      │
+└──────────────────────────────────────────────────┘
 ```
 
 ## Fichiers impactés
 
 | Fichier | Action |
 |---|---|
-| `src/components/CsvTaskImporter.tsx` | Nouveau composant (parser CSV, preview, import) |
-| `src/pages/ProcessDetail.tsx` | Ajouter le bouton dans la toolbar des activités |
+| Migration SQL | Ajouter `responsable_id` + table `process_element_attentes` |
+| `src/components/ProcessElementList.tsx` | Ajouter support responsable inline |
+| `src/components/ProcessElementAttentes.tsx` | Nouveau — gestion attentes par PP |
+| `src/pages/ProcessDetail.tsx` | Intégrer les deux enrichissements |
 
