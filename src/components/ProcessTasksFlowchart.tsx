@@ -1188,11 +1188,22 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
   const currentNavIndex = selectedTaskId ? sortedTaskIds.indexOf(selectedTaskId) : -1;
   const handlePrevTask = () => {
-    if (currentNavIndex <= 0) return;
+    if (sortedTaskIds.length === 0) return;
+    if (currentNavIndex <= 0) {
+      // If nothing selected or already at first, select the first task
+      focusOnTask(sortedTaskIds[0]);
+      return;
+    }
     focusOnTask(sortedTaskIds[currentNavIndex - 1]);
   };
   const handleNextTask = () => {
-    if (currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1) return;
+    if (sortedTaskIds.length === 0) return;
+    if (currentNavIndex < 0) {
+      // Nothing selected → select first task
+      focusOnTask(sortedTaskIds[0]);
+      return;
+    }
+    if (currentNavIndex >= sortedTaskIds.length - 1) return;
     focusOnTask(sortedTaskIds[currentNavIndex + 1]);
   };
 
@@ -1308,15 +1319,19 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
 
           {/* Navigation */}
-          <ToolbarButton onClick={handlePrevTask} disabled={currentNavIndex <= 0} title="Activité précédente">
+          <ToolbarButton onClick={handlePrevTask} disabled={sortedTaskIds.length === 0 || currentNavIndex === 0} title="Activité précédente">
             <ChevronLeft className="h-3.5 w-3.5" />
           </ToolbarButton>
-          {currentNavIndex >= 0 && (
+          {currentNavIndex >= 0 ? (
             <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
               {currentNavIndex + 1}/{sortedTaskIds.length}
             </span>
-          )}
-          <ToolbarButton onClick={handleNextTask} disabled={currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1} title="Activité suivante">
+          ) : sortedTaskIds.length > 0 ? (
+            <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
+              —/{sortedTaskIds.length}
+            </span>
+          ) : null}
+          <ToolbarButton onClick={handleNextTask} disabled={sortedTaskIds.length === 0 || currentNavIndex >= sortedTaskIds.length - 1} title="Activité suivante">
             <ChevronRight className="h-3.5 w-3.5" />
           </ToolbarButton>
           <div className="w-px h-6 bg-border/50 mx-0.5" />
