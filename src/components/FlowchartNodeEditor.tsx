@@ -246,8 +246,8 @@ export function FlowchartNodeEditor({ open, onOpenChange, task, isBranch, acteur
             </Select>
           </div>
 
-          {/* Activité suivante (custom jump) */}
-          {showFluxType && typeFlux === "sequentiel" && availableNextTargets.length > 0 && (
+          {/* Activité suivante (custom jump) — visible for all sequential tasks */}
+          {typeFlux === "sequentiel" && availableNextTargets.length > 0 && (
             <div className="space-y-2">
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <ArrowRight className="h-3.5 w-3.5" />
