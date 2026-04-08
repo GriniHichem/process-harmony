@@ -28,6 +28,7 @@ interface ParsedRow {
   entrees: string[];
   sorties: string[];
   responsable: string;
+  activite_suivante: string;
 }
 
 interface PreviewData {
@@ -89,17 +90,17 @@ function generateExampleCsv(delimiter: string): string {
   const d = delimiter;
   const q = delimiter === "," ? '"' : '';
   const lines = [
-    `Code${d}Description${d}Type de flux${d}Parent${d}Condition${d}Entrées${d}Sorties${d}Responsable`,
-    `1${d}Réceptionner la demande${d}Séquentiel${d}${d}${d}${q}Demande utilisateur${q}${d}${q}Demande qualifiée${q}${d}Help Desk`,
-    `2${d}Orienter la demande${d}Conditionnel${d}${d}${d}Demande qualifiée${d}${d}Responsable SI`,
-    `3${d}Traiter cas standard${d}Séquentiel${d}2${d}SI standard${d}${d}Résultat standard${d}Help Desk`,
-    `4${d}Traiter cas urgent${d}Séquentiel${d}2${d}SI urgent${d}${d}Résultat urgent${d}Admin Systèmes`,
-    `5${d}Préparer les accès${d}Parallèle${d}${d}${d}${d}${d}`,
-    `6${d}Créer compte Windows${d}Séquentiel${d}5${d}${d}${d}Compte Windows créé${d}Help Desk`,
-    `7${d}Créer compte ERP${d}Séquentiel${d}5${d}${d}${d}Compte ERP créé${d}Admin ERP`,
-    `8${d}Vérifier résultat${d}Inclusif${d}${d}${d}${d}${d}`,
-    `9${d}Test fonctionnel${d}Séquentiel${d}8${d}SI disponible${d}${d}Test OK${d}Help Desk`,
-    `10${d}Test sécurité${d}Séquentiel${d}8${d}SI critique${d}${d}Audit OK${d}Admin Systèmes`,
+    `Code${d}Description${d}Type de flux${d}Parent${d}Condition${d}Entrées${d}Sorties${d}Responsable${d}Activité suivante`,
+    `1${d}Réceptionner la demande${d}Séquentiel${d}${d}${d}${q}Demande utilisateur${q}${d}${q}Demande qualifiée${q}${d}Help Desk${d}`,
+    `2${d}Orienter la demande${d}Conditionnel${d}${d}${d}Demande qualifiée${d}${d}Responsable SI${d}`,
+    `3${d}Traiter cas standard${d}Séquentiel${d}2${d}SI standard${d}${d}Résultat standard${d}Help Desk${d}`,
+    `4${d}Traiter cas urgent${d}Séquentiel${d}2${d}SI urgent${d}${d}Résultat urgent${d}Admin Systèmes${d}`,
+    `5${d}Préparer les accès${d}Parallèle${d}${d}${d}${d}${d}${d}`,
+    `6${d}Créer compte Windows${d}Séquentiel${d}5${d}${d}${d}Compte Windows créé${d}Help Desk${d}`,
+    `7${d}Créer compte ERP${d}Séquentiel${d}5${d}${d}${d}Compte ERP créé${d}Admin ERP${d}`,
+    `8${d}Vérifier résultat${d}Inclusif${d}${d}${d}${d}${d}${d}`,
+    `9${d}Test fonctionnel${d}Séquentiel${d}8${d}SI disponible${d}${d}Test OK${d}Help Desk${d}`,
+    `10${d}Test sécurité${d}Séquentiel${d}8${d}SI critique${d}${d}Audit OK${d}Admin Systèmes${d}1`,
   ];
   return lines.join("\n");
 }
@@ -134,6 +135,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
         entrees: headerFields.findIndex(h => h.includes("entr")),
         sorties: headerFields.findIndex(h => h.includes("sort")),
         responsable: headerFields.findIndex(h => h.includes("responsable")),
+        activite_suivante: headerFields.findIndex(h => h.includes("suivante") || h === "next_activity_code" || h.includes("activité suivante")),
       };
 
       const rows: ParsedRow[] = [];
@@ -151,7 +153,8 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
         const entrees = get(colMap.entrees) ? splitSubValues(get(colMap.entrees)) : [];
         const sorties = get(colMap.sorties) ? splitSubValues(get(colMap.sorties)) : [];
         const responsable = get(colMap.responsable);
-        rows.push({ code, description, type_flux, parent_code, condition, entrees, sorties, responsable });
+        const activite_suivante = get(colMap.activite_suivante);
+        rows.push({ code, description, type_flux, parent_code, condition, entrees, sorties, responsable, activite_suivante });
       }
 
       // Validate flow structure
@@ -280,6 +283,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
           entrees: entreeCodes || null,
           sorties: sortieCodes || null,
           responsable_id: acteurMap.get(row.responsable) || null,
+          next_activity_code: row.activite_suivante || null,
         };
       });
 
@@ -349,6 +353,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Entrées</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données d'entrée, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Sorties</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données de sortie, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Responsable</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Fonction de l'acteur responsable</td></tr>
+                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Code de l'activité suivante (saut, boucle). Laissez vide pour l'ordre normal</td></tr>
                     </tbody>
                   </table>
                 </div>

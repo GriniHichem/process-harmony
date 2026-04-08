@@ -26,6 +26,7 @@ interface ProcessTask {
   responsable_id: string | null; ordre: number; entrees: string | null;
   sorties: string | null; documents: string[] | null;
   position_x?: number | null; position_y?: number | null;
+  next_activity_code?: string | null;
 }
 interface ProcessElement { id: string; code: string; description: string; type: ElementType; ordre: number; }
 interface Acteur { id: string; fonction: string | null; }
@@ -849,7 +850,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         description: data.description, type_flux: data.type_flux,
         condition: data.condition, responsable_id: data.responsable_id,
         entrees: data.entrees, sorties: data.sorties,
-      }).eq("id", editorTask.id);
+        next_activity_code: data.next_activity_code,
+      } as any).eq("id", editorTask.id);
       if (error) { toast.error(error.message); return; }
       toast.success("Activité modifiée");
     } else {
@@ -1636,6 +1638,9 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           <marker id="arrowhead-data" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="hsl(30 80% 50%)" />
           </marker>
+          <marker id="arrowhead-jump" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="hsl(215 70% 50%)" />
+          </marker>
           <filter id="glow-focus" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
             <feMerge>
@@ -1715,6 +1720,36 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
               {/* Edges */}
               {layout.edges.map((e, i) => <FlowchartEdge key={i} edge={e} />)}
+
+              {/* Custom jump arrows (next_activity_code) */}
+              {layout.nodes.filter(n => n.task.next_activity_code).map(node => {
+                const t = node.task;
+                const targetNode = layout.nodes.find(n => n.task.code === t.next_activity_code);
+                if (!targetNode) return null;
+                const fromX = node.x + node.w / 2;
+                const fromY = node.y + node.h;
+                const toX = targetNode.x + targetNode.w / 2;
+                const toY = targetNode.y;
+                const isBackward = toY <= fromY;
+                const offsetX = isBackward ? Math.max(node.w, targetNode.w) / 2 + 60 : 0;
+                const path = isBackward
+                  ? `M${fromX},${fromY} C${fromX + offsetX},${fromY + 40} ${toX + offsetX},${toY - 40} ${toX},${toY}`
+                  : `M${fromX},${fromY} C${fromX},${fromY + (toY - fromY) * 0.4} ${toX},${toY - (toY - fromY) * 0.4} ${toX},${toY}`;
+                const labelX = isBackward ? Math.max(fromX, toX) + offsetX - 20 : (fromX + toX) / 2 + 20;
+                const labelY = (fromY + toY) / 2;
+                return (
+                  <g key={`jump-${t.id}`}>
+                    <path d={path} fill="none" stroke="hsl(215 70% 50%)" strokeWidth={2.5}
+                      strokeDasharray="8 4" markerEnd="url(#arrowhead-jump)" opacity={0.85} />
+                    <rect x={labelX - 30} y={labelY - 10} width={60} height={20} rx={10}
+                      fill="hsl(215 70% 50% / 0.15)" stroke="hsl(215 70% 50%)" strokeWidth={1} />
+                    <text x={labelX} y={labelY + 4} textAnchor="middle" fontSize="10" fontWeight="700"
+                      fill="hsl(215 70% 50%)" fontFamily="inherit">
+                      → {t.next_activity_code}
+                    </text>
+                  </g>
+                );
+              })}
 
               {/* Data flow links */}
               {dataFlowLinks.map((link, i) => (
@@ -1999,6 +2034,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         onAddElement={onAddElement}
         canDelete={canDelete}
         parentFluxType={editorParentFluxType}
+        allTasks={tasks.map(t => ({ id: t.id, code: t.code, description: t.description, parent_code: t.parent_code }))}
       />
     </div>
   );

@@ -2209,6 +2209,7 @@ export type Database = {
           documents: string[] | null
           entrees: string | null
           id: string
+          next_activity_code: string | null
           ordre: number
           parent_code: string | null
           position_x: number | null
@@ -2228,6 +2229,7 @@ export type Database = {
           documents?: string[] | null
           entrees?: string | null
           id?: string
+          next_activity_code?: string | null
           ordre?: number
           parent_code?: string | null
           position_x?: number | null
@@ -2247,6 +2249,7 @@ export type Database = {
           documents?: string[] | null
           entrees?: string | null
           id?: string
+          next_activity_code?: string | null
           ordre?: number
           parent_code?: string | null
           position_x?: number | null
