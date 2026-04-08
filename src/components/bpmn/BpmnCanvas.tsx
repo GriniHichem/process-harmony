@@ -564,6 +564,14 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
           <filter id="selectedGlow" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy="0" stdDeviation="5" floodOpacity="0.35" floodColor="#3b82f6" />
           </filter>
+          <filter id="focusGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
 
           {/* ── Arrow markers ── */}
           <marker id="arrowSeq" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
