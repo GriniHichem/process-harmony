@@ -110,7 +110,7 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
   nodes, edges, mode, zoom,
   onNodesChange, onEdgesChange, onEdgeAdd,
   onNodeDelete, onEdgeDelete, onNodeSelect,
-  selectedNodeId, canEdit,
+  selectedNodeId, focusedNodeId, canEdit,
 }, ref) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
@@ -121,6 +121,21 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
 
   useImperativeHandle(ref, () => ({
     getSvgElement: () => svgRef.current,
+    panToNode: (nodeId: string, targetZoom: number) => {
+      const node = nodes.find(n => n.id === nodeId);
+      if (!node || !svgRef.current) return;
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const def = NODE_DEFAULTS[node.type];
+      const w = node.width ?? def.width;
+      const h = node.height ?? def.height;
+      const cx = node.x + w / 2;
+      const cy = node.y + h / 2;
+      setPan({
+        x: rect.width / 2 - cx * targetZoom,
+        y: rect.height / 2 - cy * targetZoom,
+      });
+    },
   }));
 
   const getSvgPoint = useCallback((e: React.MouseEvent) => {
