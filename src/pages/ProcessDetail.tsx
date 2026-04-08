@@ -236,6 +236,12 @@ export default function ProcessDetail() {
     fetchElements();
   };
 
+  const handleUpdateResponsable = async (elementId: string, acteurId: string | null) => {
+    const { error } = await supabase.from("process_elements").update({ responsable_id: acteurId }).eq("id", elementId);
+    if (error) { toast.error(error.message); return; }
+    fetchElements();
+  };
+
   const responsableName = users.find(u => u.id === process?.responsable_id);
 
   if (loading) return (
