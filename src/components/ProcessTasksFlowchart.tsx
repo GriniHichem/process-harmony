@@ -1475,21 +1475,58 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
 
           {/* Navigation */}
-          <ToolbarButton onClick={handlePrevTask} disabled={sortedTaskIds.length === 0} title="Activité précédente">
+          <ToolbarButton onClick={handlePrevTask} disabled={flatNavTaskIds.length === 0} title="Activité précédente">
             <ChevronLeft className="h-3.5 w-3.5" />
           </ToolbarButton>
           {currentNavIndex >= 0 ? (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
+                {currentNavIndex + 1}/{flatNavTaskIds.length}
+              </span>
+              {activeBranchInfo && (
+                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-medium flex items-center gap-1">
+                  <GitBranch className="h-3 w-3" />
+                  {activeBranchInfo}
+                </span>
+              )}
+            </div>
+          ) : flatNavTaskIds.length > 0 ? (
             <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
-              {currentNavIndex + 1}/{sortedTaskIds.length}
-            </span>
-          ) : sortedTaskIds.length > 0 ? (
-            <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
-              —/{sortedTaskIds.length}
+              —/{flatNavTaskIds.length}
             </span>
           ) : null}
-          <ToolbarButton onClick={handleNextTask} disabled={sortedTaskIds.length === 0} title="Activité suivante">
-            <ChevronRight className="h-3.5 w-3.5" />
-          </ToolbarButton>
+          <Popover open={gatewayPopoverOpen} onOpenChange={setGatewayPopoverOpen}>
+            <PopoverTrigger asChild>
+              <span>
+                <ToolbarButton onClick={handleNextTask} disabled={flatNavTaskIds.length === 0} title="Activité suivante">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </ToolbarButton>
+              </span>
+            </PopoverTrigger>
+            {pendingGateway && pendingGateway.type === "gateway-choice" && (
+              <PopoverContent className="w-64 p-2" side="bottom" align="end">
+                <div className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <GitBranch className="h-3.5 w-3.5 text-amber-500" />
+                  Choisir une branche
+                </div>
+                <p className="text-[11px] text-foreground mb-2 font-medium">{pendingGateway.parentDesc}</p>
+                <div className="flex flex-col gap-1">
+                  {pendingGateway.branches.map((branch, i) => (
+                    <button
+                      key={i}
+                      className="w-full text-left px-3 py-2 text-xs rounded-md hover:bg-accent/10 border border-border/40 transition-colors flex items-center gap-2"
+                      onClick={() => handleGatewayChoice(branch)}
+                    >
+                      <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {i + 1}
+                      </span>
+                      <span className="text-foreground font-medium truncate">{branch.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            )}
+          </Popover>
           <div className="w-px h-6 bg-border/50 mx-0.5" />
           <ToolbarButton onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +">
             <ZoomIn className="h-3.5 w-3.5" />
