@@ -346,8 +346,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                   <TableCell className="text-center text-lg" title={FLOW_LABELS[task.type_flux]}>
                     {FLOW_ICONS[task.type_flux]}
                   </TableCell>
-                  <TableCell className="text-sm">{resolveElementDescriptions(task.entrees)}</TableCell>
-                  <TableCell className="text-sm">{resolveElementDescriptions(task.sorties)}</TableCell>
+                  <TableCell>{resolveElementBadges(task.entrees, "blue")}</TableCell>
+                  <TableCell>{resolveElementBadges(task.sorties, "amber")}</TableCell>
                   <TableCell className="text-sm">
                     {task.next_activity_code === "__end__" ? (
                       <Badge variant="destructive" className="gap-1 text-[10px]">🔚 Fin</Badge>
