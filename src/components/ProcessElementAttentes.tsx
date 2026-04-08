@@ -64,17 +64,17 @@ export function ProcessElementAttentes({ elementId, canEdit }: ProcessElementAtt
   return (
     <div className="ml-6 mt-1 space-y-0.5">
       {attentes.map((a) => (
-        <div key={a.id} className="group/attente flex items-center gap-2 py-0.5 text-xs text-muted-foreground">
-          <span className="text-primary/60">├</span>
-          <span className="flex-1 truncate" title={a.description}>{a.description}</span>
+        <div key={a.id} className="group/attente flex items-start gap-2 py-0.5 text-xs text-muted-foreground">
+          <span className="text-primary/60 mt-0.5 shrink-0">├</span>
+          <span className="flex-1 break-words whitespace-pre-wrap leading-relaxed">{a.description}</span>
           {a.date_prevue && (
-            <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5 font-normal shrink-0">
+            <Badge variant="outline" className="text-[10px] h-4 px-1.5 gap-0.5 font-normal shrink-0 mt-0.5">
               <CalendarIcon className="h-2.5 w-2.5" />
               {format(new Date(a.date_prevue), "dd/MM/yyyy")}
             </Badge>
           )}
           {canEdit && (
-            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover/attente:opacity-100 text-destructive" onClick={() => handleRemove(a.id)}>
+            <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 opacity-0 group-hover/attente:opacity-100 text-destructive mt-0.5" onClick={() => handleRemove(a.id)}>
               <Trash2 className="h-2.5 w-2.5" />
             </Button>
           )}

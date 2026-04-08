@@ -146,7 +146,7 @@ export function ProcessElementList({ title, elements, canEdit, canDelete, multil
                 ) : (
                   <>
                     <span className="font-mono text-[11px] font-semibold text-primary w-16 shrink-0">{el.code}</span>
-                    <span className={`flex-1 text-xs leading-relaxed ${multiline ? "whitespace-pre-wrap" : "truncate"}`} title={el.description}>{el.description}</span>
+                    <span className="flex-1 text-xs leading-relaxed whitespace-pre-wrap break-words" title={el.description}>{el.description}</span>
                     {/* Responsable inline */}
                     {showResponsable && acteurs && onUpdateResponsable && (
                       canEdit ? (
