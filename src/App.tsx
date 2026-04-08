@@ -49,6 +49,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const AdminNotificationsConfig = lazy(() => import("./pages/AdminNotificationsConfig"));
 const AdminDocumentsConfig = lazy(() => import("./pages/AdminDocumentsConfig"));
 const Modules = lazy(() => import("./pages/Modules"));
+const ProcessFlowchartPage = lazy(() => import("./pages/ProcessFlowchartPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -93,6 +94,7 @@ const App = () => (
               {/* Processus */}
               <Route path="/processus" element={<ProtectedPage><RoleGuard requiredModule="processus"><Processus /></RoleGuard></ProtectedPage>} />
               <Route path="/processus/:id" element={<ProtectedPage><RoleGuard requiredModule="processus"><ProcessDetail /></RoleGuard></ProtectedPage>} />
+              <Route path="/processus/:id/logigramme" element={<ProtectedRoute><Suspense fallback={<PageLoader />}><RoleGuard requiredModule="processus"><ProcessFlowchartPage /></RoleGuard></Suspense></ProtectedRoute>} />
               <Route path="/cartographie" element={<ProtectedPage><RoleGuard requiredModule="cartographie"><Cartographie /></RoleGuard></ProtectedPage>} />
               <Route path="/bpmn" element={<ProtectedPage><RoleGuard requiredModule="bpmn"><Bpmn /></RoleGuard></ProtectedPage>} />
               <Route path="/evaluation-processus" element={<ProtectedPage><RoleGuard requiredModule="evaluation_processus"><EvaluationProcessus /></RoleGuard></ProtectedPage>} />

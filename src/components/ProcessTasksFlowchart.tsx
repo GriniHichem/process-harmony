@@ -32,6 +32,7 @@ interface Props {
   processId: string; canEdit: boolean; canDelete: boolean;
   processElements: ProcessElement[];
   onAddElement: (type: ElementType, description: string) => Promise<void>;
+  standalone?: boolean;
 }
 
 // ─── Layout types ───
@@ -476,7 +477,7 @@ interface InteractionRow {
 }
 interface ProcessName { id: string; code: string; nom: string; }
 
-export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processElements, onAddElement }: Props) {
+export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processElements, onAddElement, standalone = false }: Props) {
   const [tasks, setTasks] = useState<ProcessTask[]>([]);
   const [acteurs, setActeurs] = useState<Acteur[]>([]);
   const [interactions, setInteractions] = useState<InteractionRow[]>([]);
@@ -1556,14 +1557,17 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                           </div>
                           {/* Actor banner */}
                           <div
-                            className="h-8 flex items-center gap-1.5 px-3 shrink-0"
-                            style={{
-                              backgroundColor: actorColor ? actorColor : "hsl(var(--muted))",
-                              opacity: actorColor ? 0.9 : 0.5,
-                            }}
+                            className={cn(
+                              "h-8 flex items-center gap-1.5 px-3 shrink-0 rounded-b-[10px]",
+                              !actorColor && "bg-muted"
+                            )}
+                            style={actorColor ? { backgroundColor: actorColor } : undefined}
                           >
-                            <User className="h-3.5 w-3.5 text-white" />
-                            <span className="text-[11px] font-medium text-white truncate">
+                            <User className={cn("h-3.5 w-3.5", actorColor ? "text-white" : "text-muted-foreground")} />
+                            <span className={cn(
+                              "text-[11px] font-medium truncate",
+                              actorColor ? "text-white" : "text-muted-foreground"
+                            )}>
                               {resp || "Non assigné"}
                             </span>
                           </div>
@@ -1698,7 +1702,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
         fallbackFullscreen ? "fixed inset-0 z-[9999] rounded-none" : "w-full rounded-xl",
         nativeFullscreen && "rounded-none"
       )}
-      style={{ height: fullscreen ? "100vh" : "calc(100vh - 220px)", minHeight: fullscreen ? "100vh" : "500px" }}
+      style={{ height: standalone ? "100%" : (fullscreen ? "100vh" : "calc(100vh - 220px)"), minHeight: standalone ? "100%" : (fullscreen ? "100vh" : "500px") }}
     >
       {showDetailPanel ? (
         <ResizablePanelGroup direction="horizontal">

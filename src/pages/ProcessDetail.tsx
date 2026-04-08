@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText, Download, Eye, FileDown, CopyPlus, Layers, ListChecks, Archive, Settings2, Users, Target, ArrowRightLeft, Package, TableProperties, Workflow } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download, Eye, FileDown, CopyPlus, Layers, ListChecks, Archive, Settings2, Users, Target, ArrowRightLeft, Package, TableProperties, Workflow, ExternalLink } from "lucide-react";
 import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 import { exportProcessPdf } from "@/lib/exportProcessPdf";
 import { cn } from "@/lib/utils";
@@ -470,15 +470,20 @@ export default function ProcessDetail() {
             <CardContent className="pt-6">
               {/* View mode toggle */}
               <div className="flex items-center justify-between mb-4">
-                <ToggleGroup type="single" value={activityViewMode} onValueChange={(v) => { if (v) setActivityViewMode(v as "list" | "flowchart"); }}
-                  className="bg-muted/50 rounded-lg p-0.5 border border-border/50">
-                  <ToggleGroupItem value="list" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
-                    <TableProperties className="h-3.5 w-3.5" /> Liste
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="flowchart" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
-                    <Workflow className="h-3.5 w-3.5" /> Logigramme
-                  </ToggleGroupItem>
-                </ToggleGroup>
+                <div className="flex items-center gap-2">
+                  <ToggleGroup type="single" value={activityViewMode} onValueChange={(v) => { if (v) setActivityViewMode(v as "list" | "flowchart"); }}
+                    className="bg-muted/50 rounded-lg p-0.5 border border-border/50">
+                    <ToggleGroupItem value="list" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
+                      <TableProperties className="h-3.5 w-3.5" /> Liste
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="flowchart" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
+                      <Workflow className="h-3.5 w-3.5" /> Logigramme
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => navigate(`/processus/${id}/logigramme`)}>
+                    <ExternalLink className="h-3.5 w-3.5" /> Ouvrir en plein écran
+                  </Button>
+                </div>
                 {(hasRole("admin") || hasRole("super_admin")) && effectiveCanEdit && (
                   <CsvTaskImporter processId={id!} processElements={elements} onComplete={() => { fetchElements(); }} />
                 )}
