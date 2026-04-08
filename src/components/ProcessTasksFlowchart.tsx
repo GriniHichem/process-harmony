@@ -1478,23 +1478,68 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           <ToolbarButton onClick={handlePrevTask} disabled={flatNavTaskIds.length === 0} title="Activité précédente">
             <ChevronLeft className="h-3.5 w-3.5" />
           </ToolbarButton>
-          {currentNavIndex >= 0 ? (
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
-                {currentNavIndex + 1}/{flatNavTaskIds.length}
-              </span>
-              {activeBranchInfo && (
-                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-medium flex items-center gap-1">
-                  <GitBranch className="h-3 w-3" />
-                  {activeBranchInfo}
-                </span>
-              )}
-            </div>
-          ) : flatNavTaskIds.length > 0 ? (
-            <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
-              —/{flatNavTaskIds.length}
+
+          {/* Activity jump selector */}
+          <Popover open={activityListOpen} onOpenChange={setActivityListOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-mono bg-card/90 backdrop-blur-sm border border-border/40 hover:bg-accent/20 transition-colors cursor-pointer min-w-[100px] max-w-[180px]"
+                title="Choisir une activité"
+              >
+                <List className="h-3 w-3 text-muted-foreground shrink-0" />
+                {currentNavIndex >= 0 ? (
+                  <span className="truncate text-foreground font-medium">
+                    {tasks.find(t => t.id === selectedTaskId)?.code || `${currentNavIndex + 1}/${flatNavTaskIds.length}`}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—/{flatNavTaskIds.length}</span>
+                )}
+                <span className="text-muted-foreground/60 text-[9px] ml-auto">{currentNavIndex >= 0 ? `${currentNavIndex + 1}/${flatNavTaskIds.length}` : ''}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-1.5 max-h-[320px] overflow-y-auto" side="bottom" align="center">
+              <div className="text-[10px] font-semibold text-muted-foreground px-2 py-1 mb-1 uppercase tracking-wider">
+                Aller à l'activité
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {tasks.filter(t => t.type_flux !== undefined).sort((a, b) => a.ordre - b.ordre).map((task) => {
+                  const isActive = selectedTaskId === task.id;
+                  const isBranch = !!task.parent_code;
+                  return (
+                    <button
+                      key={task.id}
+                      className={cn(
+                        "w-full text-left px-2.5 py-1.5 text-xs rounded-md transition-colors flex items-center gap-2",
+                        isActive ? "bg-primary/15 text-primary font-semibold" : "hover:bg-accent/10 text-foreground",
+                        isBranch && "pl-6"
+                      )}
+                      onClick={() => handleJumpToActivity(task.id)}
+                    >
+                      <span className={cn(
+                        "font-mono text-[10px] px-1.5 py-0.5 rounded shrink-0 border",
+                        isActive ? "bg-primary/20 border-primary/30 text-primary" : "bg-muted/50 border-border/30 text-muted-foreground"
+                      )}>
+                        {task.code}
+                      </span>
+                      <span className="truncate">{task.description}</span>
+                      {isBranch && (
+                        <GitBranch className="h-3 w-3 text-muted-foreground/50 shrink-0 ml-auto" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {activeBranchInfo && (
+            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-medium flex items-center gap-1">
+              <GitBranch className="h-3 w-3" />
+              {activeBranchInfo}
             </span>
-          ) : null}
+          )}
+
+          {/* Next + gateway choice popover */}
           <Popover open={gatewayPopoverOpen} onOpenChange={setGatewayPopoverOpen}>
             <PopoverTrigger asChild>
               <span>
