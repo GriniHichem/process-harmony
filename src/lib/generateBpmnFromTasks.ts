@@ -181,9 +181,9 @@ export function generateBpmnFromTasks(
     }
   }
 
-  // ── Jump edges (next_activity_code) ──
+  // ── Jump edges (next_activity_code) — only for root sequential tasks ──
   for (const task of tasks) {
-    if (task.next_activity_code) {
+    if (task.next_activity_code && !task.parent_code) {
       const fromNodeId = taskCodeToNodeId.get(task.code);
       const toNodeId = taskCodeToNodeId.get(task.next_activity_code);
       if (fromNodeId && toNodeId) {

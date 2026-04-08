@@ -1327,7 +1327,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
 
     const currentTask = taskById.get(selectedTaskId);
     const manualNextCode = currentTask?.next_activity_code?.trim();
-    if (manualNextCode) {
+    // Only apply manual jump for root sequential tasks (not gateway branches)
+    if (manualNextCode && !currentTask?.parent_code) {
       const targetTask = taskByCode.get(manualNextCode);
       if (targetTask) {
         focusOnTask(targetTask.id);
@@ -1738,8 +1739,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               {/* Edges */}
               {layout.edges.map((e, i) => <FlowchartEdge key={i} edge={e} />)}
 
-              {/* Custom jump arrows (next_activity_code) */}
-              {layout.nodes.filter(n => n.task.next_activity_code).map(node => {
+              {/* Custom jump arrows (next_activity_code) — only for root sequential tasks */}
+              {layout.nodes.filter(n => n.task.next_activity_code && !n.task.parent_code).map(node => {
                 const t = node.task;
                 const nac = t.next_activity_code!;
                 const targetNode = layout.nodes.find(n => n.task.code === nac);
