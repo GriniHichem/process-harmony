@@ -408,6 +408,16 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                   <li>Les branches AND n'ont pas besoin de Condition</li>
                 </ul>
               </div>
+
+              <div>
+                <h3 className="font-semibold text-base mb-2">Navigation dans le logigramme</h3>
+                <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-4">
+                  <li><strong>Séquentiel :</strong> utilisez ◀ / ▶ pour naviguer d'activité en activité. Si une activité est supprimée, elle est automatiquement sautée</li>
+                  <li><strong>Conditionnel (XOR) :</strong> un popover de choix s'affiche pour sélectionner la branche à suivre</li>
+                  <li><strong>Parallèle (AND) / Inclusif (OR) :</strong> les branches sont parcourues séquentiellement avec un indicateur «Branche X/N»</li>
+                  <li><strong>Saut libre :</strong> cliquez sur le sélecteur d'activité (icône liste) pour sauter directement à n'importe quelle activité</li>
+                </ul>
+              </div>
             </div>
           </ScrollArea>
           <DialogFooter>
