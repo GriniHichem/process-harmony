@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, Edit, GitBranch, X } from "lucide-react";
+import { Plus, Trash2, Edit, GitBranch, X, ArrowRight } from "lucide-react";
 
 
 type TaskFlowType = "sequentiel" | "conditionnel" | "parallele" | "inclusif";
@@ -28,6 +28,7 @@ interface ProcessTask {
   entrees: string | null;
   sorties: string | null;
   documents: string[] | null;
+  next_activity_code: string | null;
 }
 
 interface ProcessElement {
@@ -78,6 +79,7 @@ const emptyForm = {
   responsable_id: "",
   selectedEntrees: [] as string[],
   selectedSorties: [] as string[],
+  next_activity_code: "",
 };
 
 export function ProcessTasksTable({ processId, canEdit, canDelete, processElements, onAddElement }: Props) {
@@ -114,7 +116,6 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
     fetchActeurs();
   }, [fetchTasks, fetchActeurs]);
 
-  // Parse comma-separated codes to array
   const parseCodes = (value: string | null): string[] => {
     if (!value) return [];
     return value.split(",").map(s => s.trim()).filter(Boolean);
@@ -169,6 +170,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
       responsable_id: task.responsable_id || "",
       selectedEntrees: parseCodes(task.entrees),
       selectedSorties: parseCodes(task.sorties),
+      next_activity_code: task.next_activity_code || "",
     });
     setNewEntreeDesc("");
     setNewSortieDesc("");
@@ -204,17 +206,20 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
 
     const entreesStr = codesToString(form.selectedEntrees) || null;
     const sortiesStr = codesToString(form.selectedSorties) || null;
+    const effectiveTypeFlux = branchParent ? "sequentiel" : form.type_flux;
+    const nextActivityCode = effectiveTypeFlux === "sequentiel" ? (form.next_activity_code || null) : null;
 
     if (editingTask) {
       const { error } = await supabase
         .from("process_tasks")
         .update({
           description: form.description,
-          type_flux: form.type_flux as TaskFlowType,
+          type_flux: effectiveTypeFlux as TaskFlowType,
           condition: form.condition || null,
           responsable_id: form.responsable_id || null,
           entrees: entreesStr,
           sorties: sortiesStr,
+          next_activity_code: nextActivityCode,
         })
         .eq("id", editingTask.id);
       if (error) { toast.error(error.message); return; }
@@ -226,13 +231,14 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         process_id: processId,
         code,
         description: form.description,
-        type_flux: (branchParent ? "sequentiel" : form.type_flux) as TaskFlowType,
+        type_flux: effectiveTypeFlux as TaskFlowType,
         condition: form.condition || null,
         parent_code: branchParent?.code || null,
         responsable_id: form.responsable_id || null,
         ordre,
         entrees: entreesStr,
         sorties: sortiesStr,
+        next_activity_code: nextActivityCode,
       });
       if (error) { toast.error(error.message); return; }
       toast.success("Activité ajoutée");
@@ -268,6 +274,8 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
   };
 
   const isSubTask = (task: ProcessTask) => !!task.parent_code;
+  const isSequentialForm = (branchParent || editingTask?.parent_code) ? true : form.type_flux === "sequentiel";
+  const availableNextTargets = tasks.filter((task) => task.id !== editingTask?.id);
 
   if (loading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>;
 
@@ -294,6 +302,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                 <TableHead className="w-12">Type</TableHead>
                 <TableHead>Entrées</TableHead>
                 <TableHead>Sorties</TableHead>
+                <TableHead>Suivante</TableHead>
                 <TableHead>Responsable</TableHead>
                 {(canEdit || canDelete) && <TableHead className="w-24">Actions</TableHead>}
               </TableRow>
@@ -318,6 +327,14 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                   </TableCell>
                   <TableCell className="text-sm">{resolveElementDescriptions(task.entrees)}</TableCell>
                   <TableCell className="text-sm">{resolveElementDescriptions(task.sorties)}</TableCell>
+                  <TableCell className="text-sm">
+                    {task.next_activity_code ? (
+                      <Badge variant="outline" className="gap-1">
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="font-mono text-xs">{task.next_activity_code}</span>
+                      </Badge>
+                    ) : "—"}
+                  </TableCell>
                   <TableCell className="text-sm">{acteurName(task.responsable_id)}</TableCell>
                   {(canEdit || canDelete) && (
                     <TableCell>
@@ -347,14 +364,12 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
         </div>
       )}
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
         {Object.entries(FLOW_ICONS).map(([key, icon]) => (
           <span key={key}>{icon} {FLOW_LABELS[key as TaskFlowType]}</span>
         ))}
       </div>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -371,7 +386,7 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
             {!branchParent && !editingTask?.parent_code && (
               <div className="space-y-2">
                 <Label>Type de flux</Label>
-                <Select value={form.type_flux} onValueChange={(v) => setForm({ ...form, type_flux: v as TaskFlowType })}>
+                <Select value={form.type_flux} onValueChange={(v) => setForm({ ...form, type_flux: v as TaskFlowType, next_activity_code: v === "sequentiel" ? form.next_activity_code : "" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(FLOW_LABELS).map(([k, label]) => (
@@ -389,7 +404,6 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
               </div>
             )}
 
-            {/* Entrées - select from process elements */}
             <div className="space-y-2">
               <Label>Entrées (données d'entrée)</Label>
               <div className="flex flex-wrap gap-1 mb-2">
@@ -441,7 +455,6 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
               </div>
             </div>
 
-            {/* Sorties - select from process elements */}
             <div className="space-y-2">
               <Label>Sorties (données de sortie)</Label>
               <div className="flex flex-wrap gap-1 mb-2">
@@ -492,6 +505,35 @@ export function ProcessTasksTable({ processId, canEdit, canDelete, processElemen
                 </Button>
               </div>
             </div>
+
+            {isSequentialForm && availableNextTargets.length > 0 && (
+              <div className="space-y-2">
+                <Label>Activité suivante</Label>
+                <Select
+                  value={form.next_activity_code || "__default__"}
+                  onValueChange={(v) => setForm({ ...form, next_activity_code: v === "__default__" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Suivant par défaut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__default__">Suivant par défaut (ordre séquentiel)</SelectItem>
+                    {availableNextTargets.map((task) => (
+                      <SelectItem key={task.id} value={task.code}>
+                        <span className="font-mono text-xs mr-1">{task.code}</span>
+                        {task.description.length > 50 ? `${task.description.slice(0, 50)}…` : task.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.next_activity_code && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <ArrowRight className="h-3 w-3" />
+                    Cette valeur sera enregistrée en base et utilisée dans le logigramme et le BPMN.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Responsable</Label>
