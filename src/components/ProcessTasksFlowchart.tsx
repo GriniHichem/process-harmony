@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,11 +47,14 @@ interface LayoutEdge {
 }
 
 // ─── Constants ───
-const CARD_W = 440, CARD_MIN_H = 140, CARD_MAX_H = 260, GW_S = 44;
-const V_GAP = 100, H_GAP = 60;
+const CARD_W = 440, CARD_MIN_H = 112, CARD_MAX_H = 220, GW_S = 44;
+const V_GAP = 88, H_GAP = 56;
 const CIRCLE_R = 22;
-const IO_COL_W = 110;
-const PROCESS_IO_BOX_W = 440, PROCESS_IO_BOX_H = 44;
+const IO_COL_W = 96;
+const PROCESS_IO_BOX_W = 400;
+const PROCESS_IO_BOX_MIN_H = 76;
+const PROCESS_IO_BOX_MAX_H = 156;
+const PROCESS_IO_ITEMS_PER_ROW = 3;
 const SNAP_SIZE = 20;
 const MAX_UNDO = 20;
 
@@ -80,10 +84,17 @@ function calcCardHeight(task: ProcessTask, processElements: ProcessElement[]): n
   const entrees = task.entrees ? task.entrees.split(",").map(s => s.trim()).filter(Boolean) : [];
   const sorties = task.sorties ? task.sorties.split(",").map(s => s.trim()).filter(Boolean) : [];
   const ioCount = Math.max(entrees.length, sorties.length);
-  const descLines = Math.ceil((task.description || "").length / 35);
-  const ioH = Math.max(0, ioCount - 2) * 22;
-  const descH = Math.max(0, descLines - 2) * 16;
+  const descLines = Math.ceil((task.description || "").length / 42);
+  const ioVisibleRows = Math.min(ioCount, 4);
+  const ioH = Math.max(0, ioVisibleRows - 2) * 18;
+  const descH = Math.max(0, Math.min(descLines, 5) - 2) * 14;
   return Math.min(CARD_MAX_H, Math.max(CARD_MIN_H, CARD_MIN_H + ioH + descH));
+}
+
+function calcProcessIoBoxHeight(itemCount: number): number {
+  if (itemCount <= 0) return 0;
+  const rows = Math.max(1, Math.ceil(itemCount / PROCESS_IO_ITEMS_PER_ROW));
+  return Math.min(PROCESS_IO_BOX_MAX_H, Math.max(PROCESS_IO_BOX_MIN_H, 54 + rows * 24 + 16));
 }
 
 // ─── Vertical Auto-layout engine ───
@@ -111,9 +122,9 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
   let curY = 80;
 
   const processInputsY = curY;
-  const realInputBoxH = PROCESS_IO_BOX_H + Math.max(0, processEntrees.length) * 22 + 40;
+  const realInputBoxH = calcProcessIoBoxHeight(processEntrees.length);
   if (processEntrees.length > 0) {
-    curY += realInputBoxH + 60;
+    curY += realInputBoxH + 32;
   }
 
   const startCx = centerX, startCy = curY;
@@ -221,7 +232,7 @@ function computeLayout(tasks: ProcessTask[], processElements: ProcessElement[], 
   const endCy = res.connectFromY + V_GAP + CIRCLE_R;
   edges.push({ fromX: res.connectFromX, fromY: res.connectFromY, toX: endCx, toY: endCy - CIRCLE_R });
 
-  const processOutputsY = endCy + CIRCLE_R + 40;
+  const processOutputsY = endCy + CIRCLE_R + 28;
 
   if (positionOverrides && positionOverrides.size > 0) {
     for (const node of nodes) {
@@ -509,10 +520,18 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
   const initialFitDone = useRef(false);
   const fullscreenFitPendingRef = useRef(false);
   const fullscreenStateReadyRef = useRef(false);
+  const fullscreenFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fullscreen = nativeFullscreen || fallbackFullscreen;
+
+  const clearFullscreenFallbackTimer = useCallback(() => {
+    if (fullscreenFallbackTimerRef.current) {
+      clearTimeout(fullscreenFallbackTimerRef.current);
+      fullscreenFallbackTimerRef.current = null;
+    }
+  }, []);
 
   const fetchTasks = useCallback(async () => {
     const { data } = await supabase.from("process_tasks").select("*").eq("process_id", processId).order("ordre", { ascending: true });
@@ -970,7 +989,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       ...layout.nodes.map(n => n.y), ...layout.nodes.map(n => n.y + n.h),
       ...layout.gateways.map(g => g.y), ...layout.gateways.map(g => g.y + g.s),
       layout.startCy + CIRCLE_R, layout.endCy + CIRCLE_R,
-      layout.processOutputsY + PROCESS_IO_BOX_H,
+      layout.processOutputsY + calcProcessIoBoxHeight(layout.processSorties.length),
     ];
     minX = Math.min(...allX) - 100;
     minY = Math.min(...allY) - 80;
@@ -1001,13 +1020,30 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
       setNativeFullscreen(activeElement === wrapperRef.current);
     };
 
+    const handleFullscreenError = () => {
+      clearFullscreenFallbackTimer();
+      setNativeFullscreen(false);
+      setFallbackFullscreen(true);
+    };
+
     syncFullscreenState();
     document.addEventListener("fullscreenchange", syncFullscreenState);
+    document.addEventListener("fullscreenerror", handleFullscreenError);
 
     return () => {
       document.removeEventListener("fullscreenchange", syncFullscreenState);
+      document.removeEventListener("fullscreenerror", handleFullscreenError);
     };
-  }, []);
+  }, [clearFullscreenFallbackTimer]);
+
+  useEffect(() => {
+    if (nativeFullscreen) {
+      clearFullscreenFallbackTimer();
+      setFallbackFullscreen(false);
+    }
+  }, [nativeFullscreen, clearFullscreenFallbackTimer]);
+
+  useEffect(() => () => clearFullscreenFallbackTimer(), [clearFullscreenFallbackTimer]);
 
   useEffect(() => {
     document.body.style.overflow = !nativeFullscreen && fallbackFullscreen ? "hidden" : "";
@@ -1076,17 +1112,25 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     initialFitDone.current = false;
 
     if (nativeFullscreen) {
-      await document.exitFullscreen();
+      clearFullscreenFallbackTimer();
+      await document.exitFullscreen().catch(() => undefined);
       return;
     }
 
     if (fallbackFullscreen) {
+      clearFullscreenFallbackTimer();
       setFallbackFullscreen(false);
       return;
     }
 
     try {
       if (document.fullscreenEnabled && wrapper.requestFullscreen) {
+        clearFullscreenFallbackTimer();
+        fullscreenFallbackTimerRef.current = setTimeout(() => {
+          if (document.fullscreenElement !== wrapperRef.current) {
+            setFallbackFullscreen(true);
+          }
+        }, 350);
         await wrapper.requestFullscreen();
       } else {
         setFallbackFullscreen(true);
@@ -1094,7 +1138,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     } catch {
       setFallbackFullscreen(true);
     }
-  }, [nativeFullscreen, fallbackFullscreen]);
+  }, [nativeFullscreen, fallbackFullscreen, clearFullscreenFallbackTimer]);
 
   // ─── Keyboard shortcuts ───
   useEffect(() => {
@@ -1333,7 +1377,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                 const intEntrees = layout.processEntrees.filter(e => !externalElementMap.has(e.id));
                 return (
                   <foreignObject x={layout.startCx - PROCESS_IO_BOX_W / 2} y={layout.processInputsY} width={PROCESS_IO_BOX_W} height={layout.realInputBoxH}>
-                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 h-full">
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 h-full overflow-y-auto">
                       <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2 text-center">Entrées du processus</div>
                       {extEntrees.length > 0 && (
                         <div className="mb-2">
@@ -1341,7 +1385,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                             <Link2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                             <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400 uppercase">Externes (inter-processus)</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1.5 content-start">
                             {extEntrees.map(e => {
                               const info = externalElementMap.get(e.id);
                               const procLabel = info ? getProcessLabel(info.linkedProcessId) : "";
@@ -1361,7 +1405,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                             <FileText className="h-3 w-3 text-blue-400 dark:text-blue-500" />
                             <span className="text-[9px] font-semibold text-blue-400 dark:text-blue-500 uppercase">Internes</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1.5 content-start">
                             {intEntrees.map(e => (
                               <span key={e.id} className="text-[10px] bg-blue-100/70 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">{e.description}</span>
                             ))}
@@ -1438,6 +1482,8 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                 const actorColor = t.responsable_id ? actorColorMap.get(t.responsable_id) : undefined;
                 const entrees = parseCodes(t.entrees);
                 const sorties = parseCodes(t.sorties);
+                const leftColWidth = entrees.length === 0 ? 56 : entrees.length === 1 ? 78 : 96;
+                const rightColWidth = sorties.length === 0 ? 56 : sorties.length === 1 ? 78 : 96;
                 const flowColor = FLOW_COLORS[t.type_flux] || FLOW_COLORS.sequentiel;
 
                 // Search highlighting
@@ -1483,10 +1529,10 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                         onMouseLeave={() => setHoveredNodeId(null)}
                       >
                         {/* Left column — Inputs */}
-                        <div className="w-[110px] shrink-0 bg-blue-50/50 dark:bg-blue-950/20 border-r border-blue-200/30 dark:border-blue-800/30 p-2 flex flex-col gap-1 overflow-y-auto">
+                        <div className="shrink-0 bg-blue-50/50 dark:bg-blue-950/20 border-r border-blue-200/30 dark:border-blue-800/30 p-1.5 flex flex-col gap-1 overflow-y-auto" style={{ width: leftColWidth }}>
                           <span className="text-[9px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Entrées</span>
                           {entrees.length > 0 ? entrees.map(code => (
-                            <div key={code} className="text-[10px] bg-blue-100/80 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded leading-tight truncate" title={resolveDesc(code)}>
+                            <div key={code} className="text-[10px] bg-blue-100/80 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded leading-tight whitespace-normal break-words" title={resolveDesc(code)}>
                               {resolveDesc(code)}
                             </div>
                           )) : (
@@ -1506,7 +1552,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                                 <span className="ml-auto text-[10px] text-muted-foreground/50">⋮⋮</span>
                               )}
                             </div>
-                            <p className="text-[12px] leading-snug text-foreground font-medium line-clamp-4">{t.description}</p>
+                            <p className="text-[12px] leading-snug text-foreground font-medium whitespace-normal break-words overflow-y-auto pr-1">{t.description}</p>
                           </div>
                           {/* Actor banner */}
                           <div
@@ -1524,10 +1570,10 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                         </div>
 
                         {/* Right column — Outputs */}
-                        <div className="w-[110px] shrink-0 bg-green-50/50 dark:bg-green-950/20 border-l border-green-200/30 dark:border-green-800/30 p-2 flex flex-col gap-1 overflow-y-auto">
+                        <div className="shrink-0 bg-green-50/50 dark:bg-green-950/20 border-l border-green-200/30 dark:border-green-800/30 p-1.5 flex flex-col gap-1 overflow-y-auto" style={{ width: rightColWidth }}>
                           <span className="text-[9px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">Sorties</span>
                           {sorties.length > 0 ? sorties.map(code => (
-                            <div key={code} className="text-[10px] bg-green-100/80 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-1.5 py-0.5 rounded leading-tight truncate" title={resolveDesc(code)}>
+                            <div key={code} className="text-[10px] bg-green-100/80 dark:bg-green-900/40 text-green-800 dark:text-green-200 px-1.5 py-0.5 rounded leading-tight whitespace-normal break-words" title={resolveDesc(code)}>
                               {resolveDesc(code)}
                             </div>
                           )) : (
@@ -1572,10 +1618,10 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
               {layout.processSorties.length > 0 && (() => {
                 const extSorties = layout.processSorties.filter(e => externalElementMap.has(e.id));
                 const intSorties = layout.processSorties.filter(e => !externalElementMap.has(e.id));
-                const outputBoxH = PROCESS_IO_BOX_H + layout.processSorties.length * 22 + 40;
+                const outputBoxH = calcProcessIoBoxHeight(layout.processSorties.length);
                 return (
                   <foreignObject x={layout.endCx - PROCESS_IO_BOX_W / 2} y={layout.processOutputsY} width={PROCESS_IO_BOX_W} height={outputBoxH}>
-                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 h-full overflow-y-auto">
                       <div className="text-[11px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wider mb-2 text-center">Sorties du processus</div>
                       {extSorties.length > 0 && (
                         <div className="mb-2">
@@ -1583,7 +1629,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                             <Link2 className="h-3 w-3 text-green-600 dark:text-green-400" />
                             <span className="text-[9px] font-semibold text-green-600 dark:text-green-400 uppercase">Externes (inter-processus)</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1.5 content-start">
                             {extSorties.map(e => {
                               const info = externalElementMap.get(e.id);
                               const procLabel = info ? getProcessLabel(info.linkedProcessId) : "";
@@ -1603,7 +1649,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
                             <FileText className="h-3 w-3 text-green-400 dark:text-green-500" />
                             <span className="text-[9px] font-semibold text-green-400 dark:text-green-500 uppercase">Internes</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1.5 content-start">
                             {intSorties.map(e => (
                               <span key={e.id} className="text-[10px] bg-green-100/70 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">{e.description}</span>
                             ))}
@@ -1680,5 +1726,5 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
     </div>
   );
 
-  return mainLayout;
+  return fallbackFullscreen ? createPortal(mainLayout, document.body) : mainLayout;
 }
