@@ -1426,7 +1426,7 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
         </defs>
 
-        <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+        <g style={{ transition: "transform 0.3s ease" }} transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
           <rect data-bg="true" x={minX - 500} y={minY - 500} width={vbW + 1000} height={vbH + 1000}
             fill={snapEnabled ? "url(#snapgrid)" : "url(#flowgrid)"} />
 
