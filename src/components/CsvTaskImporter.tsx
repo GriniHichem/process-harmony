@@ -86,21 +86,37 @@ function splitSubValues(value: string): string[] {
   return value.split(",").map(s => s.trim()).filter(Boolean);
 }
 
+function normalizeHeaderKey(value: string): string {
+  return value
+    .replace(/^\uFEFF/, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function normalizeIdentifier(value: string): string {
+  return value
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .trim();
+}
+
 function generateExampleCsv(delimiter: string): string {
   const d = delimiter;
   const q = delimiter === "," ? '"' : '';
   const lines = [
     `Code${d}Description${d}Type de flux${d}Parent${d}Condition${d}Entrées${d}Sorties${d}Responsable${d}Activité suivante`,
-    `1${d}Réceptionner la demande${d}Séquentiel${d}${d}${d}${q}Demande utilisateur${q}${d}${q}Demande qualifiée${q}${d}Help Desk${d}`,
-    `2${d}Orienter la demande${d}Conditionnel${d}${d}${d}Demande qualifiée${d}${d}Responsable SI${d}`,
-    `3${d}Traiter cas standard${d}Séquentiel${d}2${d}SI standard${d}${d}Résultat standard${d}Help Desk${d}`,
-    `4${d}Traiter cas urgent${d}Séquentiel${d}2${d}SI urgent${d}${d}Résultat urgent${d}Admin Systèmes${d}`,
-    `5${d}Préparer les accès${d}Parallèle${d}${d}${d}${d}${d}${d}`,
-    `6${d}Créer compte Windows${d}Séquentiel${d}5${d}${d}${d}Compte Windows créé${d}Help Desk${d}`,
-    `7${d}Créer compte ERP${d}Séquentiel${d}5${d}${d}${d}Compte ERP créé${d}Admin ERP${d}`,
-    `8${d}Vérifier résultat${d}Inclusif${d}${d}${d}${d}${d}${d}`,
-    `9${d}Test fonctionnel${d}Séquentiel${d}8${d}SI disponible${d}${d}Test OK${d}Help Desk${d}`,
-    `10${d}Test sécurité${d}Séquentiel${d}8${d}SI critique${d}${d}Audit OK${d}Admin Systèmes${d}__end__`,
+    `1${d}Réceptionner la demande${d}Séquentiel${d}${d}${d}${q}Demande utilisateur${q}${d}${q}Demande qualifiée${q}${d}Help Desk${d}2`,
+    `2${d}Orienter la demande${d}Conditionnel${d}${d}${d}Demande qualifiée${d}${d}Responsable SI${d}3`,
+    `3${d}Traiter cas standard${d}Séquentiel${d}2${d}SI standard${d}${d}Résultat standard${d}Help Desk${d}10`,
+    `4${d}Traiter cas urgent${d}Séquentiel${d}2${d}SI urgent${d}${d}Résultat urgent${d}Admin Systèmes${d}20`,
+    `10${d}Valider la prise en charge${d}Séquentiel${d}${d}${d}Résultat standard${d}Prise en charge validée${d}Responsable SI${d}11`,
+    `11${d}Créer les accès${d}Parallèle${d}${d}${d}Prise en charge validée${d}Accès créés${d}Responsable SI${d}12`,
+    `12${d}Créer le compte Windows${d}Séquentiel${d}11${d}${d}${d}Compte Windows créé${d}Help Desk${d}13`,
+    `13${d}Créer le compte ERP${d}Séquentiel${d}11${d}${d}${d}Compte ERP créé${d}Admin ERP${d}20`,
+    `20${d}Assurer le suivi${d}Séquentiel${d}${d}${d}${d}Suivi réalisé${d}Responsable SI${d}__end__`,
   ];
   return lines.join("\n");
 }
@@ -123,7 +139,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
       if (lines.length < 2) { toast.error("Le fichier CSV doit contenir au moins un en-tête et une ligne."); return; }
 
       const delimiter = detectDelimiter(lines[0]);
-      const headerFields = parseCsvLine(lines[0], delimiter).map(h => h.toLowerCase().trim());
+      const headerFields = parseCsvLine(lines[0], delimiter).map(normalizeHeaderKey);
 
       // Detect column indices dynamically
       const colMap = {
@@ -132,10 +148,10 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
         type_flux: headerFields.findIndex(h => h.includes("type") && h.includes("flux")),
         parent: headerFields.findIndex(h => h === "parent" || h === "parent_code"),
         condition: headerFields.findIndex(h => h === "condition"),
-        entrees: headerFields.findIndex(h => h.includes("entr")),
-        sorties: headerFields.findIndex(h => h.includes("sort")),
+        entrees: headerFields.findIndex(h => h.includes("entree")),
+        sorties: headerFields.findIndex(h => h.includes("sortie")),
         responsable: headerFields.findIndex(h => h.includes("responsable")),
-        activite_suivante: headerFields.findIndex(h => h.includes("suivante") || h === "next_activity_code" || h.includes("activité suivante")),
+        activite_suivante: headerFields.findIndex(h => h.includes("suivante") || h === "next activity code" || h === "next_activity_code"),
       };
 
       const rows: ParsedRow[] = [];
@@ -143,17 +159,17 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
         const fields = parseCsvLine(lines[i], delimiter);
         if (fields.length < 2) continue;
         const get = (idx: number) => idx >= 0 && idx < fields.length ? fields[idx] : "";
-        const code = get(colMap.code) || String(i);
+        const code = normalizeIdentifier(get(colMap.code)) || String(i);
         const description = get(colMap.description) || "";
         if (!description.trim()) continue;
-        const typeRaw = (get(colMap.type_flux) || "séquentiel").toLowerCase().trim();
+        const typeRaw = normalizeHeaderKey(get(colMap.type_flux) || "séquentiel");
         const type_flux = FLUX_MAP[typeRaw] || "sequentiel";
-        const parent_code = get(colMap.parent);
+        const parent_code = normalizeIdentifier(get(colMap.parent));
         const condition = get(colMap.condition);
         const entrees = get(colMap.entrees) ? splitSubValues(get(colMap.entrees)) : [];
         const sorties = get(colMap.sorties) ? splitSubValues(get(colMap.sorties)) : [];
         const responsable = get(colMap.responsable);
-        const activite_suivante = get(colMap.activite_suivante);
+        const activite_suivante = normalizeIdentifier(get(colMap.activite_suivante));
         rows.push({ code, description, type_flux, parent_code, condition, entrees, sorties, responsable, activite_suivante });
       }
 
@@ -239,13 +255,16 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
       const existingSortieMap = new Map<string, string>();
       const newElements: { code: string; description: string; type: "donnee_entree" | "donnee_sortie"; process_id: string; ordre: number }[] = [];
 
-      for (const desc of preview.newEntrees) {
+      const allEntreeDescs = [...new Set(preview.rows.flatMap(row => row.entrees).map(desc => desc.trim()).filter(Boolean))];
+      const allSortieDescs = [...new Set(preview.rows.flatMap(row => row.sorties).map(desc => desc.trim()).filter(Boolean))];
+
+      for (const desc of allEntreeDescs) {
         deCounter++;
         const code = `DE-${String(deCounter).padStart(3, "0")}`;
         existingEntreeMap.set(desc.toLowerCase(), code);
         newElements.push({ code, description: desc, type: "donnee_entree", process_id: processId, ordre: ++elementOrdre });
       }
-      for (const desc of preview.newSorties) {
+      for (const desc of allSortieDescs) {
         dsCounter++;
         const code = `DS-${String(dsCounter).padStart(3, "0")}`;
         existingSortieMap.set(desc.toLowerCase(), code);
@@ -361,7 +380,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Entrées</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données d'entrée, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Sorties</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Données de sortie, séparées par virgule entre guillemets</td></tr>
                       <tr><td className="px-3 py-1.5 font-mono font-semibold text-primary">Responsable</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Fonction de l'acteur responsable</td></tr>
-                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Code d'une activité existante = flèche de saut/boucle. Code inexistant = <strong>fin de branche</strong> (aucune flèche, nœud Fin). Vide = ordre normal.</td></tr>
+                      <tr className="bg-blue-50/50 dark:bg-blue-950/30"><td className="px-3 py-1.5 font-mono font-semibold text-primary">Activité suivante</td><td className="px-3 py-1.5">—</td><td className="px-3 py-1.5">Code présent dans la colonne <strong>Code</strong> du même fichier = flèche de saut/boucle utilisée dans le logigramme, le BPMN et la navigation. Code absent ou <strong>__end__</strong> = fin de branche. Vide = ordre normal.</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -373,7 +392,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                 <div className="space-y-3">
                   <div className="rounded-lg border border-border/50 p-3 bg-muted/20">
                     <p className="font-semibold flex items-center gap-2 mb-1"><Badge variant="secondary">→ Séquentiel</Badge> Flux linéaire</p>
-                    <p className="text-xs text-muted-foreground">Pas besoin de Parent ni Condition. Les activités s'enchaînent dans l'ordre.</p>
+                      <p className="text-xs text-muted-foreground">Pas besoin de Parent ni Condition. Les activités s'enchaînent dans l'ordre, sauf si <strong>Activité suivante</strong> contient un autre code.</p>
                   </div>
 
                   <div className="rounded-lg border border-amber-500/30 p-3 bg-amber-500/5">
@@ -419,6 +438,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                   <li>Un flux XOR/AND/OR <strong>doit avoir au moins 2 branches</strong> (enfants avec le même Parent)</li>
                   <li>Laissez la Condition vide pour une branche XOR par défaut (SINON)</li>
                   <li>Les branches AND n'ont pas besoin de Condition</li>
+                  <li><strong>Activité suivante</strong> permet de sauter vers une autre activité, revenir en arrière, boucler ou terminer une branche</li>
                 </ul>
               </div>
 
@@ -492,7 +512,7 @@ export function CsvTaskImporter({ processId, processElements, onComplete }: CsvT
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground mt-2">
-                      Toutes les activités existantes seront supprimées et remplacées par les {preview.rows.length} activités du fichier CSV.
+                      Les entrées, sorties et activités existantes seront supprimées puis recréées à partir des {preview.rows.length} lignes du fichier CSV.
                     </p>
                   </div>
                 )}
