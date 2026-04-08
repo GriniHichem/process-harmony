@@ -168,7 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialSessionHandled = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        // Only react to real auth changes, not token refreshes on tab focus
+        if (event === "TOKEN_REFRESHED") {
+          setSession(session);
+          return;
+        }
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
