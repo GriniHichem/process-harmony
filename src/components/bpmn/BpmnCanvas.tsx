@@ -334,8 +334,14 @@ const BpmnCanvas = forwardRef<BpmnCanvasHandle, BpmnCanvasProps>(function BpmnCa
         const startTextY = node.y + (h - textBlockH) / 2 + 12;
         return (
           <g key={node.id} {...commonEvents}>
+            {isFocused && (
+              <rect x={node.x - 6} y={node.y - 6} width={w + 12} height={h + 12} rx={14}
+                fill="none" stroke="#3b82f6" strokeWidth={3} opacity={0.6}>
+                <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite" />
+              </rect>
+            )}
             <rect x={node.x} y={node.y} width={w} height={h} rx={10}
-              fill="url(#gradTask)" stroke={isSelected ? "#1d4ed8" : "#60a5fa"} strokeWidth={isSelected ? 3 : 2}
+              fill="url(#gradTask)" stroke={isFocused ? "#2563eb" : isSelected ? "#1d4ed8" : "#60a5fa"} strokeWidth={isFocused ? 3 : isSelected ? 3 : 2}
               filter={selFilter} />
             {/* Left accent bar */}
             <rect x={node.x} y={node.y} width={5} height={h} rx={2}
