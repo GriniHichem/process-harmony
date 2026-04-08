@@ -1308,6 +1308,18 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           )}
 
           {/* Navigation */}
+          <ToolbarButton onClick={handlePrevTask} disabled={currentNavIndex <= 0} title="Activité précédente">
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          {currentNavIndex >= 0 && (
+            <span className="text-[10px] bg-card/90 backdrop-blur-sm text-muted-foreground px-1.5 py-0.5 rounded border border-border/40 font-mono">
+              {currentNavIndex + 1}/{sortedTaskIds.length}
+            </span>
+          )}
+          <ToolbarButton onClick={handleNextTask} disabled={currentNavIndex < 0 || currentNavIndex >= sortedTaskIds.length - 1} title="Activité suivante">
+            <ChevronRight className="h-3.5 w-3.5" />
+          </ToolbarButton>
+          <div className="w-px h-6 bg-border/50 mx-0.5" />
           <ToolbarButton onClick={() => setZoom(z => Math.min(2.5, z + 0.2))} title="Zoom +">
             <ZoomIn className="h-3.5 w-3.5" />
           </ToolbarButton>
@@ -1324,9 +1336,11 @@ export function ProcessTasksFlowchart({ processId, canEdit, canDelete, processEl
           <ToolbarButton onClick={() => setDetailPanelOpen(d => !d)} active={detailPanelOpen} title={detailPanelOpen ? "Masquer le panneau" : "Afficher le panneau"}>
             {detailPanelOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
           </ToolbarButton>
-          <ToolbarButton onClick={toggleFullscreen} title={fullscreen ? "Quitter plein écran" : "Plein écran"}>
-            {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          </ToolbarButton>
+          {!standalone && (
+            <ToolbarButton onClick={toggleFullscreen} title={fullscreen ? "Quitter plein écran" : "Plein écran"}>
+              {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </ToolbarButton>
+          )}
         </div>
       </div>
 
