@@ -193,6 +193,7 @@ export function generateBpmnFromTasks(
   }
 
   return { nodes, edges };
+}
 
 // ─── Build a gateway split/merge group (supports nesting) ───────────
 
