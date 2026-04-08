@@ -90,6 +90,41 @@ export default function Bpmn() {
   const nodes = diagram?.donnees?.nodes ?? [];
   const edges = diagram?.donnees?.edges ?? [];
 
+  // Navigation: list only task/subprocess nodes
+  const taskNodes = useMemo(() => 
+    nodes.filter(n => n.type === "task" || n.type === "subprocess"),
+    [nodes]
+  );
+
+  const navIndex = useMemo(() => {
+    if (!focusedNodeId) return -1;
+    return taskNodes.findIndex(n => n.id === focusedNodeId);
+  }, [focusedNodeId, taskNodes]);
+
+  const handleNavPrev = useCallback(() => {
+    if (taskNodes.length === 0) return;
+    const idx = navIndex <= 0 ? taskNodes.length - 1 : navIndex - 1;
+    const node = taskNodes[idx];
+    setFocusedNodeId(node.id);
+    setZoom(1.1);
+    setTimeout(() => canvasRef.current?.panToNode(node.id, 1.1), 50);
+  }, [taskNodes, navIndex]);
+
+  const handleNavNext = useCallback(() => {
+    if (taskNodes.length === 0) return;
+    const idx = navIndex >= taskNodes.length - 1 ? 0 : navIndex + 1;
+    const node = taskNodes[idx];
+    setFocusedNodeId(node.id);
+    setZoom(1.1);
+    setTimeout(() => canvasRef.current?.panToNode(node.id, 1.1), 50);
+  }, [taskNodes, navIndex]);
+
+  const handleNavJump = useCallback((nodeId: string) => {
+    setFocusedNodeId(nodeId);
+    setZoom(1.1);
+    setTimeout(() => canvasRef.current?.panToNode(nodeId, 1.1), 50);
+  }, []);
+
   const createDiagram = async () => {
     if (!selectedProcessId) return;
     const processName = processes.find(p => p.id === selectedProcessId)?.nom ?? "Diagramme";
