@@ -1,0 +1,1 @@
+ALTER TABLE public.project_action_comments ADD COLUMN is_private boolean NOT NULL DEFAULT false;
