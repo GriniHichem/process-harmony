@@ -1,72 +1,33 @@
 
 
-# Plan : Nettoyage automatique à l'import CSV + BPMN 2.0 avec next_activity_code et navigation
+# Plan : Correction multi-tâches — pas de tâche auto-créée + minimum 2 tâches
 
-## 1) Import CSV — Nettoyage complet avant import
+## Problème actuel
+1. Quand on active le mode multi-tâches, une tâche est automatiquement créée avec le titre de l'action — l'utilisateur ne veut pas ça
+2. L'avancement doit être calculé uniquement à partir des tâches créées manuellement
+3. Il faut un minimum de 2 tâches pour qu'une action multi-tâches soit considérée valide
 
-### Problème
-Actuellement, l'import CSV supprime les `process_tasks` existantes (ligne 267) mais **ne supprime pas les entrées/sorties** (`process_elements` de type `donnee_entree`/`donnee_sortie`). L'utilisateur doit manuellement les supprimer avant chaque import.
+## Changements prévus
 
-### Solution
-Dans `handleImport()` de `CsvTaskImporter.tsx`, avant d'insérer les nouvelles tâches :
-1. Supprimer tous les `process_elements` de type `donnee_entree` et `donnee_sortie` pour ce processus
-2. Supprimer les `process_tasks` (déjà fait)
-3. Recréer les éléments entrées/sorties depuis le CSV (déjà fait)
+### Fichier : `src/components/projects/ProjectActionsList.tsx`
 
-Ajouter un avertissement clair dans le dialogue de preview : "Les entrées, sorties et activités existantes seront toutes supprimées et remplacées."
+**1) `toggleMultiTasks` — Supprimer la création automatique de tâche**
+- Quand on active multi-tâches : juste mettre `multi_tasks: true` + `avancement: 0`, sans insérer de tâche
+- L'utilisateur crée ses tâches manuellement ensuite
 
-### Fichier
-`src/components/CsvTaskImporter.tsx` — ajouter un `DELETE` sur `process_elements` filtré par `type IN ('donnee_entree', 'donnee_sortie')` et `process_id` avant l'insert.
+**2) `recalcActionFromTasks` — Calcul uniquement si ≥ 1 tâche existe**
+- Si 0 tâches → avancement = 0, statut = "planifiee" (déjà le cas, OK)
+- Calcul normal de la moyenne des avancements des tâches existantes
 
----
+**3) Validation visuelle — Avertissement si < 2 tâches**
+- Afficher un message d'avertissement dans la section tâches quand il y a moins de 2 tâches : "Minimum 2 tâches requises"
+- Empêcher la clôture (statut "terminée") d'une action multi-tâches ayant moins de 2 tâches
 
-## 2) BPMN — Ajouter `next_activity_code` dans la génération
+**4) `confirmCloseAction` — Bloquer si < 2 tâches**
+- Avant de permettre la clôture d'une action multi-tâches, vérifier qu'il y a au moins 2 tâches
 
-### Problème
-`generateBpmnFromTasks()` dans `src/lib/generateBpmnFromTasks.ts` ne prend pas en compte le champ `next_activity_code`. Les flèches de saut personnalisées ne sont pas générées dans le diagramme BPMN.
-
-### Solution
-- Ajouter `next_activity_code` à l'interface `TaskInput`
-- Après la génération du flux principal, parcourir les tâches avec `next_activity_code` rempli et ajouter des edges supplémentaires (type `"association"` ou un nouveau type) pointant vers le nœud cible
-- Maintenir un mapping `code → nodeId` pour résoudre les cibles
-- Le `doGenerate()` dans `Bpmn.tsx` passe déjà toutes les colonnes de `process_tasks`, mais il faut ajouter `next_activity_code` au mapping
-
-### Fichiers
-- `src/lib/generateBpmnFromTasks.ts` — ajouter `next_activity_code` à `TaskInput`, générer les edges de saut
-- `src/pages/Bpmn.tsx` — ajouter `next_activity_code` dans le mapping des tâches vers `TaskInput`
-
----
-
-## 3) BPMN — Migrer le système de navigation (Précédente/Suivante)
-
-### Problème
-La page BPMN (`Bpmn.tsx`) n'a aucune navigation entre activités (pas de boutons Précédente/Suivante, pas de focus, pas de popover conditionnel). Seul le logigramme des activités (`ProcessTasksFlowchart`) dispose de ce système.
-
-### Solution
-Ajouter dans `BpmnToolbar.tsx` et `Bpmn.tsx` un système de navigation identique :
-- Boutons ◀ / ▶ dans la toolbar BPMN
-- Liste déroulante de saut direct (comme le popover actuel)
-- Navigation intelligente par type de flux : XOR → popover choix, AND/OR → branches séquentielles
-- Focus sur le nœud BPMN correspondant avec zoom 1.1x et pan centré
-- Réutiliser la même logique `buildNavPath` / `findNextStep` / `findPrevStep`
-- Glow/highlight sur le nœud sélectionné dans `BpmnCanvas`
-
-### Fichiers
+## Résumé
 | Fichier | Changement |
 |---|---|
-| `src/components/bpmn/BpmnToolbar.tsx` | Boutons navigation ◀ ▶, sélecteur activité, popover gateway |
-| `src/pages/Bpmn.tsx` | State navigation, `buildNavPath`, handlers prev/next/jump, zoom/pan focus |
-| `src/components/bpmn/BpmnCanvas.tsx` | Highlight/glow sur le nœud focalisé (filtre SVG), prop `focusedNodeId` |
-
----
-
-## Résumé des fichiers impactés
-
-| Fichier | Changement |
-|---|---|
-| `src/components/CsvTaskImporter.tsx` | Suppression automatique entrées/sorties avant import |
-| `src/lib/generateBpmnFromTasks.ts` | Support `next_activity_code` → edges de saut |
-| `src/pages/Bpmn.tsx` | Passer `next_activity_code`, ajouter navigation intelligente |
-| `src/components/bpmn/BpmnToolbar.tsx` | Boutons navigation + sélecteur d'activité |
-| `src/components/bpmn/BpmnCanvas.tsx` | Glow/focus sur nœud sélectionné |
+| `src/components/projects/ProjectActionsList.tsx` | Supprimer auto-création tâche, ajouter validation min 2, avertissement UI |
 
