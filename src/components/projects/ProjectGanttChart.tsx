@@ -332,6 +332,8 @@ export function ProjectGanttChart({ items, fullscreen, canComment, isAdmin, proj
                 actionId={focusedItem.id}
                 canComment={canComment!}
                 isAdmin={isAdmin ?? false}
+                projectResponsableUserId={undefined}
+                actionResponsableUserId={undefined}
               />
             </div>
           )}
