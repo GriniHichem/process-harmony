@@ -1093,16 +1093,27 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
                   {/* Comments / Notes */}
                   <div className="pt-2 border-t border-border/20">
-                    <button
-                      onClick={() => setNotesOpen(notesOpen === action.id ? null : action.id)}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      Commentaires
-                    </button>
+                    <div className="flex items-center gap-3 mb-2">
+                      <button
+                        onClick={() => setNotesOpen(notesOpen === action.id ? null : action.id)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        Commentaires
+                      </button>
+                      {(isResponsable || isAdmin) && (
+                        <button
+                          onClick={() => { setHistoryActionId(action.id); setHistoryActionTitle(action.title); }}
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <History className="h-3.5 w-3.5" />
+                          Historique
+                        </button>
+                      )}
+                    </div>
                     {notesOpen === action.id && (
                       <div className="mt-2">
-                        <ElementNotes elementType="project_action" elementId={action.id} />
+                        <ProjectActionComments actionId={action.id} canComment={canComment} isAdmin={isAdmin} />
                       </div>
                     )}
                   </div>
