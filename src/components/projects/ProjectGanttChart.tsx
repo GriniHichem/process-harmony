@@ -58,7 +58,7 @@ const STATUS_LABELS: Record<string, { label: string; class: string }> = {
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 function diffDays(a: Date, b: Date) { return Math.ceil((b.getTime() - a.getTime()) / 86400000); }
 
-export function ProjectGanttChart({ items, fullscreen, canComment, isAdmin, projectId }: Props) {
+export function ProjectGanttChart({ items, fullscreen, canComment, isAdmin, projectId, projectResponsableUserId }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [focusedItem, setFocusedItem] = useState<GanttItem | null>(null);
 
