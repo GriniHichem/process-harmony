@@ -145,6 +145,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
   // Confirm close action dialog
   const [confirmCloseActionId, setConfirmCloseActionId] = useState<string | null>(null);
+  const [historyActionId, setHistoryActionId] = useState<string | null>(null);
+  const [historyActionTitle, setHistoryActionTitle] = useState("");
 
   // Filters
   const [filterStatut, setFilterStatut] = useState("all");
