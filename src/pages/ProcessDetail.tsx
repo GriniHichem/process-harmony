@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText, Download, Eye, FileDown, CopyPlus, Layers, ListChecks, Archive, Settings2, Users, Target, ArrowRightLeft, Package, TableProperties, Workflow, ExternalLink } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download, Eye, FileDown, CopyPlus, Layers, ListChecks, Archive, Settings2, Users, Target, ArrowRightLeft, Package, Workflow } from "lucide-react";
 import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 import { exportProcessPdf } from "@/lib/exportProcessPdf";
 import { cn } from "@/lib/utils";
@@ -21,9 +21,7 @@ import { ProcessComments } from "@/components/ProcessComments";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
-import { ProcessTasksFlowchart } from "@/components/ProcessTasksFlowchart";
 import { PartiePrenanteAdder } from "@/components/PartiePrenanteAdder";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { ProcessArchivedObjects } from "@/components/ProcessArchivedObjects";
 import { HelpTooltip } from "@/components/HelpTooltip";
