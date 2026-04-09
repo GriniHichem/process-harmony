@@ -344,7 +344,11 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     if (newStatut === "terminee") {
       if (action.multi_tasks) {
         const tasks = tasksMap[action.id] ?? [];
-        const allDone = tasks.length > 0 && tasks.every(t => t.statut === "termine");
+        if (tasks.length < 2) {
+          toast.error("Minimum 2 tâches requises pour clôturer une action multi-tâches.", { duration: 5000 });
+          return;
+        }
+        const allDone = tasks.every(t => t.statut === "termine");
         if (!allDone) {
           toast.error("Toutes les tâches doivent être terminées avant de clôturer l'action.", { duration: 5000 });
           return;
@@ -442,16 +446,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       }
       await updateAction(action.id, { multi_tasks: false });
     } else {
-      await supabase.from("project_actions").update({ multi_tasks: true }).eq("id", action.id);
-      await supabase.from("project_tasks").insert({
-        action_id: action.id,
-        title: action.title,
-        ordre: 0,
-        statut: "a_faire",
-        avancement: 0,
-        echeance: action.echeance ?? null,
-      });
-      toast.success("Mode multi-tâches activé");
+      await supabase.from("project_actions").update({ multi_tasks: true, avancement: 0 }).eq("id", action.id);
+      toast.success("Mode multi-tâches activé — ajoutez au moins 2 tâches");
       fetchActions();
     }
   };
@@ -1061,6 +1057,14 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                           );
                         })}
                       </div>
+
+                      {/* Warning if less than 2 tasks */}
+                      {tasks.length < 2 && (
+                        <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-md px-3 py-2">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                          <span>Minimum 2 tâches requises pour valider cette action multi-tâches ({tasks.length}/2)</span>
+                        </div>
+                      )}
 
                       {/* Add task — hidden if frozen */}
                       {canEdit && !isFrozen && (
