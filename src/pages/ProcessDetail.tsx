@@ -471,17 +471,8 @@ export default function ProcessDetail() {
               {/* View mode toggle */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <ToggleGroup type="single" value={activityViewMode} onValueChange={(v) => { if (v) setActivityViewMode(v as "list" | "flowchart"); }}
-                    className="bg-muted/50 rounded-lg p-0.5 border border-border/50">
-                    <ToggleGroupItem value="list" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
-                      <TableProperties className="h-3.5 w-3.5" /> Liste
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="flowchart" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
-                      <Workflow className="h-3.5 w-3.5" /> Logigramme
-                    </ToggleGroupItem>
-                  </ToggleGroup>
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => navigate(`/processus/${id}/logigramme`)}>
-                    <ExternalLink className="h-3.5 w-3.5" /> Ouvrir en plein écran
+                    <Workflow className="h-3.5 w-3.5" /> Logigramme plein écran
                   </Button>
                 </div>
                 {(hasRole("admin") || hasRole("super_admin")) && effectiveCanEdit && (
@@ -489,21 +480,12 @@ export default function ProcessDetail() {
                 )}
               </div>
 
-              {activityViewMode === "list" ? (
-                <ProcessTasksTable processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
-                  onAddElement={async (type: ElementType, description: string) => {
-                    const section = ELEMENT_SECTIONS.find(s => s.type === type);
-                    if (section) await handleAddElement(type, section.prefix, description);
-                  }}
-                />
-              ) : (
-                <ProcessTasksFlowchart processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
-                  onAddElement={async (type: ElementType, description: string) => {
-                    const section = ELEMENT_SECTIONS.find(s => s.type === type);
-                    if (section) await handleAddElement(type, section.prefix, description);
-                  }}
-                />
-              )}
+              <ProcessTasksTable processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
+                onAddElement={async (type: ElementType, description: string) => {
+                  const section = ELEMENT_SECTIONS.find(s => s.type === type);
+                  if (section) await handleAddElement(type, section.prefix, description);
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
