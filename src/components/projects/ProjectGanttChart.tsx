@@ -26,6 +26,7 @@ interface Props {
   canComment?: boolean;
   isAdmin?: boolean;
   projectId?: string;
+  projectResponsableUserId?: string | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
