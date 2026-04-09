@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target, History, CalendarClock, Crown, Globe, Lock } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Calendar, Users, Network, FileText, Target, History, CalendarClock, Crown, Globe, Lock, CalendarRange } from "lucide-react";
 import { ProjectCollaborators } from "@/components/projects/ProjectCollaborators";
 import { ProjectForm } from "@/components/projects/ProjectForm";
 import { ProjectActionsList } from "@/components/projects/ProjectActionsList";
@@ -365,7 +365,15 @@ export default function ProjectDetail() {
 
         {canReadDetail && (
           <TabsContent value="planning">
-            <ProjectGanttChart items={ganttItems} />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Visualisez le planning de ce projet en plein écran</p>
+                <Button onClick={() => navigate(`/actions/${projectId}/planning`)} className="gap-1.5">
+                  <CalendarRange className="h-4 w-4" /> Ouvrir le planning
+                </Button>
+              </div>
+              <ProjectGanttChart items={ganttItems} />
+            </div>
           </TabsContent>
         )}
       </Tabs>
