@@ -340,7 +340,7 @@ export default function ProjectDetail() {
                 projectId={projectId!}
                 responsableUserId={project.responsable_user_id}
                 visibility={project.visibility}
-                canEdit={canEdit}
+                canEdit={isAdmin || isResponsable}
                 onUpdate={fetchProject}
               />
             </div>
