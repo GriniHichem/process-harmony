@@ -1,69 +1,48 @@
 
 
-# Plan : Planning Gantt plein écran avec panneau latéral de détails
+# Plan : Commentaires privés dans les Plans d'action
 
-## Probleme actuel
-- Le panneau de détails s'affiche en bas du Gantt, peu pratique
-- Pas de mode plein écran dédié
-- Pas de commentaires depuis le planning
+## Concept
+Ajouter une option "commentaire privé" qui n'est visible que par le **responsable du projet** et le **responsable de l'action** (+ admin). Les autres utilisateurs ne voient que les commentaires publics.
 
-## Architecture
+## Changements
 
-Le Gantt passera en **plein écran dédié** (même principe que le logigramme `/processus/:id/logigramme`). Le panneau de focus sera déplacé dans une **barre latérale droite** avec ResizablePanelGroup. Les commentaires seront intégrés dans cette barre.
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│ Header: ← Retour  |  Titre projet  |  Légende statuts   │
-├──────────────────────────────────┬───────────────────────┤
-│                                  │  Détails élément      │
-│   Gantt Chart (pleine largeur)   │  - Statut/badges      │
-│   - Lignes mois                  │  - Période            │
-│   - Barres + today marker        │  - Avancement         │
-│   - Clic → focus                 │  - Responsable        │
-│                                  │  - Enfants cliquables │
-│                                  │  - Commentaires       │
-│                                  │                       │
-├──────────────────────────────────┴───────────────────────┤
+### 1. Migration DB — Ajouter colonne `is_private`
+```sql
+ALTER TABLE project_action_comments ADD COLUMN is_private boolean NOT NULL DEFAULT false;
 ```
 
-## Changements prévus
+### 2. `ProjectActionComments.tsx` — Filtrage + UI privé
 
-### 1. Nouvelle page `src/pages/ProjectPlanningPage.tsx`
-- Route : `/actions/:projectId/planning`
-- Charge le projet + ganttItems (même logique que ProjectDetail)
-- Header avec bouton retour, titre projet, badge statut
-- Rendu plein écran `h-screen` sans layout (comme ProcessFlowchartPage)
+**Nouvelles props** : `projectResponsableUserId` et `actionResponsableUserId` pour déterminer qui peut voir les commentaires privés.
 
-### 2. Refonte `ProjectGanttChart.tsx`
-- **Supprimer** le `renderFocusPanel()` en bas
-- **Ajouter** ResizablePanelGroup horizontal :
-  - Panel gauche : le Gantt (rows + header months)
-  - Panel droit (conditionnel, quand focusedItem) : panneau de détails
-- **Panneau droit** : détails complets (statut, période, avancement, responsable, poids, enfants cliquables) + section commentaires via `ProjectActionComments`
-- **Props** : ajouter `canComment`, `isAdmin`, `projectId` pour les commentaires
-- **UI premium** : meilleure lisibilité des barres, couleurs de statut plus visibles, typographie améliorée, scrollbar du Gantt en `h-full`
+**Logique de visibilité** : un commentaire privé est visible si :
+- L'utilisateur courant est admin, OU
+- L'utilisateur courant est le responsable du projet (`projectResponsableUserId`), OU
+- L'utilisateur courant est le responsable de l'action (`actionResponsableUserId`), OU
+- L'utilisateur courant est l'auteur du commentaire
 
-### 3. Mise a jour `App.tsx`
-- Ajouter route `/actions/:projectId/planning`
+**UI** :
+- Checkbox/switch "Privé" à côté du bouton Envoyer (icône cadenas)
+- Badge visuel 🔒 sur les commentaires privés
+- Fond légèrement différent (bordure orange/amber) pour distinguer visuellement
 
-### 4. Mise a jour `ProjectDetail.tsx` et `Actions.tsx`
-- Tab "Planning" : remplacer le Gantt inline par un bouton/lien "Ouvrir le planning" qui navigue vers `/actions/:projectId/planning`
-- Dans `Actions.tsx` tab Planning : afficher les ProjectCards avec un lien vers le planning de chaque projet
+**Insertion** : envoyer `is_private` lors de l'insert.
 
-### 5. Ameliorations UI
-- Barres Gantt plus hautes (h-6 au lieu de h-5) avec labels statut lisibles
-- Alternance de fond sur les lignes (zebra striping)
-- Légende des statuts dans le header
-- Today marker avec label "Aujourd'hui"
-- Animation slide-in pour le panneau droit
+**Filtrage côté client** : après fetch, filtrer les commentaires privés pour n'afficher que ceux autorisés.
+
+### 3. `ProjectActionsList.tsx` — Passer les nouvelles props
+Transmettre `projectResponsableUserId` (depuis les props ou le projet) et `actionResponsableUserId` (depuis `action.responsable_user_id`) à chaque instance de `ProjectActionComments`.
+
+### 4. `ProjectGanttChart.tsx` — Passer les nouvelles props
+Même chose pour l'instance dans le panneau latéral du Gantt.
 
 ## Fichiers impactés
 
 | Fichier | Changement |
 |---|---|
-| `src/pages/ProjectPlanningPage.tsx` | **Nouveau** — page plein écran |
-| `src/components/projects/ProjectGanttChart.tsx` | Refonte : ResizablePanelGroup + panneau latéral + commentaires |
-| `src/App.tsx` | Nouvelle route |
-| `src/pages/ProjectDetail.tsx` | Lien vers planning plein écran |
-| `src/pages/Actions.tsx` | Lien vers planning plein écran |
+| Migration SQL | Ajouter `is_private` à `project_action_comments` |
+| `ProjectActionComments.tsx` | Props + filtrage + toggle privé + badge visuel |
+| `ProjectActionsList.tsx` | Passer `projectResponsableUserId` + `actionResponsableUserId` |
+| `ProjectGanttChart.tsx` | Passer les mêmes props |
 
