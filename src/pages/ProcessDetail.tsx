@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Save, FileText, Download, Eye, FileDown, CopyPlus, Layers, ListChecks, Archive, Settings2, Users, Target, ArrowRightLeft, Package, TableProperties, Workflow, ExternalLink } from "lucide-react";
+import { ArrowLeft, Save, FileText, Download, Eye, FileDown, CopyPlus, Layers, ListChecks, Archive, Settings2, Users, Target, ArrowRightLeft, Package, Workflow } from "lucide-react";
 import { PdfViewerDialog } from "@/components/PdfViewerDialog";
 import { exportProcessPdf } from "@/lib/exportProcessPdf";
 import { cn } from "@/lib/utils";
@@ -21,9 +21,7 @@ import { ProcessComments } from "@/components/ProcessComments";
 import { ProcessElementList } from "@/components/ProcessElementList";
 import { ProcessTasksTable } from "@/components/ProcessTasksTable";
 import { ProcessInteractionManager } from "@/components/ProcessInteractionManager";
-import { ProcessTasksFlowchart } from "@/components/ProcessTasksFlowchart";
 import { PartiePrenanteAdder } from "@/components/PartiePrenanteAdder";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ContextIssuesManager } from "@/components/ContextIssuesManager";
 import { ProcessArchivedObjects } from "@/components/ProcessArchivedObjects";
 import { HelpTooltip } from "@/components/HelpTooltip";
@@ -127,7 +125,7 @@ export default function ProcessDetail() {
   const canComment = checkProcessPermission(id!, "can_comment", false);
 
   const [creatingVersion, setCreatingVersion] = useState(false);
-  const [activityViewMode, setActivityViewMode] = useState<"list" | "flowchart">("list");
+  
   const handleCreateNewVersion = async () => {
     if (!process || !id) return;
     setCreatingVersion(true);
@@ -471,17 +469,8 @@ export default function ProcessDetail() {
               {/* View mode toggle */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <ToggleGroup type="single" value={activityViewMode} onValueChange={(v) => { if (v) setActivityViewMode(v as "list" | "flowchart"); }}
-                    className="bg-muted/50 rounded-lg p-0.5 border border-border/50">
-                    <ToggleGroupItem value="list" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
-                      <TableProperties className="h-3.5 w-3.5" /> Liste
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="flowchart" className="gap-1.5 rounded-md px-3 py-1.5 text-xs data-[state=on]:bg-card data-[state=on]:shadow-sm data-[state=on]:text-foreground">
-                      <Workflow className="h-3.5 w-3.5" /> Logigramme
-                    </ToggleGroupItem>
-                  </ToggleGroup>
                   <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => navigate(`/processus/${id}/logigramme`)}>
-                    <ExternalLink className="h-3.5 w-3.5" /> Ouvrir en plein écran
+                    <Workflow className="h-3.5 w-3.5" /> Logigramme plein écran
                   </Button>
                 </div>
                 {(hasRole("admin") || hasRole("super_admin")) && effectiveCanEdit && (
@@ -489,21 +478,12 @@ export default function ProcessDetail() {
                 )}
               </div>
 
-              {activityViewMode === "list" ? (
-                <ProcessTasksTable processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
-                  onAddElement={async (type: ElementType, description: string) => {
-                    const section = ELEMENT_SECTIONS.find(s => s.type === type);
-                    if (section) await handleAddElement(type, section.prefix, description);
-                  }}
-                />
-              ) : (
-                <ProcessTasksFlowchart processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
-                  onAddElement={async (type: ElementType, description: string) => {
-                    const section = ELEMENT_SECTIONS.find(s => s.type === type);
-                    if (section) await handleAddElement(type, section.prefix, description);
-                  }}
-                />
-              )}
+              <ProcessTasksTable processId={id!} canEdit={effectiveCanEdit} canDelete={canDelete} processElements={elements}
+                onAddElement={async (type: ElementType, description: string) => {
+                  const section = ELEMENT_SECTIONS.find(s => s.type === type);
+                  if (section) await handleAddElement(type, section.prefix, description);
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
