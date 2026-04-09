@@ -2423,6 +2423,41 @@ export type Database = {
           },
         ]
       }
+      project_action_comments: {
+        Row: {
+          action_id: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_action_comments_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "project_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_action_dependencies: {
         Row: {
           created_at: string | null
@@ -2466,6 +2501,44 @@ export type Database = {
           {
             foreignKeyName: "project_action_dependencies_target_action_id_fkey"
             columns: ["target_action_id"]
+            isOneToOne: false
+            referencedRelation: "project_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_action_history: {
+        Row: {
+          action_id: string
+          created_at: string
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_action_history_action_id_fkey"
+            columns: ["action_id"]
             isOneToOne: false
             referencedRelation: "project_actions"
             referencedColumns: ["id"]
