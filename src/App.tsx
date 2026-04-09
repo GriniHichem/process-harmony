@@ -50,6 +50,7 @@ const AdminNotificationsConfig = lazy(() => import("./pages/AdminNotificationsCo
 const AdminDocumentsConfig = lazy(() => import("./pages/AdminDocumentsConfig"));
 const Modules = lazy(() => import("./pages/Modules"));
 const ProcessFlowchartPage = lazy(() => import("./pages/ProcessFlowchartPage"));
+const ProjectPlanningPage = lazy(() => import("./pages/ProjectPlanningPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -118,6 +119,7 @@ const App = () => (
               <Route path="/non-conformites" element={<ProtectedPage><RoleGuard requiredModule="non_conformites"><NonConformites /></RoleGuard></ProtectedPage>} />
               <Route path="/actions" element={<ProtectedPage><RoleGuard requiredModule="actions"><Actions /></RoleGuard></ProtectedPage>} />
               <Route path="/actions/:projectId" element={<ProtectedPage><RoleGuard requiredModule="actions"><ProjectDetail /></RoleGuard></ProtectedPage>} />
+              <Route path="/actions/:projectId/planning" element={<ProtectedRoute><Suspense fallback={<PageLoader />}><RoleGuard requiredModule="actions"><ProjectPlanningPage /></RoleGuard></Suspense></ProtectedRoute>} />
               <Route path="/journal" element={<ProtectedPage><RoleGuard requiredModule="journal"><Journal /></RoleGuard></ProtectedPage>} />
               {/* Administration */}
               <Route path="/utilisateurs" element={<ProtectedPage><RoleGuard requiredModule="utilisateurs"><Utilisateurs /></RoleGuard></ProtectedPage>} />

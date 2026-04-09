@@ -365,7 +365,15 @@ export default function ProjectDetail() {
 
         {canReadDetail && (
           <TabsContent value="planning">
-            <ProjectGanttChart items={ganttItems} />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Visualisez le planning de ce projet en plein écran</p>
+                <Button onClick={() => navigate(`/actions/${projectId}/planning`)} className="gap-1.5">
+                  <CalendarRange className="h-4 w-4" /> Ouvrir le planning
+                </Button>
+              </div>
+              <ProjectGanttChart items={ganttItems} />
+            </div>
           </TabsContent>
         )}
       </Tabs>
