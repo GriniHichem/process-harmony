@@ -125,7 +125,7 @@ export default function ProcessDetail() {
   const canComment = checkProcessPermission(id!, "can_comment", false);
 
   const [creatingVersion, setCreatingVersion] = useState(false);
-  const [activityViewMode, setActivityViewMode] = useState<"list" | "flowchart">("list");
+  
   const handleCreateNewVersion = async () => {
     if (!process || !id) return;
     setCreatingVersion(true);
