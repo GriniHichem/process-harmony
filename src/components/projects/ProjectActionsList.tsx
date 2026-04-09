@@ -1266,6 +1266,14 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Action history dialog */}
+      <ProjectActionHistory
+        actionId={historyActionId ?? ""}
+        actionTitle={historyActionTitle}
+        open={!!historyActionId}
+        onOpenChange={(o) => !o && setHistoryActionId(null)}
+      />
     </div>
   );
 }
