@@ -107,10 +107,13 @@ interface Props {
   canEdit: boolean;
   canDelete: boolean;
   canReadDetail?: boolean;
+  canComment?: boolean;
+  isResponsable?: boolean;
+  isAdmin?: boolean;
   onProgressChange: (avancement: number) => void;
 }
 
-export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDelete, canReadDetail = true, onProgressChange }: Props) {
+export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDelete, canReadDetail = true, canComment = false, isResponsable = false, isAdmin = false, onProgressChange }: Props) {
   const { user } = useAuth();
   const [actions, setActions] = useState<ProjectAction[]>([]);
   const [tasksMap, setTasksMap] = useState<Record<string, ProjectTask[]>>({});

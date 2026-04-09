@@ -355,6 +355,9 @@ export default function ProjectDetail() {
               canEdit={canEdit}
               canDelete={canDelete}
               canReadDetail={canReadDetail}
+              canComment={canComment}
+              isResponsable={isResponsable}
+              isAdmin={isAdmin}
               onProgressChange={setAvancement}
             />
           </TabsContent>
