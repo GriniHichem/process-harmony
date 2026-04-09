@@ -139,6 +139,7 @@ export default function ProjectPlanningPage() {
           canComment={canComment}
           isAdmin={isAdmin}
           projectId={projectId!}
+          projectResponsableUserId={(project as any)?.responsable_user_id}
         />
       </div>
     </div>

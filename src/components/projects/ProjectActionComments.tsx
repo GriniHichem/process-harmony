@@ -4,8 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Send, Pencil, Trash2, X, Check } from "lucide-react";
+import { Send, Pencil, Trash2, X, Check, Lock } from "lucide-react";
 import { formatDistanceToNow, parseISO, differenceInMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -14,6 +16,7 @@ interface Comment {
   action_id: string;
   user_id: string;
   content: string;
+  is_private: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -29,16 +32,29 @@ interface Props {
   actionId: string;
   canComment: boolean;
   isAdmin: boolean;
+  projectResponsableUserId?: string | null;
+  actionResponsableUserId?: string | null;
 }
 
-export function ProjectActionComments({ actionId, canComment, isAdmin }: Props) {
+export function ProjectActionComments({ actionId, canComment, isAdmin, projectResponsableUserId, actionResponsableUserId }: Props) {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [newContent, setNewContent] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const canSeePrivate = (comment: Comment) => {
+    if (!comment.is_private) return true;
+    if (!user) return false;
+    if (isAdmin) return true;
+    if (comment.user_id === user.id) return true;
+    if (projectResponsableUserId && user.id === projectResponsableUserId) return true;
+    if (actionResponsableUserId && user.id === actionResponsableUserId) return true;
+    return false;
+  };
 
   const fetchComments = async () => {
     const { data } = await supabase
@@ -49,7 +65,6 @@ export function ProjectActionComments({ actionId, canComment, isAdmin }: Props) 
     const cmts = (data ?? []) as Comment[];
     setComments(cmts);
 
-    // Fetch profiles for unique user_ids
     const userIds = [...new Set(cmts.map(c => c.user_id))];
     if (userIds.length > 0) {
       const { data: profs } = await supabase
@@ -71,10 +86,12 @@ export function ProjectActionComments({ actionId, canComment, isAdmin }: Props) 
       action_id: actionId,
       user_id: user.id,
       content: newContent.trim(),
+      is_private: isPrivate,
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     setNewContent("");
+    setIsPrivate(false);
     fetchComments();
   };
 
@@ -125,14 +142,19 @@ export function ProjectActionComments({ actionId, canComment, isAdmin }: Props) 
 
   const isEdited = (comment: Comment) => comment.updated_at !== comment.created_at;
 
+  const visibleComments = comments.filter(canSeePrivate);
+
   return (
     <div className="space-y-3">
-      {comments.length === 0 && (
+      {visibleComments.length === 0 && (
         <p className="text-xs text-muted-foreground text-center py-2">Aucun commentaire</p>
       )}
 
-      {comments.map(comment => (
-        <div key={comment.id} className="flex gap-2.5">
+      {visibleComments.map(comment => (
+        <div
+          key={comment.id}
+          className={`flex gap-2.5 ${comment.is_private ? "rounded-md border border-amber-400/40 bg-amber-500/5 p-2" : ""}`}
+        >
           <Avatar className="h-7 w-7 shrink-0 mt-0.5">
             <AvatarFallback className="text-[10px] bg-primary/10 text-primary">{getInitials(comment.user_id)}</AvatarFallback>
           </Avatar>
@@ -143,6 +165,11 @@ export function ProjectActionComments({ actionId, canComment, isAdmin }: Props) 
                 {formatDistanceToNow(parseISO(comment.created_at), { addSuffix: true, locale: fr })}
               </span>
               {isEdited(comment) && <span className="text-[10px] text-muted-foreground italic">(modifié)</span>}
+              {comment.is_private && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                  <Lock className="h-2.5 w-2.5" /> Privé
+                </span>
+              )}
             </div>
 
             {editingId === comment.id ? (
@@ -191,17 +218,33 @@ export function ProjectActionComments({ actionId, canComment, isAdmin }: Props) 
       ))}
 
       {canComment && (
-        <div className="flex gap-2 items-end">
-          <Textarea
-            placeholder="Ajouter un commentaire..."
-            value={newContent}
-            onChange={e => setNewContent(e.target.value)}
-            className="text-xs min-h-[50px] flex-1"
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
-          />
-          <Button size="sm" className="h-8 shrink-0" onClick={handleSubmit} disabled={submitting || !newContent.trim()}>
-            <Send className="h-3.5 w-3.5" />
-          </Button>
+        <div className="space-y-2">
+          <div className="flex gap-2 items-end">
+            <Textarea
+              placeholder="Ajouter un commentaire..."
+              value={newContent}
+              onChange={e => setNewContent(e.target.value)}
+              className="text-xs min-h-[50px] flex-1"
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
+            />
+            <Button size="sm" className="h-8 shrink-0" onClick={handleSubmit} disabled={submitting || !newContent.trim()}>
+              <Send className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id={`private-${actionId}`}
+              checked={isPrivate}
+              onCheckedChange={setIsPrivate}
+              className="scale-75 origin-left"
+            />
+            <Label
+              htmlFor={`private-${actionId}`}
+              className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer"
+            >
+              <Lock className="h-3 w-3" /> Commentaire privé
+            </Label>
+          </div>
         </div>
       )}
     </div>
