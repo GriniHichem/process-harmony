@@ -74,7 +74,9 @@ export default function ProjectDetail() {
   const canRead = isAdmin || isResponsable || !isPrivate || !!myCollab || baseCanRead;
   const canReadDetail = isAdmin || isResponsable || (myCollab ? true : (!isPrivate && baseCanReadDetail));
   const canEdit = isAdmin || isResponsable || (myCollab?.access_level === "write") || (!isPrivate && baseCanEdit);
-  const canDelete = isAdmin || isResponsable || (!isPrivate && baseCanDelete);
+  // Seul le responsable du projet et l'admin peuvent supprimer
+  const canDelete = isAdmin || isResponsable;
+  const canComment = canRead && !!user;
 
   const fetchProject = async () => {
     if (!projectId) return;
@@ -353,6 +355,9 @@ export default function ProjectDetail() {
               canEdit={canEdit}
               canDelete={canDelete}
               canReadDetail={canReadDetail}
+              canComment={canComment}
+              isResponsable={isResponsable}
+              isAdmin={isAdmin}
               onProgressChange={setAvancement}
             />
           </TabsContent>

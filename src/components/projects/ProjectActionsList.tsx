@@ -14,7 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw, Pin, PinOff, EyeOff, Eye, Filter, ArrowUpDown, SlidersHorizontal, Ban } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, MessageSquare, AlertTriangle, ShieldAlert, CalendarClock, History, UserPlus, X, ListTodo, Lock, RotateCcw, Pin, PinOff, EyeOff, Eye, Filter, ArrowUpDown, SlidersHorizontal, Ban, FileText } from "lucide-react";
+import { ProjectActionComments } from "@/components/projects/ProjectActionComments";
+import { ProjectActionHistory } from "@/components/projects/ProjectActionHistory";
 import { ProjectActionDependencies, type Dependency } from "@/components/projects/ProjectActionDependencies";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
@@ -107,10 +109,13 @@ interface Props {
   canEdit: boolean;
   canDelete: boolean;
   canReadDetail?: boolean;
+  canComment?: boolean;
+  isResponsable?: boolean;
+  isAdmin?: boolean;
   onProgressChange: (avancement: number) => void;
 }
 
-export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDelete, canReadDetail = true, onProgressChange }: Props) {
+export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDelete, canReadDetail = true, canComment = false, isResponsable = false, isAdmin = false, onProgressChange }: Props) {
   const { user } = useAuth();
   const [actions, setActions] = useState<ProjectAction[]>([]);
   const [tasksMap, setTasksMap] = useState<Record<string, ProjectTask[]>>({});
@@ -140,6 +145,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
   // Confirm close action dialog
   const [confirmCloseActionId, setConfirmCloseActionId] = useState<string | null>(null);
+  const [historyActionId, setHistoryActionId] = useState<string | null>(null);
+  const [historyActionTitle, setHistoryActionTitle] = useState("");
 
   // Filters
   const [filterStatut, setFilterStatut] = useState("all");
@@ -1086,16 +1093,27 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
                   {/* Comments / Notes */}
                   <div className="pt-2 border-t border-border/20">
-                    <button
-                      onClick={() => setNotesOpen(notesOpen === action.id ? null : action.id)}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      Commentaires
-                    </button>
+                    <div className="flex items-center gap-3 mb-2">
+                      <button
+                        onClick={() => setNotesOpen(notesOpen === action.id ? null : action.id)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        Commentaires
+                      </button>
+                      {(isResponsable || isAdmin) && (
+                        <button
+                          onClick={() => { setHistoryActionId(action.id); setHistoryActionTitle(action.title); }}
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <History className="h-3.5 w-3.5" />
+                          Historique
+                        </button>
+                      )}
+                    </div>
                     {notesOpen === action.id && (
                       <div className="mt-2">
-                        <ElementNotes elementType="project_action" elementId={action.id} />
+                        <ProjectActionComments actionId={action.id} canComment={canComment} isAdmin={isAdmin} />
                       </div>
                     )}
                   </div>
@@ -1248,6 +1266,14 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Action history dialog */}
+      <ProjectActionHistory
+        actionId={historyActionId ?? ""}
+        actionTitle={historyActionTitle}
+        open={!!historyActionId}
+        onOpenChange={(o) => !o && setHistoryActionId(null)}
+      />
     </div>
   );
 }
