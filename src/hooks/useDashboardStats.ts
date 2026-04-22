@@ -59,8 +59,8 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
     supabase.from("risk_incidents").select("id").eq("gravite", "critique").neq("statut", "cloture"),
     // Projects
     supabase.from("projects").select("id, title, statut"),
-    supabase.from("project_actions").select("id, project_id, statut, echeance, avancement, title"),
-    supabase.from("project_tasks").select("id, statut, echeance"),
+    supabase.from("project_actions").select("id, project_id, statut, echeance, avancement, title, multi_tasks, poids"),
+    supabase.from("project_tasks").select("id, action_id, statut, echeance, avancement"),
     // Modules
     supabase.from("documents").select("id").eq("archive", false),
     supabase.from("suppliers").select("id"),
@@ -92,9 +92,22 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
     (a) => a.echeance && new Date(a.echeance) < new Date() && a.statut !== "terminee"
   ).length;
 
-  const activeProjActions = allProjActions.filter((a) => a.statut !== "terminee");
-  const avgAvancement = activeProjActions.length > 0
-    ? Math.round(activeProjActions.reduce((s, a) => s + (a.avancement ?? 0), 0) / activeProjActions.length)
+  // Build tasks-by-action map for normalized progress
+  const tasksByAction: Record<string, any[]> = {};
+  allProjTasks.forEach((t: any) => {
+    if (!tasksByAction[t.action_id]) tasksByAction[t.action_id] = [];
+    tasksByAction[t.action_id].push(t);
+  });
+
+  // Average project progress across active projects (using same weighted formula as list/planning)
+  const activeProjects = allProjects.filter((pr) => pr.statut === "en_cours");
+  const projectProgressMap: Record<string, number> = {};
+  activeProjects.forEach((pr) => {
+    const pActs = allProjActions.filter((a: any) => a.project_id === pr.id);
+    projectProgressMap[pr.id] = computeProjectProgress(pActs as any, tasksByAction);
+  });
+  const avgAvancement = activeProjects.length > 0
+    ? Math.round(Object.values(projectProgressMap).reduce((s, v) => s + v, 0) / activeProjects.length)
     : 0;
 
   const projOverdueTasks = allProjTasks.filter(
@@ -102,21 +115,17 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
   ).length;
 
   // Project summaries (active projects)
-  const activeProjectsList = allProjects.filter((pr) => pr.statut === "en_cours");
-  const projectSummaries: ProjectSummary[] = activeProjectsList.map((pr) => {
-    const pActions = allProjActions.filter((a) => a.project_id === pr.id);
-    const avg = pActions.length > 0
-      ? Math.round(pActions.reduce((s, a) => s + (a.avancement ?? 0), 0) / pActions.length)
-      : 0;
+  const projectSummaries: ProjectSummary[] = activeProjects.map((pr) => {
+    const pActions = allProjActions.filter((a: any) => a.project_id === pr.id);
     const overdue = pActions.filter(
-      (a) => a.echeance && new Date(a.echeance) < new Date() && a.statut !== "terminee"
+      (a: any) => a.echeance && new Date(a.echeance) < new Date() && a.statut !== "terminee"
     ).length;
     return {
       id: pr.id,
       title: pr.title,
       statut: pr.statut,
       actionCount: pActions.length,
-      avgAvancement: avg,
+      avgAvancement: projectProgressMap[pr.id] ?? 0,
       overdueActions: overdue,
     };
   });
