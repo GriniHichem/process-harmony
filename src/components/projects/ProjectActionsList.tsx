@@ -18,6 +18,7 @@ import { Plus, ChevronDown, ChevronRight, Trash2, CheckCircle2, Circle, Clock, M
 import { ProjectActionComments } from "@/components/projects/ProjectActionComments";
 import { ProjectActionHistory } from "@/components/projects/ProjectActionHistory";
 import { ProjectActionDependencies, type Dependency } from "@/components/projects/ProjectActionDependencies";
+import { computeMultiTaskActionProgress, computeProjectProgress } from "@/lib/projectProgress";
 import { useActeurs } from "@/hooks/useActeurs";
 import { ElementNotes } from "@/components/ElementNotes";
 import { ProjectActionLinks } from "@/components/projects/ProjectActionLinks";
