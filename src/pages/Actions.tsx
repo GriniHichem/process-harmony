@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { ProjectCard, type ProjectSummary } from "@/components/projects/ProjectCard";
 import { ProjectForm } from "@/components/projects/ProjectForm";
+import { computeProjectProgress } from "@/lib/projectProgress";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
 import { useActeurs } from "@/hooks/useActeurs";
 

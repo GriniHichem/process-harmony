@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CalendarRange } from "lucide-react";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
 import { toast } from "sonner";
+import { computeProjectProgress, getActionEffectiveProgress, normalizeTaskProgress } from "@/lib/projectProgress";
 
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   brouillon: { label: "Brouillon", class: "bg-muted text-muted-foreground" },
