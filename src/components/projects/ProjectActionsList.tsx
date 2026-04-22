@@ -186,15 +186,8 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
         map[t.action_id].push(t as ProjectTask);
       });
       setTasksMap(map);
-      // Weighted progress calculation
-      const totalFixedWeight = acts.reduce((s, a) => s + (a.poids ?? 0), 0);
-      const remainingWeight = Math.max(0, 100 - totalFixedWeight);
-      const autoCount = acts.filter(a => a.poids == null).length;
-      const autoWeight = autoCount > 0 ? remainingWeight / autoCount : 0;
-      const avg = Math.round(acts.reduce((s, a) => {
-        const w = a.poids ?? autoWeight;
-        return s + (a.avancement * w / 100);
-      }, 0));
+      // Weighted progress using centralized helper (uses normalized task progress for multi-task actions)
+      const avg = computeProjectProgress(acts, map);
       onProgressChange(avg);
     } else {
       setTasksMap({});
@@ -484,7 +477,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     toast.success("Avancement enregistré", { duration: 2000 });
   };
 
-  /** Recalculate action avancement from tasks — fetches fresh data from DB */
+  /** Recalculate action avancement from tasks — uses normalized progress (status-aware) */
   const recalcActionFromTasks = async (actionId: string) => {
     const { data: freshTasks } = await supabase
       .from("project_tasks")
@@ -495,9 +488,10 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
       fetchActions();
       return;
     }
-    const avg = Math.round(freshTasks.reduce((s: number, t: any) => s + t.avancement, 0) / freshTasks.length);
+    // Use centralized normalization: a "terminé" task always counts as 100%, "à faire" as 0%
+    const avg = computeMultiTaskActionProgress(freshTasks as any);
     const statut = avg === 100 ? "terminee" : avg > 0 ? "en_cours" : "planifiee";
-    // If all tasks done, don't auto-set terminee — user must confirm
+    // If all tasks done, don't auto-close — user must confirm. But persist the 100% avancement so UI is correct.
     if (statut === "terminee") {
       await supabase.from("project_actions").update({ avancement: avg }).eq("id", actionId);
       fetchActions();
