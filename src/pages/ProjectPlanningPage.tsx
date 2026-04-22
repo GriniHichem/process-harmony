@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CalendarRange } from "lucide-react";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
 import { toast } from "sonner";
+import { computeProjectProgress, getActionEffectiveProgress, normalizeTaskProgress } from "@/lib/projectProgress";
 
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   brouillon: { label: "Brouillon", class: "bg-muted text-muted-foreground" },
@@ -55,13 +56,8 @@ export default function ProjectPlanningPage() {
         });
       }
 
-      // Compute project avancement
-      const totalPoids = actions.reduce((s: number, a: any) => s + (a.poids ?? 0), 0);
-      const projectAvancement = totalPoids > 0
-        ? Math.round(actions.reduce((s: number, a: any) => s + (a.avancement * (a.poids ?? 0)) / totalPoids, 0))
-        : actions.length > 0
-          ? Math.round(actions.reduce((s: number, a: any) => s + a.avancement, 0) / actions.length)
-          : 0;
+      // Compute project avancement using centralized helper (consistent with list & dashboard)
+      const projectAvancement = computeProjectProgress(actions as any, tasksMap);
 
       const gantt = [{
         id: data.id,
@@ -77,7 +73,7 @@ export default function ProjectPlanningPage() {
           date_debut: a.date_debut,
           echeance: a.echeance,
           statut: a.statut,
-          avancement: a.avancement,
+          avancement: getActionEffectiveProgress(a, tasksMap[a.id]),
           responsable: [getActeurLabel(a.responsable_id), getActeurLabel(a.responsable_id_2), getActeurLabel(a.responsable_id_3)].filter(Boolean).join(", "),
           poids: a.poids ?? null,
           level: "action" as const,
@@ -87,7 +83,7 @@ export default function ProjectPlanningPage() {
             date_debut: t.date_debut,
             echeance: t.echeance,
             statut: t.statut,
-            avancement: t.avancement,
+            avancement: normalizeTaskProgress(t),
             responsable: getActeurLabel(t.responsable_id),
             level: "task" as const,
           })) : [],

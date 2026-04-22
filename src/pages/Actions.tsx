@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { HelpTooltip } from "@/components/HelpTooltip";
 import { ProjectCard, type ProjectSummary } from "@/components/projects/ProjectCard";
 import { ProjectForm } from "@/components/projects/ProjectForm";
+import { computeProjectProgress } from "@/lib/projectProgress";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
 import { useActeurs } from "@/hooks/useActeurs";
 
@@ -90,18 +91,39 @@ export default function Actions() {
       return false; // RLS should also filter, but double-check client-side
     });
 
-    // Fetch action counts and avancements
+    // Fetch action counts and weighted avancements (consistent with ProjectActionsList & Planning)
     const filteredIds = filtered.map((p: any) => p.id);
     let actionCounts: Record<string, { count: number; avg: number }> = {};
     if (filteredIds.length > 0) {
-      const { data: actions } = await supabase.from("project_actions").select("project_id, avancement").in("project_id", filteredIds);
-      (actions ?? []).forEach((a: any) => {
-        if (!actionCounts[a.project_id]) actionCounts[a.project_id] = { count: 0, avg: 0 };
-        actionCounts[a.project_id].count++;
-        actionCounts[a.project_id].avg += a.avancement;
+      const { data: actions } = await supabase
+        .from("project_actions")
+        .select("id, project_id, statut, avancement, multi_tasks, poids")
+        .in("project_id", filteredIds);
+      const allActions = actions ?? [];
+      // Fetch tasks for multi-task actions to normalize their progress
+      const multiActionIds = allActions.filter((a: any) => a.multi_tasks).map((a: any) => a.id);
+      let tasksByAction: Record<string, any[]> = {};
+      if (multiActionIds.length > 0) {
+        const { data: tasks } = await supabase
+          .from("project_tasks")
+          .select("action_id, statut, avancement")
+          .in("action_id", multiActionIds);
+        (tasks ?? []).forEach((t: any) => {
+          if (!tasksByAction[t.action_id]) tasksByAction[t.action_id] = [];
+          tasksByAction[t.action_id].push(t);
+        });
+      }
+      // Group actions by project, count and compute weighted progress
+      const byProject: Record<string, any[]> = {};
+      allActions.forEach((a: any) => {
+        if (!byProject[a.project_id]) byProject[a.project_id] = [];
+        byProject[a.project_id].push(a);
       });
-      Object.keys(actionCounts).forEach((k) => {
-        actionCounts[k].avg = Math.round(actionCounts[k].avg / actionCounts[k].count);
+      Object.entries(byProject).forEach(([pid, acts]) => {
+        actionCounts[pid] = {
+          count: acts.length,
+          avg: computeProjectProgress(acts as any, tasksByAction),
+        };
       });
     }
 
