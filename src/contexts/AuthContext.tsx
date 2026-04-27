@@ -169,9 +169,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Only react to real auth changes, not token refreshes on tab focus
+        // Token refresh (souvent déclenché au retour sur l'onglet) :
+        // mettre à jour la session sans re-fetch des données (évite les re-renders qui effacent les saisies)
         if (event === "TOKEN_REFRESHED") {
           setSession(session);
+          return;
+        }
+        // SIGNED_IN peut être redéclenché par Supabase au retour de focus de l'onglet
+        // alors que l'utilisateur n'a pas réellement changé. Dans ce cas on ignore
+        // pour éviter de relancer fetchUserData et provoquer la réinitialisation des formulaires.
+        if (event === "SIGNED_IN" && session?.user?.id && lastFetchedUserId.current === session.user.id) {
+          setSession(session);
+          return;
+        }
+        // INITIAL_SESSION est aussi géré par getSession() ci-dessous
+        if (event === "INITIAL_SESSION") {
           return;
         }
         setSession(session);
