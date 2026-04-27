@@ -58,6 +58,9 @@ export default function Actions() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [ganttItems, setGanttItems] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "deadline" | "progress" | "alpha">("recent");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Legacy actions state
   const [legacyActions, setLegacyActions] = useState<LegacyAction[]>([]);
