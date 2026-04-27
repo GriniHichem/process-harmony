@@ -191,22 +191,34 @@ export default function ProjectDetail() {
         <ArrowLeft className="h-4 w-4 mr-1" /> Retour aux projets
       </Button>
 
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card" style={{ boxShadow: "var(--shadow-md)" }}>
-        {project.image_url && (
-          <div className="h-40 w-full overflow-hidden">
-            <img src={project.image_url} alt="" className="h-full w-full object-cover" />
-          </div>
+      {/* Hero header */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/30" style={{ boxShadow: "var(--shadow-md)" }}>
+        {project.image_url ? (
+          <>
+            <div className="absolute inset-0">
+              <img src={project.image_url} alt="" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/85 to-card/40" />
+            </div>
+            <div className="relative h-32 sm:h-40" />
+          </>
+        ) : (
+          <div className="h-2 w-full bg-gradient-to-r from-primary via-primary-glow to-accent" />
         )}
-        <div className="p-6 space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{project.title}</h1>
-              {project.slogan && <p className="text-muted-foreground italic mt-0.5">{project.slogan}</p>}
+
+        <div className="relative bg-card/95 backdrop-blur-sm p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{project.title}</h1>
+              {project.slogan && <p className="text-muted-foreground italic mt-1">{project.slogan}</p>}
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <Badge className={`${st.class}`}>{st.label}</Badge>
+                {project.visibility === "private" && <Badge variant="outline" className="text-[10px] gap-1"><Lock className="h-3 w-3" /> Privé</Badge>}
+                {project.responsable_user_id && (
+                  <Badge variant="outline" className="text-[10px] gap-1"><Crown className="h-3 w-3 text-amber-500" /> Responsable défini</Badge>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {project.visibility === "private" && <Badge variant="outline" className="text-[10px] gap-1"><Lock className="h-3 w-3" /> Privé</Badge>}
-              <Badge className={`${st.class}`}>{st.label}</Badge>
               {canEdit && (
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-3.5 w-3.5 mr-1" /> Modifier
@@ -234,30 +246,54 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            {project.date_debut && <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {project.date_debut}</span>}
-            {project.date_fin && (
-              <span className="flex items-center gap-1">
-                → {project.date_fin}
-                {(() => {
+          {/* Stats strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="rounded-lg border border-border/40 bg-background/60 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Avancement</div>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xl font-bold tabular-nums">{avancement}%</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full transition-all duration-500 ${avancement >= 80 ? "bg-emerald-500" : avancement >= 40 ? "bg-amber-500" : "bg-primary"}`}
+                  style={{ width: `${Math.min(100, Math.max(0, avancement))}%` }}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-border/40 bg-background/60 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Date de début</div>
+              <div className="mt-1 text-sm font-semibold flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                {project.date_debut ?? "—"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border/40 bg-background/60 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Échéance</div>
+              <div className="mt-1 text-sm font-semibold flex items-center gap-1.5">
+                <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+                {project.date_fin ?? "—"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border/40 bg-background/60 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Temps restant</div>
+              <div className="mt-1 text-sm font-semibold">
+                {project.date_fin ? (() => {
                   const today = new Date(); today.setHours(0, 0, 0, 0);
                   const dl = parseISO(project.date_fin);
                   const daysLeft = differenceInDays(dl, today);
-                  if (daysLeft < 0) return <Badge className="bg-destructive/15 text-destructive text-[10px] ml-1">En retard de {Math.abs(daysLeft)}j</Badge>;
-                  if (daysLeft <= 7) return <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
-                  return <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[10px] ml-1">{daysLeft}j restants</Badge>;
-                })()}
-              </span>
-            )}
-            <Button variant="ghost" size="sm" className="h-6 text-xs gap-1 text-muted-foreground ml-auto" onClick={fetchDeadlineLogs}>
-              <History className="h-3.5 w-3.5" />
-              Historique échéances
-            </Button>
+                  if (daysLeft < 0) return <span className="text-destructive">En retard de {Math.abs(daysLeft)}j</span>;
+                  if (daysLeft <= 7) return <span className="text-amber-600 dark:text-amber-400">{daysLeft}j restants</span>;
+                  return <span className="text-emerald-600 dark:text-emerald-400">{daysLeft}j restants</span>;
+                })() : <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 max-w-md">
-            <Progress value={avancement} className="h-2.5 flex-1" />
-            <span className="text-sm font-semibold text-foreground">{avancement}%</span>
+          <div className="flex items-center justify-end pt-1">
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground" onClick={fetchDeadlineLogs}>
+              <History className="h-3.5 w-3.5" />
+              Historique des échéances
+            </Button>
           </div>
         </div>
       </div>
