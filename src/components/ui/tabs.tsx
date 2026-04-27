@@ -3,7 +3,46 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+type TabsProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & {
+  /**
+   * Si fourni, l'onglet actif est persisté dans sessionStorage sous cette clé
+   * et restauré après un rafraîchissement de page (F5, reload).
+   */
+  persistKey?: string;
+};
+
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  TabsProps
+>(({ persistKey, defaultValue, value, onValueChange, ...props }, ref) => {
+  const isControlled = value !== undefined;
+
+  const initial = React.useMemo(() => {
+    if (!persistKey || isControlled || typeof window === "undefined") return defaultValue;
+    try {
+      return window.sessionStorage.getItem(`tabs:${persistKey}`) ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }, [persistKey, isControlled, defaultValue]);
+
+  const [internalValue, setInternalValue] = React.useState<string | undefined>(initial as string | undefined);
+
+  const handleChange = React.useCallback((v: string) => {
+    if (!isControlled) setInternalValue(v);
+    if (persistKey && typeof window !== "undefined") {
+      try { window.sessionStorage.setItem(`tabs:${persistKey}`, v); } catch { /* noop */ }
+    }
+    onValueChange?.(v);
+  }, [isControlled, persistKey, onValueChange]);
+
+  if (isControlled || !persistKey) {
+    return <TabsPrimitive.Root ref={ref} defaultValue={defaultValue} value={value} onValueChange={onValueChange} {...props} />;
+  }
+
+  return <TabsPrimitive.Root ref={ref} value={internalValue} onValueChange={handleChange} {...props} />;
+});
+Tabs.displayName = "Tabs";
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
