@@ -221,20 +221,79 @@ export default function Actions() {
 
   const isOverdue = (a: LegacyAction) => a.echeance && new Date(a.echeance) < new Date() && !["cloturee", "verifiee"].includes(a.statut);
 
-  const filteredProjects = statusFilter === "all" ? projects : projects.filter((p) => p.statut === statusFilter);
+  // KPI computations
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const kpiTotal = projects.length;
+  const kpiInProgress = projects.filter((p) => p.statut === "en_cours").length;
+  const kpiDone = projects.filter((p) => p.statut === "termine").length;
+  const kpiOverdue = projects.filter((p) => p.date_fin && parseISO(p.date_fin) < today && p.statut !== "termine" && p.statut !== "archive").length;
+  const kpiAvgProgress = projects.length > 0 ? Math.round(projects.reduce((s, p) => s + (p.avancement || 0), 0) / projects.length) : 0;
+
+  // Filter + search + sort
+  const filteredProjects = projects
+    .filter((p) => statusFilter === "all" || p.statut === statusFilter)
+    .filter((p) => !searchQuery.trim() || p.title.toLowerCase().includes(searchQuery.toLowerCase()) || (p.slogan ?? "").toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "alpha") return a.title.localeCompare(b.title);
+      if (sortBy === "progress") return b.avancement - a.avancement;
+      if (sortBy === "deadline") {
+        if (!a.date_fin && !b.date_fin) return 0;
+        if (!a.date_fin) return 1;
+        if (!b.date_fin) return -1;
+        return parseISO(a.date_fin).getTime() - parseISO(b.date_fin).getTime();
+      }
+      return 0; // recent — already sorted by created_at desc from query
+    });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 page-enter">
-      <div className="flex items-center justify-between">
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FolderKanban className="h-6 w-6 text-primary" />
             Plans d'action
             <HelpTooltip term="action_amelioration" />
           </h1>
-          <p className="text-muted-foreground text-sm">Gestion de projets, actions et tâches</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Gestion de projets, actions et tâches</p>
         </div>
       </div>
+
+      {/* KPI strip */}
+      {!loadingProjects && projects.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-border/50 bg-card p-3 flex items-center gap-3" style={{ boxShadow: "var(--shadow-xs)" }}>
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center"><FolderKanban className="h-4 w-4 text-primary" /></div>
+            <div>
+              <div className="text-xl font-bold leading-none">{kpiTotal}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">Total projets</div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-border/50 bg-card p-3 flex items-center gap-3" style={{ boxShadow: "var(--shadow-xs)" }}>
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center"><Clock className="h-4 w-4 text-primary" /></div>
+            <div>
+              <div className="text-xl font-bold leading-none">{kpiInProgress}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">En cours</div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-border/50 bg-card p-3 flex items-center gap-3" style={{ boxShadow: "var(--shadow-xs)" }}>
+            <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center"><TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></div>
+            <div>
+              <div className="text-xl font-bold leading-none">{kpiAvgProgress}%</div>
+              <div className="text-[11px] text-muted-foreground mt-1">Avancement moyen</div>
+            </div>
+          </div>
+          <div className={`rounded-xl border p-3 flex items-center gap-3 ${kpiOverdue > 0 ? "border-destructive/30 bg-destructive/5" : "border-border/50 bg-card"}`} style={{ boxShadow: "var(--shadow-xs)" }}>
+            <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${kpiOverdue > 0 ? "bg-destructive/15" : "bg-muted"}`}>
+              <AlertTriangle className={`h-4 w-4 ${kpiOverdue > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+            </div>
+            <div>
+              <div className={`text-xl font-bold leading-none ${kpiOverdue > 0 ? "text-destructive" : ""}`}>{kpiOverdue}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">En retard</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Tabs defaultValue="projects" className="space-y-4">
         <TabsList>
@@ -247,20 +306,48 @@ export default function Actions() {
 
         {/* Projects tab */}
         <TabsContent value="projects" className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un projet..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-9 text-sm"
+              />
+            </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
+              <SelectTrigger className="w-36 h-9 text-sm"><SelectValue placeholder="Statut" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="all">Tous statuts</SelectItem>
                 <SelectItem value="brouillon">Brouillon</SelectItem>
                 <SelectItem value="en_cours">En cours</SelectItem>
                 <SelectItem value="termine">Terminé</SelectItem>
                 <SelectItem value="archive">Archivé</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+              <SelectTrigger className="w-40 h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Plus récents</SelectItem>
+                <SelectItem value="deadline">Échéance</SelectItem>
+                <SelectItem value="progress">Avancement</SelectItem>
+                <SelectItem value="alpha">Alphabétique</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center rounded-md border border-border bg-card p-0.5">
+              <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setViewMode("grid")} title="Grille">
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="sm" className="h-7 px-2" onClick={() => setViewMode("list")} title="Liste">
+                <ListIcon className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <span className="text-xs text-muted-foreground ml-auto">{filteredProjects.length} résultat{filteredProjects.length > 1 ? "s" : ""}</span>
             {canEdit && (
-              <Button onClick={() => setProjectFormOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" /> Nouveau projet
+              <Button onClick={() => setProjectFormOpen(true)} className="gap-1.5" style={{ boxShadow: "var(--shadow-sm)" }}>
+                <Plus className="h-4 w-4" /> Nouveau projet
               </Button>
             )}
           </div>
@@ -268,9 +355,30 @@ export default function Actions() {
           {loadingProjects ? (
             <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
           ) : filteredProjects.length === 0 ? (
-            <Card><CardContent className="py-12 text-center text-muted-foreground">Aucun projet</CardContent></Card>
-          ) : (
+            <Card>
+              <CardContent className="py-16 flex flex-col items-center text-center gap-3">
+                <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
+                  <FolderKanban className="h-7 w-7 text-muted-foreground/60" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Aucun projet trouvé</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {searchQuery || statusFilter !== "all" ? "Modifiez vos filtres ou créez un nouveau projet" : "Commencez par créer votre premier plan d'action"}
+                  </p>
+                </div>
+                {canEdit && (
+                  <Button onClick={() => setProjectFormOpen(true)} variant="outline" size="sm" className="mt-1">
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Nouveau projet
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : viewMode === "grid" ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProjects.map((p) => <ProjectCard key={p.id} project={p} />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredProjects.map((p) => <ProjectCard key={p.id} project={p} />)}
             </div>
           )}
