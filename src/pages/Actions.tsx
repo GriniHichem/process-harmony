@@ -141,6 +141,7 @@ export default function Actions() {
       date_fin: p.date_fin,
       action_count: actionCounts[p.id]?.count ?? 0,
       avancement: actionCounts[p.id]?.avg ?? 0,
+      visibility: p.visibility ?? "public",
     }));
 
     setProjects(summaries);
