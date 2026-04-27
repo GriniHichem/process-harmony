@@ -97,6 +97,7 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject, canManag
   };
 
   const uploadImage = async (projectId: string): Promise<string | null> => {
+    if (!canManageImage) return imageUrl; // sécurité côté client
     if (!imageFile) return imageUrl;
     const ext = imageFile.name.split(".").pop();
     const path = `project-images/${projectId}/${Date.now()}.${ext}`;
