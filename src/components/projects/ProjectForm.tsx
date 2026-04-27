@@ -30,9 +30,11 @@ interface ProjectFormProps {
     responsable_user_id?: string | null;
     visibility?: string;
   } | null;
+  /** Si false, l'utilisateur ne peut ni uploader ni retirer l'image (réservé au responsable du projet et admin). */
+  canManageImage?: boolean;
 }
 
-export function ProjectForm({ open, onOpenChange, onSaved, editProject }: ProjectFormProps) {
+export function ProjectForm({ open, onOpenChange, onSaved, editProject, canManageImage = true }: ProjectFormProps) {
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
