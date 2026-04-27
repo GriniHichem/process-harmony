@@ -30,9 +30,11 @@ interface ProjectFormProps {
     responsable_user_id?: string | null;
     visibility?: string;
   } | null;
+  /** Si false, l'utilisateur ne peut ni uploader ni retirer l'image (réservé au responsable du projet et admin). */
+  canManageImage?: boolean;
 }
 
-export function ProjectForm({ open, onOpenChange, onSaved, editProject }: ProjectFormProps) {
+export function ProjectForm({ open, onOpenChange, onSaved, editProject, canManageImage = true }: ProjectFormProps) {
   const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
@@ -95,6 +97,7 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
   };
 
   const uploadImage = async (projectId: string): Promise<string | null> => {
+    if (!canManageImage) return imageUrl; // sécurité côté client
     if (!imageFile) return imageUrl;
     const ext = imageFile.name.split(".").pop();
     const path = `project-images/${projectId}/${Date.now()}.${ext}`;
@@ -186,16 +189,18 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
             {imagePreview ? (
               <div className="relative rounded-lg overflow-hidden h-32 border border-border/40">
                 <img src={imagePreview} alt="" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
-                  <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}>
-                    <Upload className="h-3.5 w-3.5 mr-1" />Changer
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => { setImageFile(null); setImagePreview(null); setImageUrl(null); }}>
-                    <Trash2 className="h-3.5 w-3.5 mr-1" />Retirer
-                  </Button>
-                </div>
+                {canManageImage && (
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-2 opacity-0 hover:opacity-100 transition-opacity">
+                    <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}>
+                      <Upload className="h-3.5 w-3.5 mr-1" />Changer
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => { setImageFile(null); setImagePreview(null); setImageUrl(null); }}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />Retirer
+                    </Button>
+                  </div>
+                )}
               </div>
-            ) : (
+            ) : canManageImage ? (
               <button
                 onClick={() => fileRef.current?.click()}
                 className="w-full h-24 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/40 hover:bg-muted/20 transition-colors"
@@ -203,6 +208,11 @@ export function ProjectForm({ open, onOpenChange, onSaved, editProject }: Projec
                 <ImageIcon className="h-5 w-5" />
                 <span className="text-xs">Cliquez pour ajouter une image</span>
               </button>
+            ) : (
+              <div className="w-full h-24 rounded-lg border border-dashed border-border/40 flex flex-col items-center justify-center gap-1 text-muted-foreground/60">
+                <Lock className="h-4 w-4" />
+                <span className="text-[11px]">Réservé au responsable du projet</span>
+              </div>
             )}
           </div>
 

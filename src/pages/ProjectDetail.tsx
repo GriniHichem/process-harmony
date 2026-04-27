@@ -383,6 +383,7 @@ export default function ProjectDetail() {
         onOpenChange={setEditOpen}
         onSaved={fetchProject}
         editProject={project}
+        canManageImage={isAdmin || isResponsable}
       />
 
       {/* Deadline logs history dialog */}
