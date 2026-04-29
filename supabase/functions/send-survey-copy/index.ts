@@ -126,21 +126,41 @@ Deno.serve(async (req) => {
       },
     });
 
-    await client.send({
-      from: `${appName} <${fromEmail}>`,
-      to: respondent_email,
-      subject: `Copie de vos reponses - ${survey_name}`,
-      content: plainText,
-      html,
-      headers: {
-        "Message-ID": `<survey-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
-        "Reply-To": fromEmail,
-        "X-Mailer": appName,
-      },
-    });
+    const subject = `Copie de vos reponses - ${survey_name}`;
+    const logEmail = async (status: "sent" | "failed", errorMessage?: string) => {
+      try {
+        await adminClient.from("email_send_log").insert({
+          recipient_email: respondent_email,
+          email_type: "survey_copy",
+          subject,
+          status,
+          error_message: errorMessage ?? null,
+          metadata: { survey_name, respondent_name },
+        });
+      } catch (e) { console.error("log insert failed", e); }
+    };
 
-    await client.close();
+    try {
+      await client.send({
+        from: `${appName} <${fromEmail}>`,
+        to: respondent_email,
+        subject,
+        content: plainText,
+        html,
+        headers: {
+          "Message-ID": `<survey-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
+          "Reply-To": fromEmail,
+          "X-Mailer": appName,
+        },
+      });
+      await client.close();
+    } catch (smtpErr: any) {
+      try { await client.close(); } catch (_) {}
+      await logEmail("failed", smtpErr?.message || String(smtpErr));
+      throw smtpErr;
+    }
     console.log("Survey copy email sent to", respondent_email);
+    await logEmail("sent");
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
