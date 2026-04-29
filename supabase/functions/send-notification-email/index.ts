@@ -315,8 +315,26 @@ Deno.serve(async (req) => {
     const appName = cfg.app_name || "Q-Process";
     const appUrl = cfg.app_url || "";
 
+    const logEmail = async (status: "sent" | "failed" | "skipped", errorMessage?: string) => {
+      try {
+        await supabase.from("email_send_log").insert({
+          recipient_email: profile.email,
+          email_type: "notification",
+          subject: title,
+          status,
+          error_message: errorMessage ?? null,
+          entity_type: payload.entity_type ?? null,
+          entity_id: payload.entity_id ?? null,
+          entity_url: payload.entity_url ?? null,
+          user_id,
+          notif_type: payload.notif_type ?? null,
+        });
+      } catch (e) { console.error("log insert failed", e); }
+    };
+
     if (!smtpHost || !smtpUser || !smtpPassword) {
       console.error("SMTP config incomplete");
+      await logEmail("failed", "SMTP not configured");
       return new Response(JSON.stringify({ error: "SMTP not configured" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -334,21 +352,27 @@ Deno.serve(async (req) => {
       },
     });
 
-    await client.send({
-      from: `${appName} <${fromEmail}>`,
-      to: profile.email,
-      subject: title,
-      content: buildText(payload, appName, appUrl, entityDetails),
-      html: buildHtml(payload, appName, appUrl, entityDetails),
-      headers: {
-        "Message-ID": `<notif-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
-        "Reply-To": fromEmail,
-        "X-Mailer": appName,
-      },
-    });
-
-    await client.close();
+    try {
+      await client.send({
+        from: `${appName} <${fromEmail}>`,
+        to: profile.email,
+        subject: title,
+        content: buildText(payload, appName, appUrl, entityDetails),
+        html: buildHtml(payload, appName, appUrl, entityDetails),
+        headers: {
+          "Message-ID": `<notif-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
+          "Reply-To": fromEmail,
+          "X-Mailer": appName,
+        },
+      });
+      await client.close();
+    } catch (smtpErr: any) {
+      try { await client.close(); } catch (_) {}
+      await logEmail("failed", smtpErr?.message || String(smtpErr));
+      throw smtpErr;
+    }
     console.log("Notification email sent successfully to", profile.email);
+    await logEmail("sent");
 
     // Best-effort mark email_sent
     if (payload.notif_type) {

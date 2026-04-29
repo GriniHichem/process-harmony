@@ -48,6 +48,7 @@ const DashboardIndicateurs = lazy(() => import("./pages/DashboardIndicateurs"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const AdminNotificationsConfig = lazy(() => import("./pages/AdminNotificationsConfig"));
 const AdminDocumentsConfig = lazy(() => import("./pages/AdminDocumentsConfig"));
+const AdminEmailLogs = lazy(() => import("./pages/AdminEmailLogs"));
 const Modules = lazy(() => import("./pages/Modules"));
 const ProcessFlowchartPage = lazy(() => import("./pages/ProcessFlowchartPage"));
 const ProjectPlanningPage = lazy(() => import("./pages/ProjectPlanningPage"));
@@ -128,6 +129,7 @@ const App = () => (
               <Route path="/admin/permissions-processus" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "super_admin", "rmq"]}><AdminProcessPermissions /></RoleGuard></ProtectedPage>} />
               <Route path="/admin/notifications" element={<ProtectedPage><RoleGuard requiredModule="notifications"><AdminNotificationsConfig /></RoleGuard></ProtectedPage>} />
               <Route path="/admin/documents-config" element={<ProtectedPage><RoleGuard requiredModule="gestion_documentaire"><AdminDocumentsConfig /></RoleGuard></ProtectedPage>} />
+              <Route path="/admin/email-logs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "super_admin"]}><AdminEmailLogs /></RoleGuard></ProtectedPage>} />
               {/* Notifications */}
               <Route path="/notifications" element={<ProtectedPage><Notifications /></ProtectedPage>} />
               {/* Super Admin */}

@@ -112,32 +112,52 @@ Deno.serve(async (req) => {
 
     const now = new Date();
 
-    await client.send({
-      from: `${appName} <${fromEmail}>`,
-      to,
-      subject: `Test Email - ${appName}`,
-      content: `Ce message confirme que la configuration SMTP de ${appName} fonctionne correctement.\n\nServeur: ${cfg.smtp_host}:${port}\nExpediteur: ${fromEmail}\nDate: ${now.toISOString()}`,
-      html: `
-        <div style="font-family: Arial, Helvetica, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #2563eb;">Test Email Reussi</h2>
-          <p>Ce message confirme que la configuration SMTP de <strong>${appName}</strong> fonctionne correctement.</p>
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
-          <p style="font-size: 12px; color: #6b7280;">
-            Serveur: ${cfg.smtp_host}:${port}<br/>
-            Expediteur: ${fromEmail}<br/>
-            Date: ${now.toISOString()}
-          </p>
-        </div>
-      `,
-      headers: {
-        "Message-ID": `<test-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
-        "Reply-To": fromEmail,
-        "X-Mailer": appName,
-      },
-    });
+    const subject = `Test Email - ${appName}`;
+    const logEmail = async (status: "sent" | "failed", errorMessage?: string) => {
+      try {
+        await adminClient.from("email_send_log").insert({
+          recipient_email: to,
+          email_type: "test",
+          subject,
+          status,
+          error_message: errorMessage ?? null,
+          user_id: user.id,
+        });
+      } catch (e) { console.error("log insert failed", e); }
+    };
 
-    await client.close();
+    try {
+      await client.send({
+        from: `${appName} <${fromEmail}>`,
+        to,
+        subject,
+        content: `Ce message confirme que la configuration SMTP de ${appName} fonctionne correctement.\n\nServeur: ${cfg.smtp_host}:${port}\nExpediteur: ${fromEmail}\nDate: ${now.toISOString()}`,
+        html: `
+          <div style="font-family: Arial, Helvetica, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2563eb;">Test Email Reussi</h2>
+            <p>Ce message confirme que la configuration SMTP de <strong>${appName}</strong> fonctionne correctement.</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
+            <p style="font-size: 12px; color: #6b7280;">
+              Serveur: ${cfg.smtp_host}:${port}<br/>
+              Expediteur: ${fromEmail}<br/>
+              Date: ${now.toISOString()}
+            </p>
+          </div>
+        `,
+        headers: {
+          "Message-ID": `<test-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
+          "Reply-To": fromEmail,
+          "X-Mailer": appName,
+        },
+      });
+      await client.close();
+    } catch (smtpErr: any) {
+      try { await client.close(); } catch (_) {}
+      await logEmail("failed", smtpErr?.message || String(smtpErr));
+      throw smtpErr;
+    }
     console.log("Test email sent successfully to", to);
+    await logEmail("sent");
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

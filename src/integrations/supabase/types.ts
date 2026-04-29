@@ -1215,6 +1215,54 @@ export type Database = {
           },
         ]
       }
+      email_send_log: {
+        Row: {
+          created_at: string
+          email_type: string
+          entity_id: string | null
+          entity_type: string | null
+          entity_url: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          notif_type: string | null
+          recipient_email: string
+          status: string
+          subject: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          entity_id?: string | null
+          entity_type?: string | null
+          entity_url?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notif_type?: string | null
+          recipient_email: string
+          status: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          entity_url?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notif_type?: string | null
+          recipient_email?: string
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       formation_participants: {
         Row: {
           acteur_id: string
