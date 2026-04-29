@@ -352,20 +352,25 @@ Deno.serve(async (req) => {
       },
     });
 
-    await client.send({
-      from: `${appName} <${fromEmail}>`,
-      to: profile.email,
-      subject: title,
-      content: buildText(payload, appName, appUrl, entityDetails),
-      html: buildHtml(payload, appName, appUrl, entityDetails),
-      headers: {
-        "Message-ID": `<notif-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
-        "Reply-To": fromEmail,
-        "X-Mailer": appName,
-      },
-    });
-
-    await client.close();
+    try {
+      await client.send({
+        from: `${appName} <${fromEmail}>`,
+        to: profile.email,
+        subject: title,
+        content: buildText(payload, appName, appUrl, entityDetails),
+        html: buildHtml(payload, appName, appUrl, entityDetails),
+        headers: {
+          "Message-ID": `<notif-${Date.now()}-${Math.random().toString(36).slice(2)}@${domain}>`,
+          "Reply-To": fromEmail,
+          "X-Mailer": appName,
+        },
+      });
+      await client.close();
+    } catch (smtpErr: any) {
+      try { await client.close(); } catch (_) {}
+      await logEmail("failed", smtpErr?.message || String(smtpErr));
+      throw smtpErr;
+    }
     console.log("Notification email sent successfully to", profile.email);
     await logEmail("sent");
 
