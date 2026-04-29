@@ -239,26 +239,29 @@ export default function AdminEmailLogs() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <Mail className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Journal des emails</h1>
-            <p className="text-sm text-muted-foreground">
+    <div className="space-y-4 md:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <Mail className="h-6 w-6 text-primary shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">Journal des emails</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">
               Historique des emails envoyés par l'application
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { fetchLogs(); fetchStats(); }} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Actualiser
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => { fetchLogs(); fetchStats(); }} disabled={loading} className="flex-1 sm:flex-none">
+            <RefreshCw className={`h-4 w-4 sm:mr-2 ${loading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Actualiser</span>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Trash2 className="h-4 w-4 mr-2" /> Purger &gt; 90 jours
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                <Trash2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Purger &gt; 90 jours</span>
+                <span className="sm:hidden">Purger</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -278,29 +281,29 @@ export default function AdminEmailLogs() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total (période)</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
+          <CardContent className="p-3 md:p-4">
+            <p className="text-[11px] md:text-xs text-muted-foreground">Total (période)</p>
+            <p className="text-xl md:text-2xl font-bold">{stats.total}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Envoyés</p>
-            <p className="text-2xl font-bold text-emerald-600">{stats.sent}</p>
+          <CardContent className="p-3 md:p-4">
+            <p className="text-[11px] md:text-xs text-muted-foreground">Envoyés</p>
+            <p className="text-xl md:text-2xl font-bold text-emerald-600">{stats.sent}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Échecs</p>
-            <p className="text-2xl font-bold text-destructive">{stats.failed}</p>
+          <CardContent className="p-3 md:p-4">
+            <p className="text-[11px] md:text-xs text-muted-foreground">Échecs</p>
+            <p className="text-xl md:text-2xl font-bold text-destructive">{stats.failed}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Ignorés</p>
-            <p className="text-2xl font-bold text-amber-600">{stats.skipped}</p>
+          <CardContent className="p-3 md:p-4">
+            <p className="text-[11px] md:text-xs text-muted-foreground">Ignorés</p>
+            <p className="text-xl md:text-2xl font-bold text-amber-600">{stats.skipped}</p>
           </CardContent>
         </Card>
       </div>
@@ -313,7 +316,7 @@ export default function AdminEmailLogs() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
             <div className="space-y-1">
               <Label className="text-xs">Statut</Label>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
@@ -346,7 +349,7 @@ export default function AdminEmailLogs() {
               <Label className="text-xs">Au</Label>
               <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(0); }} />
             </div>
-            <div className="space-y-1 lg:col-span-1">
+            <div className="space-y-1 col-span-2 md:col-span-1">
               <Label className="text-xs">Destinataire</Label>
               <Input
                 placeholder="email@..."
@@ -355,7 +358,7 @@ export default function AdminEmailLogs() {
                 onKeyDown={(e) => e.key === "Enter" && handleApplySearch()}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 col-span-2 md:col-span-1">
               <Button onClick={handleApplySearch} className="flex-1">Filtrer</Button>
               <Button variant="outline" onClick={handleReset}>Reset</Button>
             </div>
@@ -363,84 +366,132 @@ export default function AdminEmailLogs() {
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
+      {/* Mobile: Card list */}
+      <div className="md:hidden space-y-2">
+        {loading && logs.length === 0 ? (
+          <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Chargement...</CardContent></Card>
+        ) : logs.length === 0 ? (
+          <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Aucun email trouvé</CardContent></Card>
+        ) : (
+          logs.map((log) => (
+            <Card key={log.id} className="overflow-hidden">
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <StatusBadge status={log.status} />
+                    <Badge variant="outline" className="text-[10px]">
+                      {EMAIL_TYPE_LABELS[log.email_type] || log.email_type}
+                    </Badge>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
+                    {format(new Date(log.created_at), "dd/MM HH:mm", { locale: fr })}
+                  </span>
+                </div>
+                <div className="text-sm font-medium break-all">{log.recipient_email}</div>
+                {log.subject && (
+                  <div className="text-xs text-muted-foreground line-clamp-2">{log.subject}</div>
+                )}
+                {log.entity_url && (
+                  <Link
+                    to={log.entity_url}
+                    className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
+                  >
+                    {log.entity_type || "Voir l'entité"} <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
+                {log.error_message && (
+                  <div className="text-[11px] text-destructive bg-destructive/5 rounded p-2 break-words">
+                    {log.error_message}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Tablet/Desktop: Table */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Destinataire</TableHead>
-                <TableHead>Sujet</TableHead>
-                <TableHead>Entité</TableHead>
-                <TableHead>Erreur</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && logs.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Chargement...
-                  </TableCell>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Destinataire</TableHead>
+                  <TableHead className="hidden lg:table-cell">Sujet</TableHead>
+                  <TableHead>Entité</TableHead>
+                  <TableHead className="hidden lg:table-cell">Erreur</TableHead>
                 </TableRow>
-              ) : logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Aucun email trouvé
-                  </TableCell>
-                </TableRow>
-              ) : (
-                logs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap text-xs">
-                      {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: fr })}
-                    </TableCell>
-                    <TableCell><StatusBadge status={log.status} /></TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {EMAIL_TYPE_LABELS[log.email_type] || log.email_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm font-medium">{log.recipient_email}</TableCell>
-                    <TableCell className="text-sm max-w-[280px] truncate" title={log.subject || ""}>
-                      {log.subject || "—"}
-                    </TableCell>
-                    <TableCell>
-                      {log.entity_url ? (
-                        <Link
-                          to={log.entity_url}
-                          className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
-                        >
-                          {log.entity_type || "Voir"} <ExternalLink className="h-3 w-3" />
-                        </Link>
-                      ) : log.entity_type ? (
-                        <span className="text-xs text-muted-foreground">{log.entity_type}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-destructive max-w-[280px] truncate" title={log.error_message || ""}>
-                      {log.error_message || "—"}
+              </TableHeader>
+              <TableBody>
+                {loading && logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Chargement...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Aucun email trouvé
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: fr })}
+                      </TableCell>
+                      <TableCell><StatusBadge status={log.status} /></TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {EMAIL_TYPE_LABELS[log.email_type] || log.email_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm font-medium max-w-[200px] truncate" title={log.recipient_email}>
+                        {log.recipient_email}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm max-w-[280px] truncate" title={log.subject || ""}>
+                        {log.subject || "—"}
+                      </TableCell>
+                      <TableCell>
+                        {log.entity_url ? (
+                          <Link
+                            to={log.entity_url}
+                            className="inline-flex items-center gap-1 text-primary hover:underline text-xs"
+                          >
+                            {log.entity_type || "Voir"} <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        ) : log.entity_type ? (
+                          <span className="text-xs text-muted-foreground">{log.entity_type}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-xs text-destructive max-w-[280px] truncate" title={log.error_message || ""}>
+                        {log.error_message || "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <p className="text-xs text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="text-xs text-muted-foreground text-center sm:text-left">
           {total === 0
             ? "Aucun résultat"
             : `${page * PAGE_SIZE + 1} - ${Math.min((page + 1) * PAGE_SIZE, total)} sur ${total}`}
         </p>
-        <Pagination className="mx-0 w-auto justify-end">
-          <PaginationContent>
+        <Pagination className="mx-0 w-auto sm:justify-end">
+          <PaginationContent className="flex-wrap justify-center">
             <PaginationItem>
               <PaginationPrevious
                 onClick={(e) => { e.preventDefault(); if (page > 0) setPage(page - 1); }}
