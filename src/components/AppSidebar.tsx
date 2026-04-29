@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, Network, Map, FileText, BarChart3, AlertTriangle, Landmark,
   ClipboardCheck, XCircle, Zap, ScrollText, Settings, LogOut, Shield, Contact, AlertOctagon, FolderOpen,
-  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList, Lock, Crown, TrendingUp, Bell
+  BookOpen, Target, GraduationCap, SmilePlus, Truck, CalendarCheck, ClipboardList, Lock, Crown, TrendingUp, Bell, Mail
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
