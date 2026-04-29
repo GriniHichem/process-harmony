@@ -64,6 +64,7 @@ const adminItems: NavItem[] = [
   { title: "Permissions processus", url: "/admin/permissions-processus", icon: Shield },
   { title: "Config. notifications", url: "/admin/notifications", icon: Bell, module: "notifications" },
   { title: "Config. documents", url: "/admin/documents-config", icon: FolderOpen, module: "gestion_documentaire" },
+  { title: "Journal des emails", url: "/admin/email-logs", icon: Mail },
 ];
 
 const groupHelpTerms: Record<string, string> = {
