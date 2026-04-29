@@ -367,6 +367,7 @@ Deno.serve(async (req) => {
 
     await client.close();
     console.log("Notification email sent successfully to", profile.email);
+    await logEmail("sent");
 
     // Best-effort mark email_sent
     if (payload.notif_type) {
