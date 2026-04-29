@@ -129,6 +129,7 @@ const App = () => (
               <Route path="/admin/permissions-processus" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "super_admin", "rmq"]}><AdminProcessPermissions /></RoleGuard></ProtectedPage>} />
               <Route path="/admin/notifications" element={<ProtectedPage><RoleGuard requiredModule="notifications"><AdminNotificationsConfig /></RoleGuard></ProtectedPage>} />
               <Route path="/admin/documents-config" element={<ProtectedPage><RoleGuard requiredModule="gestion_documentaire"><AdminDocumentsConfig /></RoleGuard></ProtectedPage>} />
+              <Route path="/admin/email-logs" element={<ProtectedPage><RoleGuard allowedRoles={["admin", "super_admin"]}><AdminEmailLogs /></RoleGuard></ProtectedPage>} />
               {/* Notifications */}
               <Route path="/notifications" element={<ProtectedPage><Notifications /></ProtectedPage>} />
               {/* Super Admin */}
