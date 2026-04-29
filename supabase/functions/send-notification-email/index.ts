@@ -315,8 +315,26 @@ Deno.serve(async (req) => {
     const appName = cfg.app_name || "Q-Process";
     const appUrl = cfg.app_url || "";
 
+    const logEmail = async (status: "sent" | "failed" | "skipped", errorMessage?: string) => {
+      try {
+        await supabase.from("email_send_log").insert({
+          recipient_email: profile.email,
+          email_type: "notification",
+          subject: title,
+          status,
+          error_message: errorMessage ?? null,
+          entity_type: payload.entity_type ?? null,
+          entity_id: payload.entity_id ?? null,
+          entity_url: payload.entity_url ?? null,
+          user_id,
+          notif_type: payload.notif_type ?? null,
+        });
+      } catch (e) { console.error("log insert failed", e); }
+    };
+
     if (!smtpHost || !smtpUser || !smtpPassword) {
       console.error("SMTP config incomplete");
+      await logEmail("failed", "SMTP not configured");
       return new Response(JSON.stringify({ error: "SMTP not configured" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
