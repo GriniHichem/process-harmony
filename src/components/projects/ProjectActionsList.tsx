@@ -20,6 +20,8 @@ import { ProjectActionHistory } from "@/components/projects/ProjectActionHistory
 import { ProjectActionDependencies, type Dependency } from "@/components/projects/ProjectActionDependencies";
 import { computeMultiTaskActionProgress, computeProjectProgress } from "@/lib/projectProgress";
 import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
+import { useProfilesById } from "@/hooks/useProfilesById";
 import { ElementNotes } from "@/components/ElementNotes";
 import { ProjectActionLinks } from "@/components/projects/ProjectActionLinks";
 import { format, differenceInDays, parseISO, isAfter, isBefore, addDays, startOfDay } from "date-fns";
