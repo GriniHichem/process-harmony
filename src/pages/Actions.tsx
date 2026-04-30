@@ -417,12 +417,13 @@ export default function Actions() {
                     </div>
                     <div className="space-y-2">
                       <Label>Responsable</Label>
-                      <Select value={newLegacyAction.responsable_id} onValueChange={(v) => setNewLegacyAction({ ...newLegacyAction, responsable_id: v })}>
-                        <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                        <SelectContent>
-                          {acteursList.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <ActeurUserSelect
+                        acteurValue={newLegacyAction.responsable_id}
+                        userValue={newLegacyAction.responsable_user_id}
+                        onActeurChange={(v) => setNewLegacyAction({ ...newLegacyAction, responsable_id: v, responsable_user_id: "" })}
+                        onUserChange={(v) => setNewLegacyAction({ ...newLegacyAction, responsable_user_id: v })}
+                        acteurs={acteursList}
+                      />
                     </div>
                     <div className="space-y-2"><Label>Échéance</Label><Input type="date" value={newLegacyAction.echeance} onChange={(e) => setNewLegacyAction({ ...newLegacyAction, echeance: e.target.value })} /></div>
                     <Button onClick={handleCreateLegacy} className="w-full">Créer</Button>
