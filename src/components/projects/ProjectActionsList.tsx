@@ -22,6 +22,7 @@ import { computeMultiTaskActionProgress, computeProjectProgress } from "@/lib/pr
 import { useActeurs } from "@/hooks/useActeurs";
 import { ActeurUserSelect } from "@/components/ActeurUserSelect";
 import { useProfilesById } from "@/hooks/useProfilesById";
+import { TaskRespCompact } from "@/components/projects/TaskRespCompact";
 import { ElementNotes } from "@/components/ElementNotes";
 import { ProjectActionLinks } from "@/components/projects/ProjectActionLinks";
 import { format, differenceInDays, parseISO, isAfter, isBefore, addDays, startOfDay } from "date-fns";
