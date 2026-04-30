@@ -68,7 +68,7 @@ export default function Actions() {
   const [legacyActions, setLegacyActions] = useState<LegacyAction[]>([]);
   const [loadingLegacy, setLoadingLegacy] = useState(true);
   const [legacyDialogOpen, setLegacyDialogOpen] = useState(false);
-  const [newLegacyAction, setNewLegacyAction] = useState({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "" });
+  const [newLegacyAction, setNewLegacyAction] = useState({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "", responsable_user_id: "" });
   const [expandedAction, setExpandedAction] = useState<string | null>(null);
   const [notesMap, setNotesMap] = useState<Record<string, ActionNote[]>>({});
   const [newNote, setNewNote] = useState<Record<string, { contenu: string; avancement: string }>>({});
