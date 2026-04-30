@@ -769,7 +769,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                           <DateIndicator echeance={action.echeance} statut={action.statut} />
                         </span>
                       )}
-                      {action.responsable_id && <span>• {getActeurLabel(action.responsable_id)}</span>}
+                      {action.responsable_id && <span>• {getActeurLabel(action.responsable_id)}{action.responsable_user_id && formatRespUserName(action.responsable_user_id) ? ` — ${formatRespUserName(action.responsable_user_id)}` : ""}</span>}
                       {action.responsable_id_2 && <span>• {getActeurLabel(action.responsable_id_2)}</span>}
                       {action.responsable_id_3 && <span>• {getActeurLabel(action.responsable_id_3)}</span>}
                     </div>
