@@ -185,11 +185,12 @@ export default function Actions() {
       echeance: newLegacyAction.echeance || null,
       source_type: newLegacyAction.source_type,
       responsable_id: newLegacyAction.responsable_id || null,
+      responsable_user_id: newLegacyAction.responsable_user_id || null,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Action créée");
     setLegacyDialogOpen(false);
-    setNewLegacyAction({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "" });
+    setNewLegacyAction({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "", responsable_user_id: "" });
     fetchLegacyActions();
   };
 
