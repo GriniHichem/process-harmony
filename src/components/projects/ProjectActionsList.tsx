@@ -1050,17 +1050,19 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                                 {task.title}
                               </span>
                               {canEdit && !isFrozen && task.statut !== "termine" && (
-                                <Select value={task.responsable_id ?? "none"} onValueChange={(v) => updateTask(task.id, { responsable_id: v === "none" ? null : v })}>
-                                  <SelectTrigger className="h-6 w-32 text-[10px] border-dashed"><SelectValue placeholder="Resp." /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Non assigné</SelectItem>
-                                    {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
+                                <TaskRespCompact
+                                  acteurId={task.responsable_id}
+                                  userId={task.responsable_user_id}
+                                  acteurs={acteurs}
+                                  onChange={(acteurId, userId) => updateTask(task.id, { responsable_id: acteurId, responsable_user_id: userId })}
+                                />
                               )}
-                              {!canEdit || isFrozen || task.statut === "termine" ? (
-                                task.responsable_id && <span className="text-[10px] text-muted-foreground">{getActeurLabel(task.responsable_id)}</span>
-                              ) : null}
+                              {(!canEdit || isFrozen || task.statut === "termine") && task.responsable_id && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {getActeurLabel(task.responsable_id)}
+                                  {task.responsable_user_id && formatRespUserName(task.responsable_user_id) ? ` — ${formatRespUserName(task.responsable_user_id)}` : ""}
+                                </span>
+                              )}
                               {canEdit && !isFrozen && task.statut !== "termine" ? (
                                 <Input
                                   type="date"
