@@ -462,7 +462,7 @@ export default function Actions() {
                                 <span>{a.type_action}</span>
                                 <span>•</span>
                                 <span>{a.echeance ?? "Sans échéance"}</span>
-                                {a.responsable_id && <><span>•</span><span>{getActeurLabel(a.responsable_id)}</span></>}
+                                {a.responsable_id && <><span>•</span><span>{getActeurLabel(a.responsable_id)}{a.responsable_user_id && formatName(a.responsable_user_id) ? ` — ${formatName(a.responsable_user_id)}` : ""}</span></>}
                               </div>
                             </div>
                           </div>
