@@ -887,7 +887,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
                       {/* Responsables row */}
                       <div className="flex flex-wrap items-end gap-2">
-                        <ResponsableSelector actionId={action.id} field="responsable_id" value={action.responsable_id} label="Responsable 1" />
+                        <ResponsableR1Selector action={action} />
 
                         {hasResp2 ? (
                           <div className="flex items-end gap-1">
