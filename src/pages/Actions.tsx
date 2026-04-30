@@ -22,11 +22,13 @@ import { ProjectForm } from "@/components/projects/ProjectForm";
 import { computeProjectProgress } from "@/lib/projectProgress";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
 import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
+import { useProfilesById } from "@/hooks/useProfilesById";
 
 // --- Legacy corrective actions types ---
 type Acteur = { id: string; fonction: string | null };
 type ActionNote = { id: string; action_id: string; contenu: string; avancement: number; date_note: string; created_at: string };
-type LegacyAction = { id: string; description: string; type_action: string; statut: string; echeance: string | null; responsable_id: string | null; source_type: string };
+type LegacyAction = { id: string; description: string; type_action: string; statut: string; echeance: string | null; responsable_id: string | null; responsable_user_id: string | null; source_type: string };
 
 const statusColors: Record<string, string> = {
   planifiee: "bg-muted text-muted-foreground",
@@ -66,7 +68,7 @@ export default function Actions() {
   const [legacyActions, setLegacyActions] = useState<LegacyAction[]>([]);
   const [loadingLegacy, setLoadingLegacy] = useState(true);
   const [legacyDialogOpen, setLegacyDialogOpen] = useState(false);
-  const [newLegacyAction, setNewLegacyAction] = useState({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "" });
+  const [newLegacyAction, setNewLegacyAction] = useState({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "", responsable_user_id: "" });
   const [expandedAction, setExpandedAction] = useState<string | null>(null);
   const [notesMap, setNotesMap] = useState<Record<string, ActionNote[]>>({});
   const [newNote, setNewNote] = useState<Record<string, { contenu: string; avancement: string }>>({});
@@ -183,11 +185,12 @@ export default function Actions() {
       echeance: newLegacyAction.echeance || null,
       source_type: newLegacyAction.source_type,
       responsable_id: newLegacyAction.responsable_id || null,
+      responsable_user_id: newLegacyAction.responsable_user_id || null,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Action créée");
     setLegacyDialogOpen(false);
-    setNewLegacyAction({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "" });
+    setNewLegacyAction({ description: "", type_action: "corrective", echeance: "", source_type: "manuelle", responsable_id: "", responsable_user_id: "" });
     fetchLegacyActions();
   };
 
@@ -220,6 +223,10 @@ export default function Actions() {
   };
 
   const isOverdue = (a: LegacyAction) => a.echeance && new Date(a.echeance) < new Date() && !["cloturee", "verifiee"].includes(a.statut);
+
+  // Resolve real user names for actions that have a responsable_user_id set
+  const responsableUserIds = legacyActions.map((a) => a.responsable_user_id).filter(Boolean) as string[];
+  const { formatName } = useProfilesById(responsableUserIds);
 
   // KPI computations
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -414,12 +421,13 @@ export default function Actions() {
                     </div>
                     <div className="space-y-2">
                       <Label>Responsable</Label>
-                      <Select value={newLegacyAction.responsable_id} onValueChange={(v) => setNewLegacyAction({ ...newLegacyAction, responsable_id: v })}>
-                        <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                        <SelectContent>
-                          {acteursList.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || "—"}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <ActeurUserSelect
+                        acteurValue={newLegacyAction.responsable_id}
+                        userValue={newLegacyAction.responsable_user_id}
+                        onActeurChange={(v) => setNewLegacyAction({ ...newLegacyAction, responsable_id: v, responsable_user_id: "" })}
+                        onUserChange={(v) => setNewLegacyAction({ ...newLegacyAction, responsable_user_id: v })}
+                        acteurs={acteursList}
+                      />
                     </div>
                     <div className="space-y-2"><Label>Échéance</Label><Input type="date" value={newLegacyAction.echeance} onChange={(e) => setNewLegacyAction({ ...newLegacyAction, echeance: e.target.value })} /></div>
                     <Button onClick={handleCreateLegacy} className="w-full">Créer</Button>
@@ -454,7 +462,7 @@ export default function Actions() {
                                 <span>{a.type_action}</span>
                                 <span>•</span>
                                 <span>{a.echeance ?? "Sans échéance"}</span>
-                                {a.responsable_id && <><span>•</span><span>{getActeurLabel(a.responsable_id)}</span></>}
+                                {a.responsable_id && <><span>•</span><span>{getActeurLabel(a.responsable_id)}{a.responsable_user_id && formatName(a.responsable_user_id) ? ` — ${formatName(a.responsable_user_id)}` : ""}</span></>}
                               </div>
                             </div>
                           </div>

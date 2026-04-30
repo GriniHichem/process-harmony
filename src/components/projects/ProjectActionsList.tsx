@@ -20,6 +20,9 @@ import { ProjectActionHistory } from "@/components/projects/ProjectActionHistory
 import { ProjectActionDependencies, type Dependency } from "@/components/projects/ProjectActionDependencies";
 import { computeMultiTaskActionProgress, computeProjectProgress } from "@/lib/projectProgress";
 import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
+import { useProfilesById } from "@/hooks/useProfilesById";
+import { TaskRespCompact } from "@/components/projects/TaskRespCompact";
 import { ElementNotes } from "@/components/ElementNotes";
 import { ProjectActionLinks } from "@/components/projects/ProjectActionLinks";
 import { format, differenceInDays, parseISO, isAfter, isBefore, addDays, startOfDay } from "date-fns";
@@ -155,6 +158,13 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const [filterEcheance, setFilterEcheance] = useState("all");
   const [sortBy, setSortBy] = useState("ordre");
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
+
+  // Resolve real user names for actions/tasks that have a responsable_user_id set
+  const responsableUserIds = [
+    ...actions.map((a) => a.responsable_user_id),
+    ...Object.values(tasksMap).flat().map((t) => t.responsable_user_id),
+  ].filter(Boolean) as string[];
+  const { formatName: formatRespUserName } = useProfilesById(responsableUserIds);
 
   const fetchActions = async () => {
     const { data, error } = await supabase
@@ -585,6 +595,21 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     </div>
   );
 
+  // Responsable 1 = couplé à responsable_user_id pour cibler la personne réelle (notifications)
+  const ResponsableR1Selector = ({ action, disabled }: { action: ProjectAction; disabled?: boolean }) => (
+    <div className="space-y-1 w-56">
+      <label className="text-[10px] font-medium text-muted-foreground">Responsable 1</label>
+      <ActeurUserSelect
+        acteurValue={action.responsable_id ?? ""}
+        userValue={action.responsable_user_id ?? ""}
+        onActeurChange={(v) => updateAction(action.id, { responsable_id: v || null, responsable_user_id: null })}
+        onUserChange={(v) => updateAction(action.id, { responsable_user_id: v || null })}
+        acteurs={acteurs}
+        placeholder="Assigner"
+      />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* Project deadline banner */}
@@ -745,7 +770,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                           <DateIndicator echeance={action.echeance} statut={action.statut} />
                         </span>
                       )}
-                      {action.responsable_id && <span>• {getActeurLabel(action.responsable_id)}</span>}
+                      {action.responsable_id && <span>• {getActeurLabel(action.responsable_id)}{action.responsable_user_id && formatRespUserName(action.responsable_user_id) ? ` — ${formatRespUserName(action.responsable_user_id)}` : ""}</span>}
                       {action.responsable_id_2 && <span>• {getActeurLabel(action.responsable_id_2)}</span>}
                       {action.responsable_id_3 && <span>• {getActeurLabel(action.responsable_id_3)}</span>}
                     </div>
@@ -870,7 +895,7 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
 
                       {/* Responsables row */}
                       <div className="flex flex-wrap items-end gap-2">
-                        <ResponsableSelector actionId={action.id} field="responsable_id" value={action.responsable_id} label="Responsable 1" />
+                        <ResponsableR1Selector action={action} />
 
                         {hasResp2 ? (
                           <div className="flex items-end gap-1">
@@ -1026,17 +1051,19 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
                                 {task.title}
                               </span>
                               {canEdit && !isFrozen && task.statut !== "termine" && (
-                                <Select value={task.responsable_id ?? "none"} onValueChange={(v) => updateTask(task.id, { responsable_id: v === "none" ? null : v })}>
-                                  <SelectTrigger className="h-6 w-32 text-[10px] border-dashed"><SelectValue placeholder="Resp." /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Non assigné</SelectItem>
-                                    {acteurs.map((a) => <SelectItem key={a.id} value={a.id}>{a.fonction || a.organisation || "Acteur"}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
+                                <TaskRespCompact
+                                  acteurId={task.responsable_id}
+                                  userId={task.responsable_user_id}
+                                  acteurs={acteurs}
+                                  onChange={(acteurId, userId) => updateTask(task.id, { responsable_id: acteurId, responsable_user_id: userId })}
+                                />
                               )}
-                              {!canEdit || isFrozen || task.statut === "termine" ? (
-                                task.responsable_id && <span className="text-[10px] text-muted-foreground">{getActeurLabel(task.responsable_id)}</span>
-                              ) : null}
+                              {(!canEdit || isFrozen || task.statut === "termine") && task.responsable_id && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {getActeurLabel(task.responsable_id)}
+                                  {task.responsable_user_id && formatRespUserName(task.responsable_user_id) ? ` — ${formatRespUserName(task.responsable_user_id)}` : ""}
+                                </span>
+                              )}
                               {canEdit && !isFrozen && task.statut !== "termine" ? (
                                 <Input
                                   type="date"
