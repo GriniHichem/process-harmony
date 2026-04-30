@@ -1,102 +1,53 @@
-# Refonte design & UX des Plans d'action
+## Objectif
 
-Objectif : moderniser le module sans toucher à la logique métier (calculs d'avancement, permissions, RLS, workflows). Apporter plus de hiérarchie visuelle, de respiration, de cohérence et d'indices d'état.
+Appliquer la logique « Acteur (fonction) → Utilisateur réel » (composant `ActeurUserSelect`) à **tout le module Plan d'action** (projets + actions legacy), exactement comme dans les modules Risques / Indicateurs / NC. Quand une fonction est portée par **un seul utilisateur** → sélection automatique. Sinon → menu pour préciser **la personne réelle**, ce qui permet à la notification (push + email SMTP) de cibler le bon individu.
 
-## 1. Page Liste des projets (`src/pages/Actions.tsx`)
+## État actuel
 
-### Header de page
-- Titre plus aéré avec sous-titre, séparateur subtil et un compteur visuel : "12 projets · 8 en cours · 3 en retard"
-- 3 mini-KPI cards en haut (Total / En cours / En retard) avec icônes et couleurs sémantiques
-- Bouton "Nouveau projet" mis en avant (variant primary, icône + ombre douce)
+- La table `public.actions` (legacy) **a déjà** la colonne `responsable_user_id` (migration 20260317122959).
+- Les tables `project_actions` et `project_tasks` ont aussi déjà `responsable_user_id` et sont déjà couvertes par la trigger `notify_responsibility_change`.
+- La trigger envoie déjà la notification au bon `user_id` quand il est précisé, sinon retombe sur le 1er profil lié à la fonction.
+- Côté UI cependant, le module Actions **n'utilise pas** `ActeurUserSelect` : il utilise un `Select` simple basé uniquement sur `acteurs`, donc l'utilisateur réel n'est jamais transmis et la notification cible un profil arbitraire.
 
-### Barre de filtres
-- Ligne de filtres élégante : recherche texte (nouvelle), filtre statut (existant), tri (nouveau : récents / échéance / avancement), toggle vue **Grille / Liste compacte**
-- Compteur de résultats à droite ("8 résultats")
+## Changements à faire
 
-### Grille de projets
-- Espacement augmenté (gap 5 → respire), cartes plus harmonieuses
-- Empty state illustré (icône large + message + CTA)
+### 1. Page `src/pages/Actions.tsx` — création d'action legacy
 
-## 2. Carte Projet (`src/components/projects/ProjectCard.tsx`)
+- Ajouter `responsable_user_id` dans `LegacyAction` et dans le state `newLegacyAction`.
+- Remplacer le `Select` du formulaire (ligne ~417) par `<ActeurUserSelect>` avec gestion des deux valeurs (acteurId + userId).
+- À l'INSERT (ligne ~180), persister `responsable_user_id`.
+- Affichage de la ligne action (ligne ~457) : si `responsable_user_id`, afficher « Fonction — Prénom Nom » ; sinon afficher seulement la fonction (comportement actuel).
 
-- Bandeau image plus haut (h-36) avec **dégradé en bas** pour lisibilité du titre si on superpose, sinon image + zone texte
-- Si pas d'image : header coloré dégradé selon statut (gradient subtil)
-- Badge statut avec **point coloré** (●) au lieu de fond plein, plus discret
-- Ligne meta : icônes alignées avec compteurs (actions, échéance, responsable avatar)
-- Barre de progression repensée : 
-  - h-1.5, fond plus clair
-  - Couleur dynamique : vert ≥80%, ambre 40-79%, rouge <40% si en retard
-  - Pourcentage en grand à droite (text-base font-semibold)
-- Hover : élévation douce + légère translation Y (-2px) au lieu du scale
-- Indicateur "en retard" en coin (badge rouge discret) si échéance dépassée
-- Indicateur cadenas si privé
+### 2. `src/components/projects/ProjectActionsList.tsx` — actions de projet
 
-## 3. Page Détail Projet (`src/pages/ProjectDetail.tsx`)
+- Modifier le composant interne `ResponsableSelector` (ligne ~575) pour utiliser `ActeurUserSelect` au lieu d'un `Select` simple.
+  - Pour `responsable_id` (R1) : couplé à `responsable_user_id` (déjà en BDD).
+  - Pour `responsable_id_2` et `responsable_id_3` : pas de champ user dédié en BDD → garder le sélecteur simple actuel (R2/R3 sont historiquement des co-responsables au niveau fonction, ne déclenchent pas de notification individuelle). À confirmer ; sinon ajouter colonnes `responsable_user_id_2/3` via migration.
+- `updateAction` : quand on change `responsable_id`, réinitialiser `responsable_user_id = null` ; quand on change l'utilisateur, mettre à jour `responsable_user_id` seul.
+- Sous-tâches (`project_tasks`, ligne ~1029) : remplacer aussi le `Select` simple par `ActeurUserSelect` compact (taille réduite). La table `project_tasks` a déjà `responsable_user_id`.
 
-### Header
-- Hero avec image en background + overlay dégradé (text blanc lisible) si image
-- Sans image : header bleu dégradé subtil (var primary → background)
-- Titre XL + slogan + chips meta (statut, privé, responsable avec avatar)
-- Bloc "métriques" sous le titre : 3 chiffres clés (Avancement / Actions / Jours restants) façon stat-cards horizontales
+### 3. Affichages
 
-### Barre de progression
-- Plus large (max-w-xl), h-3, label "Avancement global" au-dessus
-- Texte d'aide : "X actions sur Y terminées"
+- Quand `responsable_user_id` est renseigné, afficher « Fonction — Prénom Nom » (lookup léger via `profiles`) au lieu de la seule fonction. Ajouter un petit hook utilitaire `useProfilesById` (cache en mémoire) ou faire un fetch ciblé, pour éviter un N+1.
 
-### Tabs
-- Tabs avec icônes (Vue d'ensemble, Actions & Tâches, Planning)
-- Underline style au lieu du fond plein, plus moderne
+### 4. Notifications — aucune migration nécessaire
 
-### Vue d'ensemble
-- Layout 2 colonnes mieux équilibré
-- Cards avec headers colorés discrets et icônes dans pastilles rondes
-- Section "Acteurs impliqués" avec avatars empilés (stack) au lieu de simples badges
+- La trigger `notify_responsibility_change` lit déjà `responsable_user_id` en priorité, puis tombe sur le premier profil lié à l'acteur. Donc dès que l'UI remplit ce champ, la notification (push + email via `dispatch_notification_email` → `send-notification-email`) cible automatiquement la bonne personne.
+- Aucune modification de fonction edge ou de SQL n'est nécessaire.
+- Vérifier seulement que la clause `resolve_notification_channel(_user_id, ...)` reçoit bien le user_id ciblé (déjà le cas).
 
-## 4. Liste Actions & Tâches (`src/components/projects/ProjectActionsList.tsx`)
-
-- Carte d'action : 
-  - Bordure gauche colorée selon statut (4px, signal visuel fort)
-  - Header compact : titre + statut pill + responsables (avatars empilés) + menu actions à droite
-  - Mini barre d'avancement intégrée dans la carte
-  - Badge "En retard" rouge si échéance dépassée
-  - Icône chevron animée à l'expansion
-- Tâches enfants : indentation visuelle avec ligne verticale guide (border-left dashed)
-- Action "Ajouter une tâche" en bouton ghost avec icône + à la fin de la liste des tâches
-- Toolbar de filtre/tri en haut : Statut, Responsable, "Mes actions uniquement"
-- Empty state amélioré
-
-## 5. Planning Gantt (`src/components/projects/ProjectGanttChart.tsx`)
-
-- Légende des statuts avec pastilles colorées plus visibles
-- Lignes d'aujourd'hui (today line) en pointillés rouges discrets
-- Hover sur barre : tooltip riche (titre, dates, %, responsable)
-- Zebra-striping plus subtil sur les lignes
-- En-tête sticky avec ombre quand scroll
-
-## 6. Cohérence globale
-
-- Utilisation systématique des tokens du design system (`--shadow-sm/md/lg`, couleurs sémantiques)
-- Animations légères : `animate-in fade-in-0 slide-in-from-bottom-1` sur les cartes au mount
-- Tous les états vides avec même pattern (icône large muted + titre + description + CTA optionnel)
-- Avatars : composant réutilisable `<UserAvatarStack users={[]} max={3} />` pour responsables multiples
-
-## Fichiers impactés
+## Récap technique
 
 | Fichier | Changement |
 |---|---|
-| `src/pages/Actions.tsx` | KPI header, recherche, tri, vue grille/liste, empty state |
-| `src/components/projects/ProjectCard.tsx` | Refonte visuelle carte (bandeau, progress, hover, badges) |
-| `src/pages/ProjectDetail.tsx` | Hero header, stats, tabs avec icônes, layout overview |
-| `src/components/projects/ProjectActionsList.tsx` | Bordure statut, avatars, mini progress, toolbar filtres |
-| `src/components/projects/ProjectGanttChart.tsx` | Légende, today line, tooltip riche |
-| `src/components/projects/UserAvatarStack.tsx` (nouveau) | Composant avatars empilés réutilisable |
-
-## Ce qui n'est PAS touché
-- Logique d'avancement (`src/lib/projectProgress.ts`)
-- Permissions, RLS, AuthContext
-- Schéma DB, migrations
-- Workflows commentaires privés / collaborateurs
-- Logique de création/édition (ProjectForm)
+| `src/pages/Actions.tsx` | Form création + état + insert + affichage utilisent `ActeurUserSelect` et `responsable_user_id` |
+| `src/components/projects/ProjectActionsList.tsx` | `ResponsableSelector` (R1) → `ActeurUserSelect` ; sélecteur de tâche → `ActeurUserSelect` |
+| (option) `src/hooks/useProfilesById.ts` | Petit hook de lookup pour afficher « Fonction — Prénom Nom » |
+| BDD | Aucune migration |
+| Edge functions | Aucune modification |
 
 ## Résultat attendu
-Module Plans d'action visuellement aligné avec le reste du SMQ, plus respirant, avec une hiérarchie claire et des indices d'état immédiats (couleurs, avatars, retards). Aucune régression fonctionnelle.
+
+- À la création/édition d'une action ou d'une tâche, l'utilisateur choisit la fonction. Si **1 seule** personne est rattachée → badge auto avec son nom. Si **plusieurs** → liste pour choisir précisément.
+- Les notifications (cloche + email SMTP) arrivent à la **personne réelle** sélectionnée, pas à un profil arbitraire de la fonction.
+- Cohérence visuelle et comportementale parfaite avec Risques, Indicateurs, NC, Enjeux.
