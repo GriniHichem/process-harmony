@@ -158,6 +158,13 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
   const [sortBy, setSortBy] = useState("ordre");
   const [dependencies, setDependencies] = useState<Dependency[]>([]);
 
+  // Resolve real user names for actions/tasks that have a responsable_user_id set
+  const responsableUserIds = [
+    ...actions.map((a) => a.responsable_user_id),
+    ...Object.values(tasksMap).flat().map((t) => t.responsable_user_id),
+  ].filter(Boolean) as string[];
+  const { formatName: formatRespUserName } = useProfilesById(responsableUserIds);
+
   const fetchActions = async () => {
     const { data, error } = await supabase
       .from("project_actions")
