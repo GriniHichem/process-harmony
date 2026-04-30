@@ -587,6 +587,21 @@ export function ProjectActionsList({ projectId, projectDeadline, canEdit, canDel
     </div>
   );
 
+  // Responsable 1 = couplé à responsable_user_id pour cibler la personne réelle (notifications)
+  const ResponsableR1Selector = ({ action, disabled }: { action: ProjectAction; disabled?: boolean }) => (
+    <div className="space-y-1 w-56">
+      <label className="text-[10px] font-medium text-muted-foreground">Responsable 1</label>
+      <ActeurUserSelect
+        acteurValue={action.responsable_id ?? ""}
+        userValue={action.responsable_user_id ?? ""}
+        onActeurChange={(v) => updateAction(action.id, { responsable_id: v || null, responsable_user_id: null })}
+        onUserChange={(v) => updateAction(action.id, { responsable_user_id: v || null })}
+        acteurs={acteurs}
+        placeholder="Assigner"
+      />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* Project deadline banner */}
