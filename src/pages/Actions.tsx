@@ -224,6 +224,10 @@ export default function Actions() {
 
   const isOverdue = (a: LegacyAction) => a.echeance && new Date(a.echeance) < new Date() && !["cloturee", "verifiee"].includes(a.statut);
 
+  // Resolve real user names for actions that have a responsable_user_id set
+  const responsableUserIds = legacyActions.map((a) => a.responsable_user_id).filter(Boolean) as string[];
+  const { formatName } = useProfilesById(responsableUserIds);
+
   // KPI computations
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const kpiTotal = projects.length;
