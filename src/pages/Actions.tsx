@@ -22,11 +22,13 @@ import { ProjectForm } from "@/components/projects/ProjectForm";
 import { computeProjectProgress } from "@/lib/projectProgress";
 import { ProjectGanttChart } from "@/components/projects/ProjectGanttChart";
 import { useActeurs } from "@/hooks/useActeurs";
+import { ActeurUserSelect } from "@/components/ActeurUserSelect";
+import { useProfilesById } from "@/hooks/useProfilesById";
 
 // --- Legacy corrective actions types ---
 type Acteur = { id: string; fonction: string | null };
 type ActionNote = { id: string; action_id: string; contenu: string; avancement: number; date_note: string; created_at: string };
-type LegacyAction = { id: string; description: string; type_action: string; statut: string; echeance: string | null; responsable_id: string | null; source_type: string };
+type LegacyAction = { id: string; description: string; type_action: string; statut: string; echeance: string | null; responsable_id: string | null; responsable_user_id: string | null; source_type: string };
 
 const statusColors: Record<string, string> = {
   planifiee: "bg-muted text-muted-foreground",
